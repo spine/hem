@@ -1,7 +1,8 @@
-connect  = require('connect')
-fs       = require('fs')
-uglify   = require('uglify-js')
-hem      = require('./hem')
+{resolve}    = require('path')
+express      = require('express')
+fs           = require('fs')
+uglify       = require('uglify-js')
+hem          = require('./hem')
 
 class Slug
   defaults:
@@ -14,29 +15,30 @@ class Slug
   
   constructor: (@options = {}) ->
     @options = @readSlug(@options) if typeof @options is 'string'
-    @options[key] or= value for key, value in @defaults
+    @options[key] or= value for key, value of @defaults
+    @options.public = resolve(@options.public)
     @addPaths(@options.paths)
   
   readSlug: (path) ->
-    JSON.parse(fs.writeFileSync(path or @options.slug))
+    JSON.parse(fs.readFileSync(path or @options.slug, 'utf-8'))
   
   server: ->
-    server = connect.createServer()
-    server.use(connect.static(@options.public))
+    server = express.createServer()
+    server.use(express.static(@options.public))
     server.get('/application.js', @createPackage().createServer())  
-    server.serve(@options.port)
+    server.listen(@options.port)
     @options.port
     
   build: ->
-    slug = @createPackage().compile()
-    slug = uglify(slug)
+    package = @createPackage().compile()
+    package = uglify(package)
     applicationPath = @options.public + '/application.js'
-    fs.writeFileSync(applicationPath, slug)
+    fs.writeFileSync(applicationPath, package)
     
   static: ->
-    server = connect.createServer()
-    server.use(connect.static(@options.public))
-    server.serve(@options.port)
+    server = express.createServer()
+    server.use(express.static(@options.public))
+    server.listen(@options.port)
     @options.port
     
   addPaths: (paths = []) ->

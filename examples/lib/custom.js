@@ -1,1 +1,1 @@
-module.exports = function(){ alert("Custom!"); }
+function custom(){ alert("Custom!"); }

@@ -1,5 +1,6 @@
-fs     = require('fs')
-Source = require('./source')
+fs        = require('fs')
+compilers = require('./compilers')
+Source    = require('./source')
 
 class Package
   constructor: (config = {}) ->
@@ -21,8 +22,9 @@ class Package
     
   createServer: ->
     (req, res, next) =>
+      content = @compile()
       res.writeHead 200, 'Content-Type': 'text/javascript'
-      res.end @compile()
+      res.end content
 
 module.exports = 
   compilers:  compilers
