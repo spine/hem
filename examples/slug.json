@@ -1,18 +1,5 @@
 {
-  // Specify main JavaScript file:
-  // "main": "./app/index.js",
-  // 
-  // Specify main CSS file:
-  // "css": "./css/index.less",
-  // 
-  // Specify public directory:
-  // "public": "./public"
-  // 
-  // Add load paths:
-  //  "paths": ["./app"]
-  //
-  // We want these to load before (not CommonJS):
-  //  "libs": [
-  //    "./lib/other.js"
-  //  ]
+  "libs": [
+   "./lib/custom.js"
+  ]
 }

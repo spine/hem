@@ -24,14 +24,14 @@ class Slug
   
   server: ->
     server = express.createServer()
-    server.use(express.static(@options.public))
     server.get('/application.js', @createPackage().createServer())  
+    server.use(express.static(@options.public))
     server.listen(@options.port)
     @options.port
     
   build: ->
     package = @createPackage().compile()
-    package = uglify(package)
+    # package = uglify(package)
     applicationPath = @options.public + '/application.js'
     fs.writeFileSync(applicationPath, package)
     

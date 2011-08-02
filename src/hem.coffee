@@ -1,5 +1,7 @@
 fs        = require('fs')
+eco       = require('eco')
 compilers = require('./compilers')
+stitch    = require('../assets/stitch')
 Source    = require('./source')
 
 class Package
@@ -12,7 +14,7 @@ class Package
   compileSources: ->
     sources = []
     sources = sources.concat Source.resolve(path) for path in @require
-    (source.module() for source in sources).join("\n")
+    stitch(identifier: @identifier, sources: sources)
     
   compileLibs: ->
     (fs.readFileSync(path, 'utf8') for path in @libs).join("\n")

@@ -10,11 +10,9 @@ try
     cs.compile fs.readFileSync path, 'utf8'
 catch err
 
-try
-  eco = require 'eco'
-  compilers.eco = (path) ->
-    eco.precompile fs.readFileSync path, 'utf8'
-catch err
+eco = require 'eco'
+compilers.eco = (path) ->
+  eco.precompile fs.readFileSync path, 'utf8'
 
 compilers.tmpl = (path) ->
   content = fs.readFileSync(path, 'utf8')
