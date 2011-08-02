@@ -69,14 +69,19 @@ class Source
 class Package
   constructor: (config = {}) ->
     @identifier  = config.identifier ? 'require'
-    @libs        = config.libs  ? ['./lib']
-    @paths       = config.paths ? ['./app/index']
+    @libs        = config.libs  ? []
+    @paths       = config.paths ? []
     @paths       = [@paths] if typeof @paths is 'string'
   
   compile: ->
     sources = []
     sources = sources.concat Source.resolve(path) for path in @paths
     (source.module() for source in sources).join("\n")
+    
+  createServer: ->
+    (req, res, next) =>
+      res.writeHead 200, 'Content-Type': 'text/javascript'
+      res.end @compile()
 
 module.exports = 
   compilers:  compilers

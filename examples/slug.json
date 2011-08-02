@@ -1,0 +1,12 @@
+{
+  // "main": "./app/index.js",
+
+  // "css": "./css/index.less",
+  
+  // "public": "./public"
+    
+  // We want these to load before (not CommonJS)
+  // "libs": [
+  //   "./lib/other.js"
+  // ]
+}
