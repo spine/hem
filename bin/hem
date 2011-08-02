@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+var optimist = require("optimist"),
+    argv = optimist.argv;
+// 
+// optimist.usage("usage: foreman [options]");
+// 
+// options = Foreman.readSlug("./slug.json");
+
+var Slug = require("../lib/slug");
+
+// if ( !path.existsSync('./slug.json') )
+// show help
+
+  

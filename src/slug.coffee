@@ -4,36 +4,50 @@ uglify   = require('uglify-js')
 hem      = require('./hem')
 
 class Slug
-  @readSlug: (path) ->
-    JSON.parse(fs.writeFileSync(path or './slug.json'))
+  defaults:
+    slug: './slug.json'
+    main: './app/index'
+    libs: []
+    public: './public'
+    paths: ['./app']
+    port: process.env.PORT or 9294
   
-  @server: (options = {}) ->
+  constructor: (@options = {}) ->
+    @options = @readSlug(@options) if typeof @options is 'string'
+    @options[key] or= value for key, value in @defaults
+    @addPaths(@options.paths)
+  
+  readSlug: (path) ->
+    JSON.parse(fs.writeFileSync(path or @options.slug))
+  
+  server: ->
     server = connect.createServer()
-    server.use(connect.static(options.public or './public'))
-    server.get('/application.js', @package(options).createServer())  
-    port = process.env.PORT or options.port or 9294
-    server.serve(port)
-    port
+    server.use(connect.static(@options.public))
+    server.get('/application.js', @createPackage().createServer())  
+    server.serve(@options.port)
+    @options.port
     
-  @build: (options = {}) ->
-    slug = @package(options).compile()
+  build: ->
+    slug = @createPackage().compile()
     slug = uglify(slug)
-    applicationPath = (options.public or './public') + '/application.js'
+    applicationPath = @options.public + '/application.js'
     fs.writeFileSync(applicationPath, slug)
     
-  @static: (options = {}) ->
+  static: ->
     server = connect.createServer()
-    server.use(connect.static(options.public or './public'))
-    port = process.env.PORT or options.port or 9294
-    server.serve(port)
-    port
+    server.use(connect.static(@options.public))
+    server.serve(@options.port)
+    @options.port
+    
+  addPaths: (paths = []) ->
+    require.paths.unshift(path) for path in paths
     
   # Private
   
-  @package: (options = {}) ->
+  createPackage: ->
     hem.createPackage(
-      paths: options.main or './app/index'
-      libs:  options.libs or './lib'
+      require: @options.main
+      libs:    @options.libs
     )
 
 module.exports = Slug

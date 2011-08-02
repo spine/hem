@@ -19,8 +19,8 @@ getPackagePath = (path) ->
     package = JSON.parse(fs.readFileSync(package))
     path = package.browser or package.browserify or package.main
     throw("Invalid package #{package}") unless path
-    path
   catch e
+  path
 
 # Resolves a `require()` call. Pass in the name of the module where
 # the call was made, and the path that was required. 
