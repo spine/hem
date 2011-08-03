@@ -1,7 +1,7 @@
 { 
   "name": "hem", 
   "description": "CommonJS stitcher.", 
-  "version": "0.0.3", 
+  "version": "0.0.4", 
   "author": "maccman", 
   "licenses":
     [{ 
@@ -19,7 +19,7 @@
     "eco": "1.1.0-rc-1",
     "uglify-js": "~1.0.6",
     "express": "~2.4.3",
-    "detective": "~0.0.1",
+    "fast-detective": "~0.0.1",
     "optimist": "~0.2.6",
     "coffee-script" : "~1.1.1"
   }

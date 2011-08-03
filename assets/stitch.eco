@@ -17,7 +17,7 @@
           throw err;
         }
       } else {
-        throw 'module' + name + 'not found';
+        throw 'module ' + name + ' not found';
       }
     }, expand = function(root, name) {
       var results = [], parts, part;

@@ -2,7 +2,7 @@ fs        = require('fs')
 eco       = require('eco')
 compilers = require('./compilers')
 stitch    = require('../assets/stitch')
-Source    = require('./source')
+Sources   = require('./sources')
 
 class Package
   constructor: (config = {}) ->
@@ -10,11 +10,10 @@ class Package
     @libs        = config.libs    ? []
     @require     = config.require ? []
     @require     = [@require] if typeof @require is 'string'
-  
+
   compileSources: ->
-    sources = []
-    sources = sources.concat Source.resolve(path) for path in @require
-    stitch(identifier: @identifier, sources: sources)
+    @sources or= new Sources(@require)
+    stitch(identifier: @identifier, sources: @sources.resolve())
     
   compileLibs: ->
     (fs.readFileSync(path, 'utf8') for path in @libs).join("\n")
@@ -30,7 +29,6 @@ class Package
 
 module.exports = 
   compilers:  compilers
-  Source:     Source
   Package:    Package
   createPackage: (config) -> 
     new Package(config)
