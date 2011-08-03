@@ -16,12 +16,11 @@
   "main" : "./lib/hem.js",
   "bin": { "hem": "./bin/hem" },
   "dependencies" : { 
-    "eco": "~1.0.2"
-    "uglify-js": "~1.0.2"
-    "express": "~2.3.4"
-    "detective": "~2.3.4"
-  },
-  "devDependencies": {
-    "coffee-script" : "~1.1.1",
-  }  
+    "eco": "1.1.0-rc-1",
+    "uglify-js": "~1.0.6",
+    "express": "~2.4.3",
+    "detective": "~0.0.1",
+    "optimist": "~0.2.6",
+    "coffee-script" : "~1.1.1"
+  }
 }
