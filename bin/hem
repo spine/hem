@@ -17,10 +17,12 @@ var help = function(){
   process.exit();
 };
 
-var options = path.existsSync('./slug.json') ? './slug.json' : null;
+var options = path.existsSync('./slug.json') ? 
+                Slug.readSlug('./slug.json') : {}
+options.port = options.port || argv.p || argv.port;
+
 var slug    = new Slug(options);
 var command = argv._[0];
-
 if ( !slug[command] ) help();
 
 slug[command]();

@@ -14,14 +14,14 @@ class Slug
     dependencies: []
     port: process.env.PORT or 9294
   
+  @readSlug: (path) ->
+    JSON.parse(fs.readFileSync(path, 'utf-8'))
+  
   constructor: (@options = {}) ->
     @options = @readSlug(@options) if typeof @options is 'string'
     @options[key] or= value for key, value of @defaults
     @options.public = resolve(@options.public)
-    @addPaths(@options.paths)
-  
-  readSlug: (path) ->
-    JSON.parse(fs.readFileSync(path or @options.slug, 'utf-8'))
+    @addPaths(@options.paths)  
   
   server: ->
     server = express.createServer()
