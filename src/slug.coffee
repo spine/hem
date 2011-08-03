@@ -11,6 +11,7 @@ class Slug
     libs: []
     public: './public'
     paths: ['./app']
+    dependencies: []
     port: process.env.PORT or 9294
   
   constructor: (@options = {}) ->
@@ -27,7 +28,6 @@ class Slug
     server.get('/application.js', @createPackage().createServer())  
     server.use(express.static(@options.public))
     server.listen(@options.port)
-    @options.port
     
   build: ->
     package = @createPackage().compile()
@@ -39,7 +39,6 @@ class Slug
     server = express.createServer()
     server.use(express.static(@options.public))
     server.listen(@options.port)
-    @options.port
     
   addPaths: (paths = []) ->
     require.paths.unshift(path) for path in paths
@@ -47,8 +46,10 @@ class Slug
   # Private
   
   createPackage: ->
+    require = [].concat(@options.dependencies)
+    require.push(@options.main)
     hem.createPackage(
-      require: @options.main
+      require: require
       libs:    @options.libs
     )
 
