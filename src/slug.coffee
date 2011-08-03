@@ -31,7 +31,7 @@ class Slug
     
   build: ->
     package = @createPackage().compile()
-    # package = uglify(package)
+    package = uglify(package)
     applicationPath = @options.public + '/application.js'
     fs.writeFileSync(applicationPath, package)
     
