@@ -35,7 +35,7 @@ Slugs are how Hem knows about application. Think of them as a bit like Gemfiles.
     
     // {
     //   Specify main JavaScript file:
-    //   "main": "./app/index.js",
+    //   "main": "./app/index",
     //   
     //   Specify main CSS file:
     //   "css": "./css/index.less",

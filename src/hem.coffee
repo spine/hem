@@ -1,5 +1,6 @@
 fs        = require('fs')
 eco       = require('eco')
+uglify    = require('uglify-js')
 compilers = require('./compilers')
 stitch    = require('../assets/stitch')
 Sources   = require('./sources')
@@ -18,8 +19,10 @@ class Package
   compileLibs: ->
     (fs.readFileSync(path, 'utf8') for path in @libs).join("\n")
     
-  compile: ->
-    [@compileLibs(), @compileSources()].join("\n")
+  compile: (compress = false) ->
+    content = [@compileLibs(), @compileSources()].join("\n")
+    content = uglify(content) if compress
+    content
     
   createServer: ->
     (req, res, next) =>

@@ -1,13 +1,14 @@
 {resolve}    = require('path')
 express      = require('express')
 fs           = require('fs')
-uglify       = require('uglify-js')
 hem          = require('./hem')
+stylus       = require('./stylus')
 
 class Slug
   defaults:
     slug: './slug.json'
     main: './app/index'
+    css:  './css/index'
     libs: []
     public: './public'
     paths: ['./app']
@@ -25,14 +26,18 @@ class Slug
   
   server: ->
     server = express.createServer()
-    server.get('/application.js', @createPackage().createServer())  
+    server.get('/application.css', @stylusPackage().createServer())
+    server.get('/application.js', @hemPackage().createServer())  
     server.use(express.static(@options.public))
     server.listen(@options.port)
     
   build: ->
-    package = @createPackage().compile()
-    package = uglify(package)
+    package = @hemPackage().compile(true)
     applicationPath = @options.public + '/application.js'
+    fs.writeFileSync(applicationPath, package)
+    
+    package = @stylusPackage().compile(true)
+    applicationPath = @options.public + '/application.css'
     fs.writeFileSync(applicationPath, package)
     
   static: ->
@@ -45,7 +50,10 @@ class Slug
     
   # Private
   
-  createPackage: ->
+  stylusPackage: ->
+    stylus.createPackage(@options.css)
+  
+  hemPackage: ->
     require = [].concat(@options.dependencies)
     require.push(@options.main)
     hem.createPackage(

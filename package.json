@@ -21,6 +21,7 @@
     "express": "~2.4.3",
     "fast-detective": "~0.0.1",
     "optimist": "~0.2.6",
-    "coffee-script" : "~1.1.1"
+    "coffee-script" : "~1.1.1",
+    "stylus" : "~0.13.8"
   }
 }
