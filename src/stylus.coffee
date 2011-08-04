@@ -9,12 +9,13 @@ class Stylus
     
   compile: (compress = false) ->
     content = fs.readFileSync(@path, 'utf-8')
-    console.log(content)
-    
+
+    result = ""
     stylus(content)
       .include(dirname(@path))
       .set('compress', compress)
-      .render()
+      .render((err, css) -> result = css)
+    result
     
   createServer: ->
     (req, res, next) =>
