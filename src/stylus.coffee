@@ -1,4 +1,4 @@
-{normalize, existsSync, extname, dirname} = require('path')
+{existsSync, dirname} = require('path')
 stylus = require('stylus')
 fs     = require('fs')
 
@@ -10,11 +10,14 @@ class Stylus
   compile: (compress = false) ->
     content = fs.readFileSync(@path, 'utf-8')
 
-    result = ""
+    result = ''
     stylus(content)
       .include(dirname(@path))
       .set('compress', compress)
-      .render((err, css) -> result = css)
+      .render((err, css) -> 
+        throw err if err
+        result = css
+      )
     result
     
   createServer: ->
