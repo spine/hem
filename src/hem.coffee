@@ -3,7 +3,7 @@ eco          = require('eco')
 uglify       = require('uglify-js')
 compilers    = require('./compilers')
 stitch       = require('../assets/stitch')
-Dependencies = require('./dependencies')
+Dependency   = require('./dependency')
 Stitch       = require('./stitch')
 {toArray}    = require('./utils')
 
@@ -15,7 +15,7 @@ class Package
     @dependencies = toArray(config.dependencies)
 
   compileModules: ->
-    @dependency or= new Dependencies(@dependencies)
+    @dependency or= new Dependency(@dependencies)
     @stitch       = new Stitch(@paths)
     @modules      = @dependency.resolve().concat(@stitch.resolve())
     stitch(identifier: @identifier, modules: @modules)

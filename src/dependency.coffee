@@ -7,7 +7,7 @@ compilers = require('./compilers')
 mtime = (path) ->
   fs.statSync(path).mtime.valueOf()
 
-class Dependencies
+class Dependency
   constructor: (paths = []) ->
     @paths = paths
     
@@ -61,4 +61,4 @@ class Module
       detective(@compile()) 
     else []
       
-module.exports = Dependencies
+module.exports = Dependency
