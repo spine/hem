@@ -11,7 +11,7 @@ class Package
   constructor: (config = {}) ->
     @identifier   = config.identifier ? 'require'
     @libs         = toArray(config.libs)
-    @paths        = toArray(@paths)
+    @paths        = toArray(config.paths)
     @dependencies = toArray(config.dependencies)
 
   compileModules: ->
