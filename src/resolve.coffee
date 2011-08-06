@@ -1,39 +1,38 @@
-{join, normalize, resolve, extname, dirname, basename} = require('path')
+Module = require('module')
+{join, extname, dirname, basename, resolve} = require('path')
 
 isAbsolute = (path) -> /^\//.test(path)
-isRelative = (path) -> /^\.\//.test(path)
-isPackage  = (path) -> not /\//.test(path)
 
 # Normalize paths and remove extensions
-# to create valid CommonJS modue names
-namify = (path) -> 
-  path = normalize(path)
-  ext  = extname(path)
-  join(dirname(path), basename(path, ext))
-
-# Check to see if there's a more appropriate 
-# browser specific file to use when loading packages
-getPackagePath = (path) ->
-  try
-    package = require.resolve(join(path, 'package.json'))
-    package = JSON.parse(fs.readFileSync(package))
-    package.browser or package.browserify
-  catch e
+# to create valid CommonJS module names
+modulerize = (id, filename = id) -> 
+  ext = extname(filename)
+  join(dirname(id), basename(id, ext))
 
 # Resolves a `require()` call. Pass in the name of the module where
 # the call was made, and the path that was required. 
 # Returns an array of: [moduleName, scriptPath]
-# 
-#   resolve('lib/init', 'spine') #=> ['spine', '/path/to/spine.js']
-#
-module.exports = (name, path) ->
-  throw 'Path required' unless path
-  if isAbsolute(path)      
-    [namify(path), require.resolve(path)]
-  else if isRelative(path) 
-    name = dirname(name)
-    [namify(join(name, path)), require.resolve(join(resolve(name), path))]
-  else if isPackage(path)
-    [path, require.resolve(join(path, getPackagePath(path)))]
-  else
-    [path.split('/')[0], require.resolve(path)]
+
+repl =
+  id: 'repl'
+  filename: join(process.cwd(), 'repl')
+  paths: module.paths
+
+module.exports = (request, parent = repl) ->
+  [id, paths] = Module._resolveLookupPaths(request, parent)  
+  filename    = Module._findPath(request, paths)
+  
+  unless filename
+    throw new Error("Cannot find module '#{request}'")
+    
+  if isAbsolute(id)
+    paths = paths.sort (a, b) -> (b.length - a.length)
+    for path in paths when id.indexOf(path) != -1
+      id = id.replace(path + '/', '')
+      break
+  [modulerize(id, filename), filename]
+  
+module.exports.paths = (filename) ->
+  Module._nodeModulePaths(dirname(filename))
+  
+module.exports.modulerize = modulerize

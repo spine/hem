@@ -6,14 +6,13 @@ stylus       = require('./stylus')
 
 class Slug
   defaults:
-    slug: './slug.json'
-    main: './app/index'
-    css:  './css/index'
-    libs: []
-    public: './public'
-    paths: ['./app']
+    slug:         './slug.json'
+    css:          './css/index'
+    libs:         []
+    public:       './public'
+    paths:        ['./app']
     dependencies: []
-    port: process.env.PORT or 9294
+    port:         process.env.PORT or 9294
   
   @readSlug: (path) ->
     JSON.parse(fs.readFileSync(path, 'utf-8'))
@@ -22,7 +21,6 @@ class Slug
     @options = @readSlug(@options) if typeof @options is 'string'
     @options[key] or= value for key, value of @defaults
     @options.public = resolve(@options.public)
-    @addPaths(@options.paths)  
   
   server: ->
     server = express.createServer()
@@ -45,20 +43,16 @@ class Slug
     server.use(express.static(@options.public))
     server.listen(@options.port)
     
-  addPaths: (paths = []) ->
-    require.paths.unshift(path) for path in paths
-    
   # Private
   
   stylusPackage: ->
     stylus.createPackage(@options.css)
   
   hemPackage: ->
-    require = [].concat(@options.dependencies)
-    require.push(@options.main)
     hem.createPackage(
-      require: require
-      libs:    @options.libs
+      dependencies: @options.dependencies
+      paths: @options.paths
+      libs: @options.libs
     )
 
 module.exports = Slug

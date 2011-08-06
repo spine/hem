@@ -1,26 +1,30 @@
-fs        = require('fs')
-eco       = require('eco')
-uglify    = require('uglify-js')
-compilers = require('./compilers')
-stitch    = require('../assets/stitch')
-Sources   = require('./sources')
+fs           = require('fs')
+eco          = require('eco')
+uglify       = require('uglify-js')
+compilers    = require('./compilers')
+stitch       = require('../assets/stitch')
+Dependencies = require('./dependencies')
+Stitch       = require('./stitch')
+{toArray}    = require('./utils')
 
 class Package
   constructor: (config = {}) ->
-    @identifier  = config.identifier ? 'require'
-    @libs        = config.libs    ? []
-    @require     = config.require ? []
-    @require     = [@require] if typeof @require is 'string'
+    @identifier   = config.identifier ? 'require'
+    @libs         = toArray(config.libs)
+    @paths        = toArray(@paths)
+    @dependencies = toArray(config.dependencies)
 
-  compileSources: ->
-    @sources or= new Sources(@require)
-    stitch(identifier: @identifier, sources: @sources.resolve())
+  compileModules: ->
+    @dependency or= new Dependencies(@dependencies)
+    @stitch       = new Stitch(@paths)
+    @modules      = @dependency.resolve().concat(@stitch.resolve())
+    stitch(identifier: @identifier, modules: @modules)
     
   compileLibs: ->
     (fs.readFileSync(path, 'utf8') for path in @libs).join("\n")
     
   compile: (compress = false) ->
-    content = [@compileLibs(), @compileSources()].join("\n")
+    content = [@compileLibs(), @compileModules()].join("\n")
     content = uglify(content) if compress
     content
     

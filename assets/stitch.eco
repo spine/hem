@@ -6,16 +6,16 @@
         return module;
       } else if (fn = modules[path] || modules[path = expand(path, './index')]) {
         module = {id: name, exports: {}};
-        try {
+        // try {
           cache[name] = module.exports;
           fn(module.exports, function(name) {
             return require(name, dirname(path));
           }, module);
           return cache[name] = module.exports;
-        } catch (err) {
-          delete cache[name];
-          throw err;
-        }
+        // } catch (err) {
+        //   delete cache[name];
+        //   throw err;
+        // }
       } else {
         throw 'module ' + name + ' not found';
       }
@@ -48,5 +48,5 @@
   }
   return this.<%= @identifier %>.define;
 }).call(this)({
-  <%- (JSON.stringify(source.name) + ": function(exports, require, module) {#{source.compile()}}" for source in @sources).join(', ') %>
+  <%- (JSON.stringify(module.id) + ": function(exports, require, module) {#{module.compile()}}" for module in @modules).join(', ') %>
 });
