@@ -7,7 +7,7 @@ compilers.js = (path) ->
 try
   cs = require 'coffee-script'
   compilers.coffee = (path) ->
-    cs.compile fs.readFileSync path, 'utf8'
+    cs.compile(fs.readFileSync(path, 'utf8'), filename: path)
 catch err
 
 eco = require 'eco'
