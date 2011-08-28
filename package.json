@@ -17,11 +17,11 @@
   "bin": { "hem": "./bin/hem" },
   "dependencies" : { 
     "eco": "1.1.0-rc-1",
-    "uglify-js": "~1.0.6",
-    "express": "~2.4.3",
+    "uglify-js": "~1.0.7",
+    "express": "~2.4.6",
     "fast-detective": "~0.0.1",
     "optimist": "~0.2.6",
-    "coffee-script" : "~1.1.1",
-    "stylus" : "~0.13.8"
+    "coffee-script" : "~1.1.2",
+    "stylus" : "~0.15.1"
   }
 }
