@@ -10,7 +10,7 @@ This is rather awesome, as it means you don't need to faff around with coping ar
 
 #Commands
 
-* `hem new`    - generate new project
+<!-- * `hem new`    - generate new project -->
 * `hem server` - host slug server (for development)
 * `hem static` - host static slug server (for production)
 * `hem build`  - build and minimize application in ./public dir
@@ -33,22 +33,22 @@ Or if you were building a PhoneGap application:
 
 Slugs are how Hem knows about application. Think of them as a bit like Gemfiles. 
     
-    // {
-    //   Specify main JavaScript file:
-    //   "main": "./app/index",
-    //   
-    //   Specify main CSS file:
-    //   "css": "./css/index.less",
-    //   
-    //   Specify public directory:
-    //   "public": "./public"
-    //   
-    //   Add load paths:
-    //    "paths": ["./app"]
-    //   
-    //   We want these to load before (not CommonJS libs):
-    //    "libs": [
-    //      "./lib/other.js"
-    //    ]
-    // }
+    {
+      // Specify main JavaScript file:
+      "main": "./app/index",
+      
+      // Specify main CSS file:
+      "css": "./css/index.less",
+      
+      // Specify public directory:
+      "public": "./public",
+      
+      // Add load paths:
+      "paths": ["./app"],
+      
+      // We want these to load before (not CommonJS libs):
+      "libs": [
+        "./lib/other.js"
+      ]
+    }
     

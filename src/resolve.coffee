@@ -13,10 +13,12 @@ modulerize = (id, filename = id) ->
 # the call was made, and the path that was required. 
 # Returns an array of: [moduleName, scriptPath]
 
+localPaths = Module._nodeModulePaths(process.cwd())
+
 repl =
   id: 'repl'
   filename: join(process.cwd(), 'repl')
-  paths: module.paths
+  paths: module.paths.concat(localPaths)
 
 module.exports = (request, parent = repl) ->
   [id, paths] = Module._resolveLookupPaths(request, parent)  

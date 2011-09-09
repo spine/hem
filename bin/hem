@@ -3,7 +3,7 @@ var optimist = require('optimist'),
     argv = optimist.argv,
     path = require('path');
     
-var Slug = require('../lib/slug')
+var Slug = require('../lib/slug');
 
 optimist.usage([
   '  usage: hem COMMAND',
