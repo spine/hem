@@ -11,8 +11,29 @@ try
 catch err
 
 eco = require 'eco'
-compilers.eco = (path) ->
-  eco.precompile fs.readFileSync path, 'utf8'
+
+compilers.eco = (path) -> 
+  content = eco.precompile fs.readFileSync path, 'utf8'
+  "module.exports = #{content}"
+
+compilers.jeco = (path) -> 
+  content = eco.precompile fs.readFileSync path, 'utf8'
+  """
+  module.exports = function(values){ 
+    var $  = jQuery, result = $();
+    values = $.makeArray(values);
+    
+    for(var i=0; i < values.length; i++) {
+      var value = values[i];
+      var elem  = $((#{content})(value));
+      elem.data('item', value);
+      $.merge(result, elem);
+    }
+    return result;
+  };
+  """
+
+require.extensions['.jeco'] = require.extensions['.eco']
 
 compilers.tmpl = (path) ->
   content = fs.readFileSync(path, 'utf8')

@@ -6,16 +6,11 @@
         return module;
       } else if (fn = modules[path] || modules[path = expand(path, './index')]) {
         module = {id: name, exports: {}};
-        // try {
-          cache[name] = module.exports;
-          fn(module.exports, function(name) {
-            return require(name, dirname(path));
-          }, module);
-          return cache[name] = module.exports;
-        // } catch (err) {
-        //   delete cache[name];
-        //   throw err;
-        // }
+        cache[name] = module.exports;
+        fn(module.exports, function(name) {
+          return require(name, dirname(path));
+        }, module);
+        return cache[name] = module.exports;
       } else {
         throw 'module ' + name + ' not found';
       }
