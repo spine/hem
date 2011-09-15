@@ -13,33 +13,25 @@ modulerize = (id, filename = id) ->
 # the call was made, and the path that was required. 
 # Returns an array of: [moduleName, scriptPath]
 
-localPaths = Module._nodeModulePaths(process.cwd())
+localPaths  = Module._nodeModulePaths(process.cwd())
+modulePaths = module.paths.concat(localPaths)
+modulePaths = modulePaths.sort (a, b) -> (b.length - a.length)
 
 repl =
   id: 'repl'
   filename: join(process.cwd(), 'repl')
-  paths: module.paths.concat(localPaths)
+  paths: modulePaths
 
 module.exports = (request, parent = repl) ->
-  [id, paths] = Module._resolveLookupPaths(request, parent)  
+  [_, paths]  = Module._resolveLookupPaths(request, parent)  
   filename    = Module._findPath(request, paths)
+  dir         = filename
   
-  unless filename
-    throw new Error("Cannot find module '#{request}'")
-        
-  if isAbsolute(id)
-    paths = paths.sort (a, b) -> (b.length - a.length)
-    
-    for path in paths when id.indexOf(path) != -1
-      newId = id.replace(path + '/', '')
-      break
-
-    # As a last resort, calculate the id from the lib's package
-    unless newId
-      package   = parent.id.split('/')[0]
-      newId     = filename.replace(new RegExp(".+(#{package}.+)$"), '$1')
-      
-    id = newId if newId
+  # Find package root
+  
+  while dir and modulePaths.indexOf(dir) is -1 
+    dir = dirname(dir)
+  id = filename.replace("#{dir}/", '')
 
   [modulerize(id, filename), filename]
   
