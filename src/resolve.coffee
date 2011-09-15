@@ -26,12 +26,21 @@ module.exports = (request, parent = repl) ->
   
   unless filename
     throw new Error("Cannot find module '#{request}'")
-    
+        
   if isAbsolute(id)
     paths = paths.sort (a, b) -> (b.length - a.length)
+    
     for path in paths when id.indexOf(path) != -1
-      id = id.replace(path + '/', '')
+      newId = id.replace(path + '/', '')
       break
+
+    # As a last resort, calculate the id from the lib's package
+    unless newId
+      package   = parent.id.split('/')[0]
+      newId     = filename.replace(new RegExp(".+(#{package}.+)$"), '$1')
+      
+    id = newId if newId
+
   [modulerize(id, filename), filename]
   
 module.exports.paths = (filename) ->

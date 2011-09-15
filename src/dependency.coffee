@@ -7,27 +7,6 @@ compilers = require('./compilers')
 mtime = (path) ->
   fs.statSync(path).mtime.valueOf()
 
-class Dependency
-  constructor: (paths = []) ->
-    @paths = paths
-    
-  resolve: ->
-    @modules or= (new Module(path) for path in @paths)
-    @deepResolve(@modules)
-
-  # Private
-  
-  deepResolve: (modules = [], result = [], search = {}) ->
-    for module in modules when not search[module.filename]
-      search[module.filename] = true
-      result.push(module)
-      @deepResolve(
-        module.modules(), 
-        result
-        search
-      )
-    result
-
 class Module
   @walk: ['js', 'coffee']
     
@@ -60,5 +39,27 @@ class Module
     if @ext in @constructor.walk
       detective(@compile()) 
     else []
-      
+
+class Dependency
+  constructor: (paths = []) ->
+    @paths = paths
+
+  resolve: ->
+    @modules or= (new Module(path) for path in @paths)
+    @deepResolve(@modules)
+
+  # Private
+
+  deepResolve: (modules = [], result = [], search = {}) ->
+    for module in modules when not search[module.filename]
+      search[module.filename] = true
+      result.push(module)
+      @deepResolve(
+        module.modules(), 
+        result
+        search
+      )
+    result
+    
 module.exports = Dependency
+module.exports.Module = Module
