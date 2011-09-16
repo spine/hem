@@ -13,9 +13,7 @@ modulerize = (id, filename = id) ->
 # the call was made, and the path that was required. 
 # Returns an array of: [moduleName, scriptPath]
 
-localPaths  = Module._nodeModulePaths(process.cwd())
-modulePaths = module.paths.concat(localPaths)
-modulePaths = modulePaths.sort (a, b) -> (b.length - a.length)
+modulePaths = Module._nodeModulePaths(process.cwd())
 
 repl =
   id: 'repl'
@@ -26,11 +24,13 @@ module.exports = (request, parent = repl) ->
   [_, paths]  = Module._resolveLookupPaths(request, parent)  
   filename    = Module._findPath(request, paths)
   dir         = filename
-  
-  # Find package root
-  
-  while dir and modulePaths.indexOf(dir) is -1 
+    
+  # Find package root relative to localModules folder
+  while dir isnt '/' and modulePaths.indexOf(dir) is -1 
     dir = dirname(dir)
+  
+  throw("Load path not found for #{filename}") if dir is '/'
+    
   id = filename.replace("#{dir}/", '')
 
   [modulerize(id, filename), filename]

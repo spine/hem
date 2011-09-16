@@ -1,16 +1,17 @@
 (function(/*! Stitch !*/) {
   if (!this.<%= @identifier %>) {
     var modules = {}, cache = {}, require = function(name, root) {
-      var module = cache[name], path = expand(root, name), fn;
+      var path = expand(root, name), indexPath = expand(path, './index'), module, fn;
+      module   = cache[path] || cache[indexPath]      
       if (module) {
         return module;
-      } else if (fn = modules[path] || modules[path = expand(path, './index')]) {
-        module = {id: name, exports: {}};
-        cache[name] = module.exports;
+      } else if (fn = modules[path] || modules[path = indexPath]) {
+        module = {id: path, exports: {}};
+        cache[path] = module.exports;
         fn(module.exports, function(name) {
           return require(name, dirname(path));
         }, module);
-        return cache[name] = module.exports;
+        return cache[path] = module.exports;
       } else {
         throw 'module ' + name + ' not found';
       }
@@ -40,6 +41,8 @@
       for (var key in bundle)
         modules[key] = bundle[key];
     };
+    this.<%= @identifier %>.modules = modules;
+    this.<%= @identifier %>.cache   = cache;
   }
   return this.<%= @identifier %>.define;
 }).call(this)({
