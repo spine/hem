@@ -11,29 +11,35 @@ class Slug
     skipCSS:      false
     libs:         []
     public:       './public'
+    jsOutputFile: 'application.js'
     paths:        ['./app']
     dependencies: []
     port:         process.env.PORT or 9294
-  
+
   @readSlug: (path) ->
     JSON.parse(fs.readFileSync(path, 'utf-8'))
-  
+
   constructor: (@options = {}) ->
     @options = @readSlug(@options) if typeof @options is 'string'
     @options[key] or= value for key, value of @defaults
     @options.public = resolve(@options.public)
-  
+
+  addLeadingSlash: (path) ->
+    if path.charAt(0) isnt '/'
+        path = '/' + path
+    return path
+
   server: ->
     server = express.createServer()
     if not @options.skipCSS
         server.get('/application.css', @stylusPackage().createServer())
-    server.get('/application.js', @hemPackage().createServer())  
+    server.get(@addLeadingSlash(@options.jsOutputFile), @hemPackage().createServer())
     server.use(express.static(@options.public))
     server.listen(@options.port)
     
   build: ->
     package = @hemPackage().compile(true)
-    applicationPath = @options.public + '/application.js'
+    applicationPath = @options.public + @addLeadingSlash(@options.jsOutputFile)
     fs.writeFileSync(applicationPath, package)
 
     if not @options.skipCSS
