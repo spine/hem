@@ -8,6 +8,7 @@ class Slug
   defaults:
     slug:         './slug.json'
     css:          './css/index'
+    skipCSS:      false
     libs:         []
     public:       './public'
     paths:        ['./app']
@@ -24,7 +25,8 @@ class Slug
   
   server: ->
     server = express.createServer()
-    server.get('/application.css', @stylusPackage().createServer())
+    if not @options.skipCSS
+        server.get('/application.css', @stylusPackage().createServer())
     server.get('/application.js', @hemPackage().createServer())  
     server.use(express.static(@options.public))
     server.listen(@options.port)
@@ -33,10 +35,11 @@ class Slug
     package = @hemPackage().compile(true)
     applicationPath = @options.public + '/application.js'
     fs.writeFileSync(applicationPath, package)
-    
-    package = @stylusPackage().compile(true)
-    applicationPath = @options.public + '/application.css'
-    fs.writeFileSync(applicationPath, package)
+
+    if not @options.skipCSS
+        package = @stylusPackage().compile(true)
+        applicationPath = @options.public + '/application.css'
+        fs.writeFileSync(applicationPath, package)
     
   static: ->
     server = express.createServer()
