@@ -47,8 +47,8 @@ class Slug
   watch: -> 
     @build() 
     for dir in [path.dirname @options.css].concat @options.paths, @options.libs
-      watch.watchTree dir, {ignoreDotFiles:true}, (file,o,n) =>
-        if o and +o.mtime != +n.mtime
+      watch.watchTree dir, (file,n,o) =>
+        if !(file instanceof Object) and (+n.mtime isnt +o?.mtime or !n.nlink)
           console.log "#{file} changed.  Rebuilding."
           @build()
     
