@@ -33,13 +33,16 @@ class Slug
     server.listen(@options.port)
     
   build: ->
-    package = @hemPackage().compile(true)
-    applicationPath = @options.public + '/application.js'
-    fs.writeFileSync(applicationPath, package)
-    
-    package = @stylusPackage().compile(true)
-    applicationPath = @options.public + '/application.css'
-    fs.writeFileSync(applicationPath, package)
+    try
+      package = @hemPackage().compile(true)
+      applicationPath = @options.public + '/application.js'
+      fs.writeFileSync(applicationPath, package)
+      
+      package = @stylusPackage().compile(true)
+      applicationPath = @options.public + '/application.css'
+      fs.writeFileSync(applicationPath, package)
+    catch error
+      console.error error.stack
       
   watch: -> 
     @build() 
@@ -47,10 +50,7 @@ class Slug
       watch.watchTree dir, {ignoreDotFiles:true}, (file,o,n) =>
         if o and +o.mtime != +n.mtime
           console.log "#{file} changed.  Rebuilding."
-          try
-            @build()
-          catch error
-            console.dir error.toString()
+          @build()
     
   static: ->
     server = express.createServer()

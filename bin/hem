@@ -30,10 +30,10 @@ slug[command]();
 
 if ( command == 'server' || command == 'static' )
   console.log('Starting server on: ' + slug.options.port);
-else if ( command == 'build')
+else if ( command == 'build' )
   console.log('Built application');
-else if ( command == 'watch')
-  console.log('Built application. Watching for changes')
+else if ( command == 'watch' )
+  console.log('Built application. Watching for changes');
 
 
 
