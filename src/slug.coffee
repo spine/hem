@@ -3,6 +3,9 @@ express      = require('express')
 fs           = require('fs')
 hem          = require('./hem')
 stylus       = require('./stylus')
+path         = require('path')
+watch        = require('watch')
+console      = require('console')
 
 class Slug
   defaults:
@@ -37,6 +40,17 @@ class Slug
     package = @stylusPackage().compile(true)
     applicationPath = @options.public + '/application.css'
     fs.writeFileSync(applicationPath, package)
+      
+  watch: -> 
+    @build() 
+    for dir in [path.dirname @options.css].concat @options.paths, @options.libs
+      watch.watchTree dir, {ignoreDotFiles:true}, (file,o,n) =>
+        if o and +o.mtime != +n.mtime
+          console.log "#{file} changed.  Rebuilding."
+          try
+            @build()
+          catch error
+            console.dir error.toString()
     
   static: ->
     server = express.createServer()
