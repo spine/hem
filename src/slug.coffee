@@ -3,6 +3,9 @@ express      = require('express')
 fs           = require('fs')
 hem          = require('./hem')
 stylus       = require('./stylus')
+path         = require('path')
+watch        = require('watch')
+console      = require('console')
 
 class Slug
   defaults:
@@ -30,13 +33,24 @@ class Slug
     server.listen(@options.port)
     
   build: ->
-    package = @hemPackage().compile(true)
-    applicationPath = @options.public + '/application.js'
-    fs.writeFileSync(applicationPath, package)
-    
-    package = @stylusPackage().compile(true)
-    applicationPath = @options.public + '/application.css'
-    fs.writeFileSync(applicationPath, package)
+    try
+      package = @hemPackage().compile(true)
+      applicationPath = @options.public + '/application.js'
+      fs.writeFileSync(applicationPath, package)
+      
+      package = @stylusPackage().compile(true)
+      applicationPath = @options.public + '/application.css'
+      fs.writeFileSync(applicationPath, package)
+    catch error
+      console.error error.stack
+      
+  watch: -> 
+    @build() 
+    for dir in [path.dirname @options.css].concat @options.paths, @options.libs
+      watch.watchTree dir, (file, curr, prev) =>
+        if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+          console.log "#{file} changed.  Rebuilding."
+          @build()
     
   static: ->
     server = express.createServer()
