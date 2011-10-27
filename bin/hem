@@ -1,39 +1,10 @@
 #!/usr/bin/env node
-var optimist = require('optimist'),
-    argv = optimist.argv,
-    path = require('path');
+var path   = require('path'),
+    Module = require('module'),
+    fs     = require('fs');
     
-var Slug = require('../lib/slug');
+if (path.existsSync('./slug.js')) {
+  return Module._load('./slug.js');
+}
 
-optimist.usage([
-  '  usage: hem COMMAND',
-  '    server  start a dynamic development server',
-  '    build   serialize application to disk',
-  '    static  start a static production server',
-  '    watch   watch for changes and rebuild'
-].join("\n"));
-
-var help = function(){
-  optimist.showHelp();
-  process.exit();
-};
-
-var options = path.existsSync('./slug.json') ? 
-                Slug.readSlug('./slug.json') : {}
-options.port = options.port || argv.p || argv.port;
-
-var slug    = new Slug(options);
-var command = argv._[0];
-if ( !slug[command] ) help();
-
-slug[command]();
-
-if ( command == 'server' || command == 'static' )
-  console.log('Starting server on: ' + slug.options.port);
-else if ( command == 'build' )
-  console.log('Built application');
-else if ( command == 'watch' )
-  console.log('Built application. Watching for changes');
-
-
-
+require('../lib/hem').exec();
