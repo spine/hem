@@ -8,47 +8,6 @@ This is rather awesome, as it means you don't need to faff around with coping ar
 
     npm install -g hem
 
-#Commands
+#Usage
 
-<!-- * `hem new`    - generate new project -->
-* `hem server` - host slug server (for development)
-* `hem static` - host static slug server (for production)
-* `hem build`  - build and minimize application in ./public dir
-
-Slug would be in charge of collecting all third-party dependencies (listed in slug.json) and injecting them as CommonJS modules / CSS / assets.
-
-When it comes to deployment you'd do:
-
-    hem build
-    git add ./public
-    git commit -m 'version x'
-    git push heroku master
-
-Or if you were building a PhoneGap application:
-
-    hem build
-    phonegap --ios ./public
-
-#Slug.json
-
-Slugs are how Hem knows about application. Think of them as a bit like Gemfiles. 
-    
-    {
-      // Specify main JavaScript file:
-      "main": "./app/index",
-      
-      // Specify main CSS file:
-      "css": "./css/index.less",
-      
-      // Specify public directory:
-      "public": "./public",
-      
-      // Add load paths:
-      "paths": ["./app"],
-      
-      // We want these to load before (not CommonJS libs):
-      "libs": [
-        "./lib/other.js"
-      ]
-    }
-    
+Please see the [Hem guide](http://spinejs.com/docs/hem) for usage instructions.
