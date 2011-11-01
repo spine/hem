@@ -30,7 +30,7 @@ class Hem
     
   options: 
     slug:         './slug.json'
-    css:          './css/index'
+    css:          './css'
     libs:         []
     public:       './public'
     paths:        ['./app']
@@ -52,15 +52,15 @@ class Hem
     @express.listen(@options.port)
     
   build: ->
-    package = @hemPackage().compile(true)
-    fs.writeFileSync(path.join(@options.public, @options.jsPath), package)
+    source = @hemPackage().compile(true)
+    fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
     
-    package = @cssPackage().compile()
-    fs.writeFileSync(path.join(@options.public, @options.cssPath), package)
+    source = @cssPackage().compile()
+    fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
   watch: ->
     @build() 
-    for dir in [path.dirname @options.css].concat @options.paths, @options.libs
+    for dir in [@options.css].concat @options.paths, @options.libs
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
