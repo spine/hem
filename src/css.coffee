@@ -2,10 +2,13 @@
 compilers = require('./compilers')
 
 class CSS
-  constructor: (@path) ->
+  constructor: (path) ->
+    @path = resolve(path)
+    @path = require.resolve(@path)
     
   compile: ->
-    require(resolve(@path))
+    delete require.cache[@path]
+    require(@path)
   
   createServer: ->
     (req, res, next) =>

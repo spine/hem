@@ -20,7 +20,7 @@ help = ->
   process.exit()
 
 class Hem
-  @exec: (command = argv._[0], options) ->
+  @exec: (command, options) ->
     (new @(options)).exec(command)
   
   @include: (props) ->
@@ -66,7 +66,7 @@ class Hem
           console.log "#{file} changed.  Rebuilding."
           @build()
           
-  exec: (command) ->
+  exec: (command = argv._[0]) ->
     return help() unless @[command]
     @[command]()
     console.log switch command
