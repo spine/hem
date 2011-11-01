@@ -52,7 +52,7 @@ class Hem
     @express.listen(@options.port)
     
   build: ->
-    package = @hemPackage().compile()
+    package = @hemPackage().compile(true)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), package)
     
     package = @cssPackage().compile()

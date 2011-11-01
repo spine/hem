@@ -1,5 +1,6 @@
 fs           = require('fs')
 eco          = require('eco')
+uglify       = require('uglify-js')
 compilers    = require('./compilers')
 stitch       = require('../assets/stitch')
 Dependency   = require('./dependency')
@@ -22,8 +23,10 @@ class Package
   compileLibs: ->
     (fs.readFileSync(path, 'utf8') for path in @libs).join("\n")
     
-  compile: ->
-    [@compileLibs(), @compileModules()].join("\n")
+  compile: (minify) ->
+    result = [@compileLibs(), @compileModules()].join("\n")
+    result = uglify(result) if minify
+    result
     
   createServer: ->
     (req, res, next) =>
