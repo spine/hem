@@ -1,3 +1,4 @@
+<% @identifier or= 'require' %>
 (function(/*! Stitch !*/) {
   if (!this.<%= @identifier %>) {
     var modules = {}, cache = {}, require = function(name, root) {

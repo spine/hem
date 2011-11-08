@@ -9,7 +9,7 @@ Stitch       = require('./stitch')
 
 class Package
   constructor: (config = {}) ->
-    @identifier   = config.identifier ? 'require'
+    @identifier   = config.identifier
     @libs         = toArray(config.libs)
     @paths        = toArray(config.paths)
     @dependencies = toArray(config.dependencies)

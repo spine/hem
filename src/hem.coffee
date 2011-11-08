@@ -5,6 +5,7 @@ express   = require('express')
 compilers = require('./compilers')
 package   = require('./package')
 css       = require('./css')
+specs     = require('./specs')
 
 optimist.usage([
   '  usage: hem COMMAND',
@@ -39,6 +40,12 @@ class Hem
     cssPath:      '/application.css'
     jsPath:       '/application.js'
 
+    test:         './test'
+    testPublic:   './test/public'
+    testPath:     '/test'
+    specs:        './test/specs'
+    specsPath:    '/test/specs.js'
+
   constructor: (options = {}) ->
     @options[key] = value for key, value of options    
     @options[key] = value for key, value of @readSlug()
@@ -48,6 +55,15 @@ class Hem
   server: ->
     @express.get(@options.cssPath, @cssPackage().createServer())
     @express.get(@options.jsPath, @hemPackage().createServer())
+    
+    @express.get(@options.specsPath, @specsPackage().createServer())
+    testRegex = new RegExp("^#{@options.testPath}/?")
+    @express.use (req, res, next) =>
+      if req.url.match(testRegex)
+        req.url = req.url.replace(testRegex, '/')
+        express.static(@options.testPublic)(req, res, next)
+      else next()
+    
     @express.use(express.static(@options.public))
     @express.listen(@options.port)
     
@@ -89,5 +105,8 @@ class Hem
       paths: @options.paths
       libs: @options.libs
     )
+    
+  specsPackage: ->
+    specs.createPackage(@options.specs)
 
 module.exports = Hem
