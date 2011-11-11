@@ -53,7 +53,7 @@ class Hem
     @express = express.createServer()
     
   server: ->
-    @express.get(@options.cssPath, @cssPackage().createServer())
+    @express.get(@options.cssPath, @cssPackage().createServer()) if @options.css
     @express.get(@options.jsPath, @hemPackage().createServer())
     
     @express.get(@options.specsPath, @specsPackage().createServer())
@@ -70,9 +70,10 @@ class Hem
   build: ->
     source = @hemPackage().compile(true)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
-    
-    source = @cssPackage().compile()
-    fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
+
+    if @options.css
+        source = @cssPackage().compile()
+        fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
   watch: ->
     @build() 
