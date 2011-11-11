@@ -17,17 +17,17 @@ catch err
 
 eco = require 'eco'
 
-compilers.eco = (path) -> 
+compilers.eco = (path) ->
   content = eco.precompile fs.readFileSync path, 'utf8'
   "module.exports = #{content}"
 
-compilers.jeco = (path) -> 
+compilers.jeco = (path) ->
   content = eco.precompile fs.readFileSync path, 'utf8'
   """
-  module.exports = function(values){ 
+  module.exports = function(values){
     var $  = jQuery, result = $();
     values = $.makeArray(values);
-    
+
     for(var i=0; i < values.length; i++) {
       var value = values[i];
       var elem  = $((#{content})(value));
@@ -40,29 +40,37 @@ compilers.jeco = (path) ->
 
 require.extensions['.jeco'] = require.extensions['.eco']
 
+try
+  jade = require 'jade'
+  compilers.jade = (path) ->
+    content = fs.readFileSync path, 'utf8'
+    fn = jade.compile content, client: true, filename: path
+    "module.exports = #{fn.toString()}"
+catch err
+
 compilers.tmpl = (path) ->
   content = fs.readFileSync(path, 'utf8')
   "var template = jQuery.template(#{JSON.stringify(content)});\n" +
   "module.exports = (function(data){ return jQuery.tmpl(template, data); });\n"
 
-require.extensions['.tmpl'] = (module, filename) -> 
+require.extensions['.tmpl'] = (module, filename) ->
   module._compile(compilers.tmpl(filename))
-  
+
 try
   stylus = require('stylus')
-  
+
   compilers.styl = (path) ->
     content = fs.readFileSync(path, 'utf8')
     result = ''
     stylus(content)
       .include(dirname(path))
-      .render((err, css) -> 
+      .render((err, css) ->
         throw err if err
         result = css
       )
     result
-    
-  require.extensions['.styl'] = (module, filename) -> 
+
+  require.extensions['.styl'] = (module, filename) ->
     source = JSON.stringify(compilers.styl(filename))
     module._compile "module.exports = #{source}", filename
 catch err
