@@ -12,9 +12,9 @@ class CSS
   
   createServer: ->
     (req, res, next) =>
-      content = @compile()
-      res.writeHead 200, 'Content-Type': 'text/css'
-      res.end content
+      callback(200, 
+        'Content-Type': 'text/css', 
+        @compile())
       
 module.exports = 
   CSS: CSS

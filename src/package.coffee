@@ -29,10 +29,10 @@ class Package
     result
     
   createServer: ->
-    (req, res, next) =>
-      content = @compile()
-      res.writeHead 200, 'Content-Type': 'text/javascript'
-      res.end content
+    (env, callback) =>
+      callback(200, 
+        'Content-Type': 'text/javascript', 
+        @compile())
 
 module.exports = 
   compilers:  compilers

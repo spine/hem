@@ -1,7 +1,7 @@
 path      = require('path')
 fs        = require('fs')
 optimist  = require('optimist')
-express   = require('express')
+strata    = require('strata')
 compilers = require('./compilers')
 package   = require('./package')
 css       = require('./css')
@@ -50,22 +50,20 @@ class Hem
     @options[key] = value for key, value of options    
     @options[key] = value for key, value of @readSlug()
     
-    @express = express.createServer()
+    @app = new strata.Builder
     
   server: ->
-    @express.get(@options.cssPath, @cssPackage().createServer())
-    @express.get(@options.jsPath, @hemPackage().createServer())
+    @app.use(strata.contentLength);
+      
+    @app.get(@options.cssPath, @cssPackage().createServer())
+    @app.get(@options.jsPath, @hemPackage().createServer())
+  
+    @app.get(@options.specsPath, @specsPackage().createServer())
+    @app.map @options.testPath (app) ->
+      @app.use(strata.static, @options.testPublic)
     
-    @express.get(@options.specsPath, @specsPackage().createServer())
-    testRegex = new RegExp("^#{@options.testPath}/?")
-    @express.use (req, res, next) =>
-      if req.url.match(testRegex)
-        req.url = req.url.replace(testRegex, '/')
-        express.static(@options.testPublic)(req, res, next)
-      else next()
-    
-    @express.use(express.static(@options.public))
-    @express.listen(@options.port)
+    @app.use(static.static, @options.public)
+    strata.run(@app, port: @options.port)
     
   build: ->
     source = @hemPackage().compile(true)
