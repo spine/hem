@@ -1,1 +1,5 @@
 node_modules
+
+# intellij files
+*.iml
+.idea/
