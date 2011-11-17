@@ -76,8 +76,8 @@ class Hem
         fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
   watch: ->
-    @build() 
-    for dir in [@options.css].concat @options.paths, @options.libs
+    @build()
+    for dir in [@options.css if @options.css].concat @options.paths, @options.libs
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
