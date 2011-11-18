@@ -23,6 +23,6 @@
     "coffee-script" : "~1.1.2",
     "stylus" : "~0.19.0",
     "watch" : "~0.4.0",
-    "strata": "~0.7.0"
+    "strata": "~0.8.1"
   }
 }
