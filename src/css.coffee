@@ -11,7 +11,7 @@ class CSS
     require(@path)
   
   createServer: ->
-    (req, res, next) =>
+    (env, callback) =>
       callback(200, 
         'Content-Type': 'text/css', 
         @compile())
