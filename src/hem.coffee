@@ -53,16 +53,19 @@ class Hem
     @app = new strata.Builder
     
   server: ->
-    @app.use(strata.contentLength);
+    @app.use(strata.contentLength)
       
     @app.get(@options.cssPath, @cssPackage().createServer())
     @app.get(@options.jsPath, @hemPackage().createServer())
-  
-    @app.get(@options.specsPath, @specsPackage().createServer())
-    @app.map @options.testPath (app) ->
-      @app.use(strata.static, @options.testPublic)
     
-    @app.use(static.static, @options.public)
+    if path.existsSync(@options.specs)
+      @app.get(@options.specsPath, @specsPackage().createServer())
+      
+    if path.existsSync(@options.testPublic)
+      @app.map @options.testPath, (app) =>
+        app.use(strata.static, @options.testPublic)
+    
+    @app.use(strata.static, @options.public)
     strata.run(@app, port: @options.port)
     
   build: ->
