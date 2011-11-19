@@ -3,14 +3,15 @@ compilers = require('./compilers')
 
 class CSS
   constructor: (path) ->
-    @path = resolve(path)
-    @path = require.resolve(@path)
+    try
+      @path = resolve(path)
+      @path = require.resolve(@path)
+    catch e
     
   compile: ->
-    try
-      delete require.cache[@path]
-      require(@path)
-    catch e 
+    return unless @path
+    delete require.cache[@path]
+    require(@path)
   
   createServer: ->
     (env, callback) =>

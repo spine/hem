@@ -65,7 +65,8 @@ class Hem
       @app.map @options.testPath, (app) =>
         app.use(strata.static, @options.testPublic)
     
-    @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
+    if path.existsSync(@options.public)
+      @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
     
     strata.run(@app, port: @options.port)
     
