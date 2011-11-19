@@ -7,14 +7,14 @@ package   = require('./package')
 css       = require('./css')
 specs     = require('./specs')
 
-optimist.usage([
+argv = optimist.usage([
   '  usage: hem COMMAND',
   '    server  start a dynamic development server',
   '    build   serialize application to disk',
   '    watch   build & watch disk for changes'
-].join("\n")).alias('p', 'port')
-
-argv = optimist.argv
+].join("\n"))
+.alias('p', 'port')
+.argv
 
 help = ->
   optimist.showHelp()
