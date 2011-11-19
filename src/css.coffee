@@ -4,8 +4,7 @@ compilers = require('./compilers')
 class CSS
   constructor: (path) ->
     try
-      @path = resolve(path)
-      @path = require.resolve(@path)
+      @path = require.resolve(resolve(path))
     catch e
     
   compile: ->
