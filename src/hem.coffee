@@ -61,9 +61,11 @@ class Hem
     if path.existsSync(@options.specs)
       @app.get(@options.specsPath, @specsPackage().createServer())
       
+    console.log path.existsSync(@options.testPublic), @options.testPublic
+      
     if path.existsSync(@options.testPublic)
       @app.map @options.testPath, (app) =>
-        app.use(strata.static, @options.testPublic)
+        app.use(strata.static, @options.testPublic, ['index.html', 'index.htm'])
     
     if path.existsSync(@options.public)
       @app.use(strata.static, @options.public, ['index.html', 'index.htm'])

@@ -2,11 +2,11 @@ stitch = require('../assets/stitch')
 Stitch = require('./stitch')
 
 class Specs
-  constructor: (@path) ->    
+  constructor: (@path) -> 
   
   compile: ->
     @stitch  = new Stitch([@path])
-    stitch(identifier: @identifier, modules: @stitch.resolve())
+    stitch(identifier: 'specs', modules: @stitch.resolve())
 
   createServer: ->
     (env, callback) =>
