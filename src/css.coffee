@@ -7,8 +7,10 @@ class CSS
     @path = require.resolve(@path)
     
   compile: ->
-    delete require.cache[@path]
-    require(@path)
+    try
+      delete require.cache[@path]
+      require(@path)
+    catch e 
   
   createServer: ->
     (env, callback) =>

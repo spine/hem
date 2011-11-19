@@ -79,6 +79,7 @@ class Hem
   watch: ->
     @build() 
     for dir in [@options.css].concat @options.paths, @options.libs
+      continue unless path.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
