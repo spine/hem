@@ -54,10 +54,11 @@ class Hem
     
   server: ->
     @app.use(strata.contentLength)
-      
-    @app.get(@options.cssPath, @cssPackage().createServer())
+
+    if @options.css
+        @app.get(@options.cssPath, @cssPackage().createServer())
     @app.get(@options.jsPath, @hemPackage().createServer())
-    
+
     if path.existsSync(@options.specs)
       @app.get(@options.specsPath, @specsPackage().createServer())
       
@@ -72,23 +73,35 @@ class Hem
     
     strata.run(@app, port: @options.port)
     
-  build: ->
+  build: =>
     source = @hemPackage().compile(true)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
-    
-    source = @cssPackage().compile()
-    fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
-  watch: ->
-    @build() 
-    for dir in [@options.css].concat @options.paths, @options.libs
+    if @options.css
+        source = @cssPackage().compile()
+        fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
+
+  watch: =>
+    @build()
+
+    # watch CSS?
+    cssDir = if @options.css then [@options.css] else []
+
+    # extract the folders for each included lib
+    libDir = []
+    for lib in @options.libs
+        libDir.push path.dirname(lib)
+
+    # start watching
+    for dir in cssDir.concat @options.paths, libDir
       continue unless path.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
           @build()
+
           
-  exec: (command = argv._[0]) ->
+  exec: (command = argv._[0]) =>
     return help() unless @[command]
     @[command]()
     console.log switch command
@@ -98,21 +111,21 @@ class Hem
 
   # Private
     
-  readSlug: (slug = @options.slug) -> 
+  readSlug: (slug = @options.slug) =>
     return {} unless slug and path.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
     
-  cssPackage: ->
+  cssPackage: =>
     css.createPackage(@options.css)
 
-  hemPackage: ->
+  hemPackage: =>
     package.createPackage(
       dependencies: @options.dependencies
       paths: @options.paths
       libs: @options.libs
     )
     
-  specsPackage: ->
+  specsPackage: =>
     specs.createPackage(@options.specs)
 
 module.exports = Hem
