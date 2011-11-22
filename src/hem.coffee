@@ -7,14 +7,14 @@ package   = require('./package')
 css       = require('./css')
 specs     = require('./specs')
 
-optimist.usage([
+argv = optimist.usage([
   '  usage: hem COMMAND',
   '    server  start a dynamic development server',
   '    build   serialize application to disk',
   '    watch   build & watch disk for changes'
-].join("\n")).alias('p', 'port')
-
-argv = optimist.argv
+].join("\n"))
+.alias('p', 'port')
+.argv
 
 help = ->
   optimist.showHelp()
@@ -52,18 +52,25 @@ class Hem
     
     @app = new strata.Builder
     
-  server: =>
-    @app.use(strata.contentLength);
-      
+  server: ->
+    @app.use(strata.contentLength)
+
     if @options.css
         @app.get(@options.cssPath, @cssPackage().createServer())
     @app.get(@options.jsPath, @hemPackage().createServer())
-  
-    @app.get(@options.specsPath, @specsPackage().createServer())
-    @app.map @options.testPath, (app) =>
-      @app.use(strata.static, @options.testPublic)
 
-    @app.use(strata.static, @options.public)
+    if path.existsSync(@options.specs)
+      @app.get(@options.specsPath, @specsPackage().createServer())
+      
+    console.log path.existsSync(@options.testPublic), @options.testPublic
+      
+    if path.existsSync(@options.testPublic)
+      @app.map @options.testPath, (app) =>
+        app.use(strata.static, @options.testPublic, ['index.html', 'index.htm'])
+    
+    if path.existsSync(@options.public)
+      @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
+    
     strata.run(@app, port: @options.port)
     
   build: =>
@@ -87,6 +94,7 @@ class Hem
 
     # start watching
     for dir in cssDir.concat @options.paths, libDir
+      continue unless path.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
