@@ -39,6 +39,7 @@ class Hem
     port:         process.env.PORT or argv.port or 9294
     cssPath:      '/application.css'
     jsPath:       '/application.js'
+    minify:       true
 
     test:         './test'
     testPublic:   './test/public'
@@ -73,7 +74,7 @@ class Hem
     strata.run(@app, port: @options.port)
     
   build: ->
-    source = @hemPackage().compile(true)
+    source = @hemPackage().compile(@options.minify)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
     
     source = @cssPackage().compile()
