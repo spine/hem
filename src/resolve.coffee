@@ -7,7 +7,8 @@ isAbsolute = (path) -> /^\//.test(path)
 # to create valid CommonJS module names
 modulerize = (id, filename = id) -> 
   ext = extname(filename)
-  join(dirname(id), basename(id, ext))
+  modName = join(dirname(id), basename(id, ext))
+  modName.replace('\\', '/');
 
 modulePaths = Module._nodeModulePaths(process.cwd())
 
