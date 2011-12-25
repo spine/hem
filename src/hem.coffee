@@ -90,9 +90,9 @@ class Hem
   exec: (command = argv._[0]) ->
     return help() unless @[command]
     @[command]()
-    console.log switch command
-      when 'build'  then 'Built application'
-      when 'watch'  then 'Watching application'
+    switch command
+      when 'build'  then console.log 'Built application'
+      when 'watch'  then console.log 'Watching application'
 
   # Private
     
