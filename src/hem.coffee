@@ -90,7 +90,6 @@ class Hem
     return help() unless @[command]
     @[command]()
     console.log switch command
-      when 'server' then "Starting server on: #{@options.port}"
       when 'build'  then 'Built application'
       when 'watch'  then 'Watching application'
 
