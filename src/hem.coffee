@@ -14,6 +14,7 @@ argv = optimist.usage([
   '    watch   build & watch disk for changes'
 ].join("\n"))
 .alias('p', 'port')
+.alias('d', 'debug')
 .argv
 
 help = ->
@@ -71,7 +72,7 @@ class Hem
     strata.run(@app, port: @options.port)
     
   build: ->
-    source = @hemPackage().compile(true)
+    source = @hemPackage().compile(not argv.debug)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
     
     source = @cssPackage().compile()
