@@ -47,6 +47,24 @@ compilers.tmpl = (path) ->
 
 require.extensions['.tmpl'] = (module, filename) -> 
   module._compile(compilers.tmpl(filename))
+
+try
+
+  hogan = require('hogan.js')
+  
+  compilers.mustache = (path) ->
+    content = hogan.compile(fs.readFileSync(path, 'utf-8'), { asString: true })
+    """
+    module.exports = (function() { 
+      var Hogan = require('hogan.js/lib/hogan');
+      return new Hogan.Template(#{content}); 
+    }).call(this);
+    """
+                                                           
+  require.extensions['.mustache'] = (module, filename) ->
+    module._compile(compilers.hogan(filename));
+
+catch err
   
 try
   stylus = require('stylus')
