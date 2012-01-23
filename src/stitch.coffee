@@ -1,7 +1,7 @@
 npath        = require('path')
 fs           = require('fs')
 compilers    = require('./compilers')
-{modulerize} = require('./resolve')
+{modulerize, pathSeparator} = require('./resolve')
 {flatten}    = require('./utils')
 
 class Stitch
@@ -28,7 +28,7 @@ class Stitch
 class Module
   constructor: (@filename, @parent) ->
     @ext = npath.extname(@filename).slice(1)
-    @id  = modulerize(@filename.replace(npath.join(@parent, '/'), ''))
+    @id  = modulerize(@filename.replace(@parent + pathSeparator, ''))
     
   compile: ->
     compilers[@ext](@filename)
