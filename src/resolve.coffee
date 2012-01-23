@@ -3,20 +3,16 @@ Module = require('module')
 
 isAbsolute = (path) -> /^\//.test(path)
 
-# HACK: should use a node path.separator variable but it doesn't exists
-pathSeparator = join('x', 'x')[1]
-# double escape backslash for Regex constructor
-pathSeparatorRegex = new RegExp(pathSeparator.replace('\\', '\\\\'), "g")
-
 # Normalize paths and remove extensions
 # to create valid CommonJS module names
 modulerize = (id, filename = id) -> 
   ext = extname(filename)
-  join(dirname(id), basename(id, ext)).replace(pathSeparatorRegex, '/')
+  modName = join(dirname(id), basename(id, ext))
+  modName.replace('\\', '/');
 
 modulePaths = Module._nodeModulePaths(process.cwd())
 
-invalidDirs = [pathSeparator, '.']
+invalidDirs = ['/', '.']
 
 repl =
   id: 'repl'
@@ -38,8 +34,8 @@ module.exports = (request, parent = repl) ->
     dir = dirname(dir)
   
   throw("Load path not found for #{filename}") if dir in invalidDirs
-  
-  id = filename.replace("#{dir + pathSeparator}", '')
+    
+  id = filename.replace("#{dir}/", '')
 
   [modulerize(id, filename), filename]
   

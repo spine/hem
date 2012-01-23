@@ -4,9 +4,6 @@ compilers    = require('./compilers')
 {modulerize} = require('./resolve')
 {flatten}    = require('./utils')
 
-# HACK: should use a node path.separator variable but it doesn't exists
-pathSeparator = npath.join('x', 'x')[1]
-
 class Stitch
   constructor: (@paths = []) ->
     @paths = (npath.resolve(path) for path in @paths)
@@ -31,7 +28,7 @@ class Stitch
 class Module
   constructor: (@filename, @parent) ->
     @ext = npath.extname(@filename).slice(1)
-    @id  = modulerize(@filename.replace(@parent + pathSeparator, ''))
+    @id  = modulerize(@filename.replace(npath.join(@parent, '/'), ''))
     
   compile: ->
     compilers[@ext](@filename)
