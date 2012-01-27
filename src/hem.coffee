@@ -80,7 +80,7 @@ class Hem
 
   watch: ->
     @build() 
-    for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
+    for dir in (path.dirname(lib) for lib in @options.libs).concat path.dirname(@options.css), @options.paths
       continue unless path.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
