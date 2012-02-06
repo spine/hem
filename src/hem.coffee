@@ -53,7 +53,7 @@ class Hem
     
     @app = new strata.Builder
     
-  server: ->
+  server: (callback) ->
     @app.use(strata.contentLength)
       
     @app.get(@options.cssPath, @cssPackage().createServer())
@@ -69,7 +69,7 @@ class Hem
     if path.existsSync(@options.public)
       @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
     
-    strata.run(@app, port: @options.port)
+    strata.run(@app, port: @options.port, callback)
     
   build: ->
     source = @hemPackage().compile(not argv.debug)
@@ -87,9 +87,9 @@ class Hem
           console.log "#{file} changed.  Rebuilding."
           @build()
           
-  exec: (command = argv._[0]) ->
+  exec: (command = argv._[0], callback = null) ->
     return help() unless @[command]
-    @[command]()
+    @[command](callback)
     switch command
       when 'build'  then console.log 'Built application'
       when 'watch'  then console.log 'Watching application'
