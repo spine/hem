@@ -1,7 +1,7 @@
 path      = require('path')
 fs        = require('fs')
 optimist  = require('optimist')
-strata    = require('strata')
+express   = require('express')
 compilers = require('./compilers')
 package   = require('./package')
 css       = require('./css')
@@ -51,25 +51,21 @@ class Hem
     @options[key] = value for key, value of options    
     @options[key] = value for key, value of @readSlug()
     
-    @app = new strata.Builder
+    @app = express.createServer()
     
   server: (callback) ->
-    @app.use(strata.contentLength)
-      
     @app.get(@options.cssPath, @cssPackage().createServer())
     @app.get(@options.jsPath, @hemPackage().createServer())
     
     if path.existsSync(@options.specs)
       @app.get(@options.specsPath, @specsPackage().createServer())
           
-    if path.existsSync(@options.testPublic)
-      @app.map @options.testPath, (app) =>
-        app.use(strata.static, @options.testPublic, ['index.html', 'index.htm'])
-    
     if path.existsSync(@options.public)
-      @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
+      @app.use(express.static(@options.public))
     
-    strata.run(@app, port: @options.port, callback)
+    if callback
+      @app.on('listening', callback)
+    @app.listen(@options.port)
     
   build: ->
     source = @hemPackage().compile(not argv.debug)

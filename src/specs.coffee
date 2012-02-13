@@ -9,10 +9,10 @@ class Specs
     stitch(identifier: 'specs', modules: @stitch.resolve())
 
   createServer: ->
-    (env, callback) =>
-      callback(200, 
-        'Content-Type': 'text/javascript', 
-        @compile())
+    (req, res, next) =>
+      content = @compile()
+      res.writeHead 200, 'Content-Type': 'text/javascript'
+      res.end content
       
 module.exports = 
   Specs: Specs

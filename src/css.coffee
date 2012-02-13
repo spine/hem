@@ -14,10 +14,10 @@ class CSS
 
   
   createServer: ->
-    (env, callback) =>
-      callback(200, 
-        'Content-Type': 'text/css', 
-        @compile())
+    (req, res, next) =>
+      content = @compile()
+      res.writeHead 200, 'Content-Type': 'text/css'
+      res.end content
 
   try_resolve: (file) ->
     try
