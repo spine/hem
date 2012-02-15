@@ -52,23 +52,25 @@ class Hem
     @options[key] = value for key, value of @readSlug()
     
     @app = new strata.Builder
+    @router = new strata.Router
     
   server: ->
     @app.use(strata.contentLength)
-      
-    @app.get(@options.cssPath, @cssPackage().createServer())
-    @app.get(@options.jsPath, @hemPackage().createServer())
+    
+    @router.get(@options.cssPath, @cssPackage().createServer())
+    @router.get(@options.jsPath, @hemPackage().createServer())
     
     if path.existsSync(@options.specs)
-      @app.get(@options.specsPath, @specsPackage().createServer())
+      @router.get(@options.specsPath, @specsPackage().createServer())
           
     if path.existsSync(@options.testPublic)
       @app.map @options.testPath, (app) =>
-        app.use(strata.static, @options.testPublic, ['index.html', 'index.htm'])
+        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
     
     if path.existsSync(@options.public)
-      @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
+      @app.use(strata.file, @options.public, ['index.html', 'index.htm'])
     
+    @app.run(@router)
     strata.run(@app, port: @options.port)
     
   build: ->
