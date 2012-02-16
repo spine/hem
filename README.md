@@ -18,20 +18,18 @@ The "hem server" command will now look for a "serverSlug.json" file (file path i
 
 function initOnce(strata.Builder) called once during server startup. Even during reload this will not get called again. The idea is that it can be used to add mime types or loggers and the like to the strata.Builder.
 
-<code>
-strata = require 'strata'
+  strata = require 'strata'
  
-router = new strata.Router
+  router = new strata.Router
  
-exports.router = router
+  exports.router = router
  
-router.get '/item', (env, callback) ->
-  callback 200, {}, '{"name":"Somebody", "email": "somebody@example.com"}'
- 
-exports.initOnce = (app) ->
-  app.use strata.commonLogger
-  app.use strata.contentType, 'text/html'
-  app.use strata.contentLength
-</code>
+  router.get '/item', (env, callback) ->
+    callback 200, {}, '{"name":"Somebody", "email": "somebody@example.com"}'
+
+  exports.initOnce = (app) ->
+    app.use strata.commonLogger
+    app.use strata.contentType, 'text/html'
+    app.use strata.contentLength
 
 This allows server code to automatically reload when the developer changes it.
