@@ -6,6 +6,7 @@ compilers = require('./compilers')
 package   = require('./package')
 css       = require('./css')
 specs     = require('./specs')
+sys       = require('sys')
 
 argv = optimist.usage([
   '  usage: hem COMMAND',
@@ -131,9 +132,15 @@ class Hem
   serverBuild: (first) ->
     for dir in (path.join(process.cwd(), lib) for lib in @serverOptions.paths)
       @clearCacheForDir(dir)
-    @server = require(path.resolve(process.cwd(), @serverOptions.paths[0]))
-    if @server.initOnce and first
-      @server.initOnce(@app)
+    try
+      @server = require(path.resolve(process.cwd(), @serverOptions.paths[0]))
+      if @server.initOnce and first
+        @server.initOnce(@app)
+    catch e
+      sys.puts(e.message)
+      if e.stack
+        sys.puts(e.stack)
+        
   
   watch: ->
     @build() 
