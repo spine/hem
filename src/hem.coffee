@@ -52,6 +52,8 @@ class Hem
     specs:        './test/specs'
     specsPath:    '/test/specs.js'
 
+  isProdution:    false
+  
   constructor: (options = {}) ->
     @options[key] = value for key, value of options    
     @options[key] = value for key, value of @readSlug()
@@ -60,7 +62,11 @@ class Hem
     
     @app = new strata.Builder
     @router = new strata.Router
-    
+  
+  production: ->
+    @isProduction = true
+    @server.apply(this, arguments)
+  
   server: ->
     @app.use(strata.contentLength)
     
@@ -79,7 +85,7 @@ class Hem
     
     @app.run(@router)
     
-    if process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production')
+    if process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production') or @isProduction
       @server = require(path.join(process.cwd(), @serverOptions.production))
       if @server.initOnce
         @server.initOnce(@app)
