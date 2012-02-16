@@ -9,9 +9,10 @@ specs     = require('./specs')
 
 argv = optimist.usage([
   '  usage: hem COMMAND',
-  '    server  start a dynamic development server',
-  '    build   serialize application to disk',
-  '    watch   build & watch disk for changes'
+  '    server      start a dynamic development server',
+  '    production  start a dynamic development server',
+  '    build       serialize application to disk',
+  '    watch       build & watch disk for changes'
 ].join("\n"))
 .alias('p', 'port')
 .alias('d', 'debug')
