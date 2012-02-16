@@ -16,7 +16,7 @@ Please see the [Hem guide](http://spinejs.com/docs/hem) for usage instructions.
 
 The "hem server" command will now look for a "serverSlug.json" file (file path is a property in the slug.json package called "serverSlug".) It will watch all files within the "serverSlug.json".paths property and make sure they are always up to date and get reloaded when the developer changes any files within these paths. The first path is assumed to be the server code. The exports of the server code need to be as follows:
 
-function initOnce(strata.Builder) called once during server startup. Even during reload this will not get called again. The idea is that it can be used to add mime types or loggers and the like to the strata.Builder.
+function initOnce(strata.Builder) called once during server startup. Even during reload this will not get called again. The idea is that it can be used to add mime types or loggers and the like to the strata.Builder. This is an example server which by default should be located in ./server/index.coffee.
 
     strata = require 'strata'
     

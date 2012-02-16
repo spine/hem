@@ -11,7 +11,7 @@ slug = readSlug()
 serverSlug = readSlug(slug.serverSlug or 'serverSlug.json')
 
 build = (callback) ->
-  coffee = spawn 'coffee', ['-c', '-o', (serverSlug.production or './_server')].concat(serverSlug.paths)
+  coffee = spawn 'coffee', ['-c', '-o', (serverSlug.production or './.server')].concat(serverSlug.paths)
   coffee.stderr.on 'data', (data) ->
     process.stderr.write data.toString()
   coffee.stdout.on 'data', (data) ->
@@ -19,5 +19,5 @@ build = (callback) ->
   coffee.on 'exit', (code) ->
     callback?() if code is 0
 
-task 'build', 'Build _server/ from server/', ->
+task 'build', 'Build .server/ from server/', ->
   build()

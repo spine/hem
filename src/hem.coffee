@@ -32,6 +32,7 @@ class Hem
   
   serverOptions:
     paths:        ['./server']
+    production:   './.server'
   
   options: 
     slug:         './slug.json'
@@ -103,7 +104,7 @@ class Hem
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
     if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
-      console.log('You might need server code which needs to be compiled to ""./_server" use "cake build""')
+      console.log('You might need server code which needs to be compiled to "./.server" use "cake build""')
     
   clearCacheForDir: (dir) ->
     for file in fs.readdirSync(dir)
