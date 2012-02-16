@@ -1,0 +1,23 @@
+{print} = require 'util'
+{spawn} = require 'child_process'
+path = require 'path'
+fs = require 'fs'
+
+readSlug = (slug = 'slug.json') -> 
+  return {} unless slug and path.existsSync(slug)
+  JSON.parse(fs.readFileSync(slug, 'utf-8'))
+
+slug = readSlug()
+serverSlug = readSlug(slug.serverSlug or 'serverSlug.json')
+
+build = (callback) ->
+  coffee = spawn 'coffee', ['-c', '-o', (serverSlug.production or './_server')].concat(serverSlug.paths)
+  coffee.stderr.on 'data', (data) ->
+    process.stderr.write data.toString()
+  coffee.stdout.on 'data', (data) ->
+    print data.toString()
+  coffee.on 'exit', (code) ->
+    callback?() if code is 0
+
+task 'build', 'Build _server/ from server/', ->
+  build()

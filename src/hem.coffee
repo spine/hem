@@ -27,11 +27,15 @@ class Hem
   
   @include: (props) ->
     @::[key] = value for key, value of props
-    
+  
   compilers: compilers
-    
+  
+  serverOptions:
+    paths:        ['./server']
+  
   options: 
     slug:         './slug.json'
+    serverSlug:   './serverSlug.json'
     css:          './css'
     libs:         []
     public:       './public'
@@ -51,6 +55,8 @@ class Hem
     @options[key] = value for key, value of options    
     @options[key] = value for key, value of @readSlug()
     
+    @serverOptions[key] = value for key, value of @readSlug(@options.serverSlug)
+    
     @app = new strata.Builder
     @router = new strata.Router
     
@@ -62,7 +68,7 @@ class Hem
     
     if path.existsSync(@options.specs)
       @router.get(@options.specsPath, @specsPackage().createServer())
-          
+    
     if path.existsSync(@options.testPublic)
       @app.map @options.testPath, (app) =>
         app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
@@ -71,6 +77,22 @@ class Hem
       @app.use(strata.file, @options.public, ['index.html', 'index.htm'])
     
     @app.run(@router)
+    
+    if process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production')
+      @server = require(path.join(process.cwd(), @serverOptions.production))
+      if @server.initOnce
+        @server.initOnce(@app)
+      if @server.router
+        @app.run(@server.router)
+    else if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
+      @serverWatch()
+      if @server and @server.router
+        @app.run (env, callback) =>
+          if @server.router
+            @server.router.call(env, callback)
+          else
+            strata.utils.notFound(env, callback)
+
     strata.run(@app, port: @options.port)
     
   build: ->
@@ -80,6 +102,31 @@ class Hem
     source = @cssPackage().compile()
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
+    if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
+      console.log('You might need server code which needs to be compiled to ""./_server" use "cake build""')
+    
+  clearCacheForDir: (dir) ->
+    for file in fs.readdirSync(dir)
+      if file is '.' or file is '..'
+        continue
+      p = path.join(dir, file)
+      stat = fs.statSync(p)
+      if stat.isDirectory()
+        @clearCacheForDir(p)
+      else
+        try
+          key = require.resolve(p)
+          delete require.cache[key]
+        catch e
+          # Ignore probably a .DS_Store file
+  
+  serverBuild: (first) ->
+    for dir in (path.join(process.cwd(), lib) for lib in @serverOptions.paths)
+      @clearCacheForDir(dir)
+    @server = require(path.resolve(process.cwd(), @serverOptions.paths[0]))
+    if @server.initOnce and first
+      @server.initOnce(@app)
+  
   watch: ->
     @build() 
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
@@ -88,7 +135,16 @@ class Hem
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
           @build()
-          
+  
+  serverWatch: ->
+    @serverBuild(true)
+    for dir in (path.resolve(process.cwd(), lib) for lib in @serverOptions.paths)
+      continue unless path.existsSync(dir)
+      require('watch').watchTree dir, (file, curr, prev) =>
+        if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+          console.log "#{file} changed.  Rebuilding Server."
+          @serverBuild(false)
+
   exec: (command = argv._[0]) ->
     return help() unless @[command]
     @[command]()
@@ -101,7 +157,12 @@ class Hem
   readSlug: (slug = @options.slug) -> 
     return {} unless slug and path.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
-    
+  
+  serverPackage: ->
+    package.createPackage(
+      @serverOptions
+    )
+  
   cssPackage: ->
     css.createPackage(@options.css)
 
