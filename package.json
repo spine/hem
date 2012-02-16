@@ -1,7 +1,7 @@
 { 
   "name": "hem", 
   "description": "CommonJS stitcher.", 
-  "version": "0.1.8", 
+  "version": "0.1.9", 
   "author": "maccman", 
   "licenses":
     [{ 
@@ -10,7 +10,7 @@
     }], 
   "repository": { 
     "type" : "git", 
-    "url": "http://github.com/maccman/hem.git"
+    "url": "http://github.com/richtera/hem.git"
   }, 
   "engine" : [ "node >=0.1.102" ], 
   "main" : "./lib/hem.js",
