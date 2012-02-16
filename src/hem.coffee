@@ -72,6 +72,24 @@ class Hem
   server: ->
     @app.use(strata.contentLength)
     
+    if process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production') or @isProduction
+      @server = require(path.join(process.cwd(), @serverOptions.production))
+      if @server.router
+        @app.run(@server.router)
+    else if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
+      @serverWatch()
+      if @server and @server.router
+        @app.run (env, callback) =>
+          if @server.router
+            @server.router.call(env, callback)
+          else
+            strata.utils.notFound(env, callback)
+
+    if @server and @server.initOnce
+      @server.initOnce(@app)
+    if @server and @server.preInitOnce
+      @server.preInitOnce(@app)
+      
     @router.get(@options.cssPath, @cssPackage().createServer())
     @router.get(@options.jsPath, @hemPackage().createServer())
     
@@ -85,23 +103,11 @@ class Hem
     if path.existsSync(@options.public)
       @app.use(strata.file, @options.public, ['index.html', 'index.htm'])
     
+    if @server and @server.preInitOnce
+      @server.postInitOnce(@app)
+
     @app.run(@router)
     
-    if process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production') or @isProduction
-      @server = require(path.join(process.cwd(), @serverOptions.production))
-      if @server.initOnce
-        @server.initOnce(@app)
-      if @server.router
-        @app.run(@server.router)
-    else if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
-      @serverWatch()
-      if @server and @server.router
-        @app.run (env, callback) =>
-          if @server.router
-            @server.router.call(env, callback)
-          else
-            strata.utils.notFound(env, callback)
-
     strata.run(@app, port: @options.port)
     
   build: ->
