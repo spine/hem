@@ -34,3 +34,5 @@ exports.initOnce = (app) ->
   app.use strata.contentLength
 
 </code>
+
+This allows server code to automatically reload when the developer changes it.
