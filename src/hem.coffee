@@ -83,20 +83,24 @@ class Hem
       @server.initOnce(@app)
     if @server and @server.preInitOnce
       @server.preInitOnce(@app)
-    
-    @router.get(@options.cssPath, @cssPackage().createServer())
-    @router.get(@options.jsPath, @hemPackage().createServer())
-    
-    if path.existsSync(@options.specs)
-      @router.get(@options.specsPath, @specsPackage().createServer())
-    
+  
+    if not @isProduction
+      @app.map @options.cssPath, (app) =>
+        app.use @cssPackage().createServer, @options.cssPath
+      @app.map @options.jsPath, (app) =>
+        app.use @hemPackage().createServer, @options.jsPath
+
+      if path.existsSync(@options.specs)
+        @app.map @options.specsPath, (app) =>
+          app.use @specsPackage().createServer, @options.specsPath
+
     if path.existsSync(@options.testPublic)
       @app.map @options.testPath, (app) =>
-        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
-    
+        app.use(strata.file, @options.testPublic, false)
+
     if path.existsSync(@options.public)
-      @app.use(strata.file, @options.public, ['index.html', 'index.htm'])
-    
+      @app.use(strata.file, @options.public, false)
+
     if @server and @server.preInitOnce
       @server.postInitOnce(@app)
 

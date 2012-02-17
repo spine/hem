@@ -12,8 +12,11 @@ class CSS
     delete require.cache[@path]
     require(@path)
   
-  createServer: ->
-    (env, callback) =>
+  createServer: (app, path) =>
+    return (env, callback) =>
+      if (env.requestMethod isnt 'GET') or (env.scriptName isnt path)
+        app(env, callback)
+        return
       callback(200, 
         'Content-Type': 'text/css', 
         @compile())
