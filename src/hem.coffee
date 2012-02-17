@@ -72,13 +72,17 @@ class Hem
   server: ->
     @app.use(strata.contentLength)
     
-    if process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production') or @isProduction
+    @isProduction or= process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production')
+    if @isProduction
       @server = require(path.join(process.cwd(), @serverOptions.production))
-      if @server.router
-        @app.run(@server.router)
     else if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
       @serverWatch()
-      if @server and @server.router
+
+
+    if @server and @server.router
+      if @isProduction
+        @app.run(@server.router)
+      else
         @app.run (env, callback) =>
           if @server.router
             @server.router.call(env, callback)
