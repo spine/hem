@@ -55,6 +55,7 @@ class Hem
     specsPath:    '/test/specs.js'
 
   isProdution:    false
+  newRouter:      false
   
   constructor: (options = {}) ->
     @options[key] = value for key, value of options    
@@ -78,12 +79,13 @@ class Hem
     else if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
       @serverWatch()
 
-
     if @server and @server.router
       if @isProduction
         @app.run(@server.router)
       else
         @app.run (env, callback) =>
+          if @newRouter
+            @server.router.run(@router)
           if @server.router
             @server.router.call(env, callback)
           else
@@ -93,7 +95,7 @@ class Hem
       @server.initOnce(@app)
     if @server and @server.preInitOnce
       @server.preInitOnce(@app)
-      
+    
     @router.get(@options.cssPath, @cssPackage().createServer())
     @router.get(@options.jsPath, @hemPackage().createServer())
     
@@ -144,6 +146,7 @@ class Hem
       @clearCacheForDir(dir)
     try
       @server = require(path.resolve(process.cwd(), @serverOptions.paths[0]))
+      @newRouter = true
     catch e
       sys.puts(e.message)
       if e.stack
