@@ -139,13 +139,11 @@ class Hem
         catch e
           # Ignore probably a .DS_Store file
   
-  serverBuild: (first) ->
+  serverBuild: ->
     for dir in (path.join(process.cwd(), lib) for lib in @serverOptions.paths)
       @clearCacheForDir(dir)
     try
       @server = require(path.resolve(process.cwd(), @serverOptions.paths[0]))
-      if @server.initOnce and first
-        @server.initOnce(@app)
     catch e
       sys.puts(e.message)
       if e.stack
@@ -162,13 +160,13 @@ class Hem
           @build()
   
   serverWatch: ->
-    @serverBuild(true)
+    @serverBuild()
     for dir in (path.resolve(process.cwd(), lib) for lib in @serverOptions.paths)
       continue unless path.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding Server."
-          @serverBuild(false)
+          @serverBuild()
 
   exec: (command = argv._[0]) ->
     return help() unless @[command]
