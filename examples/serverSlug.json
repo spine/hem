@@ -1,6 +1,5 @@
 {
   "paths": [
     "./server"
-  ],
-  "production": "./.server"
+  ]
 }

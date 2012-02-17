@@ -34,7 +34,6 @@ class Hem
   
   serverOptions:
     paths:        ['./server']
-    production:   './.server'
   
   options: 
     slug:         './slug.json'
@@ -81,10 +80,11 @@ class Hem
     @app.use(strata.contentLength)
     
     @isProduction or= process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production')
-    if @isProduction
-      @server = require(path.join(process.cwd(), @serverOptions.production))
-    else if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
-      @serverWatch()
+    if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
+      if @isProduction
+        @server = require(path.join(process.cwd(), @serverOptions.paths[0]))
+      else
+        @serverWatch()
 
     if @server and @server.initOnce
       @server.initOnce(@app)
@@ -129,9 +129,6 @@ class Hem
     
     source = @cssPackage().compile()
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
-
-    if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
-      console.log('You might need server code which needs to be compiled to "./.server" use "cake build""')
     
   clearCacheForDir: (dir) ->
     for file in fs.readdirSync(dir)
