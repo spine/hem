@@ -79,18 +79,6 @@ class Hem
     else if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
       @serverWatch()
 
-    if @server and @server.router
-      if @isProduction
-        @app.run(@server.router)
-      else
-        @app.run (env, callback) =>
-          if @newRouter
-            @server.router.run(@router)
-          if @server.router
-            @server.router.call(env, callback)
-          else
-            strata.utils.notFound(env, callback)
-
     if @server and @server.initOnce
       @server.initOnce(@app)
     if @server and @server.preInitOnce
@@ -113,7 +101,7 @@ class Hem
       @server.postInitOnce(@app)
 
     @app.run(@router)
-    
+
     strata.run(@app, port: @options.port)
     
   build: ->
@@ -146,7 +134,8 @@ class Hem
       @clearCacheForDir(dir)
     try
       @server = require(path.resolve(process.cwd(), @serverOptions.paths[0]))
-      @newRouter = true
+      if @server.router
+        @router.run(@server.router)
     catch e
       sys.puts(e.message)
       if e.stack
