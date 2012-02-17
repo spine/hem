@@ -64,11 +64,18 @@ class Hem
     @serverOptions[key] = value for key, value of @readSlug(@options.serverSlug)
     
     @app = new strata.Builder
-    @router = new strata.Router
   
   production: ->
     @isProduction = true
     @server.apply(this, arguments)
+  
+  doMapping: (app) ->
+    app.use (app) =>
+      return (env, callback) =>
+        if @server?.router
+          @server.router.call(env, callback)
+        else
+          app(env, callback)
   
   server: ->
     @app.use(strata.contentLength)
@@ -94,18 +101,25 @@ class Hem
         @app.map @options.specsPath, (app) =>
           app.use @specsPackage().createServer, @options.specsPath
 
+    mapped = false
     if path.existsSync(@options.testPublic)
+      mapped = true
       @app.map @options.testPath, (app) =>
         app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
+        @doMapping(app)
 
     if path.existsSync(@options.public)
+      mapped = true
       @app.map '/', (app) =>
         app.use(strata.file, @options.public, ['index.html', 'index.htm'])
+        @doMapping(app)
 
+    if not mapped
+      @app.map '/', (app) =>
+        @doMapping(app)
+    
     if @server and @server.preInitOnce
       @server.postInitOnce(@app)
-
-    @app.run(@router)
 
     strata.run(@app, port: @options.port)
     
@@ -139,8 +153,6 @@ class Hem
       @clearCacheForDir(dir)
     try
       @server = require(path.resolve(process.cwd(), @serverOptions.paths[0]))
-      if @server.router
-        @router.run(@server.router)
     catch e
       sys.puts(e.message)
       if e.stack
