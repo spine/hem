@@ -70,11 +70,19 @@ class Hem
   
   doMapping: (app) ->
     app.use (app) =>
+      if not @serverApp
+        @serverApp = app
       return (env, callback) =>
         if @server?.router
-          @server.router.call(env, callback)
+          try
+            @server.router.call(env, callback)
+          catch e
+            callback(500, {}, e.message)
+            sys.puts(e.message)
+            if e.stack
+              sys.puts(e.stack)
         else
-          app(env, callback)
+          @serverApp(env, callback)
   
   server: ->
     @app.use(strata.contentLength)
