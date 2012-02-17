@@ -96,10 +96,11 @@ class Hem
 
     if path.existsSync(@options.testPublic)
       @app.map @options.testPath, (app) =>
-        app.use(strata.file, @options.testPublic, false)
+        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
 
     if path.existsSync(@options.public)
-      @app.use(strata.file, @options.public, false)
+      @app.map '/', (app) =>
+        app.use(strata.file, @options.public, ['index.html', 'index.htm'])
 
     if @server and @server.preInitOnce
       @server.postInitOnce(@app)
