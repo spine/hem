@@ -168,19 +168,31 @@ class Hem
     @build() 
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
       continue unless path.existsSync(dir)
-      require('watch').watchTree dir, (file, curr, prev) =>
-        if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-          console.log "#{file} changed.  Rebuilding."
-          @build()
+      try
+        require('watch').watchTree dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding."
+            @build()
+      catch e
+        fs.watch dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding."
+            @build()
   
   serverWatch: ->
     @serverBuild()
     for dir in (path.resolve(process.cwd(), lib) for lib in @serverOptions.paths)
       continue unless path.existsSync(dir)
-      require('watch').watchTree dir, (file, curr, prev) =>
-        if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-          console.log "#{file} changed.  Rebuilding Server."
-          @serverBuild()
+      try
+        require('watch').watchTree dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding Server."
+            @serverBuild()
+      catch e
+        fs.watch dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding Server."
+            @serverBuild()
 
   exec: (command = argv._[0]) ->
     return help() unless @[command]
