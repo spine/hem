@@ -7,6 +7,7 @@ package   = require('./package')
 css       = require('./css')
 specs     = require('./specs')
 sys       = require('sys')
+EventEmitter = require('events').EventEmitter
 
 argv = optimist.usage([
   '  usage: hem COMMAND',
@@ -23,7 +24,7 @@ help = ->
   optimist.showHelp()
   process.exit()
 
-class Hem
+class Hem extends EventEmitter
   @exec: (command, options) ->
     (new @(options)).exec(command)
   
@@ -72,6 +73,7 @@ class Hem
     app.use (app) =>
       if not @serverApp
         @serverApp = app
+        @server.router.run(@serverApp)
       return (env, callback) =>
         if @server?.router
           try
@@ -97,8 +99,8 @@ class Hem
     if @server and @server.initOnce
       @server.initOnce(@app)
     if @server and @server.preInitOnce
-      @server.preInitOnce(@app)
-  
+      @server.preInitOnce(@app, this)
+
     if not @isProduction
       @app.map @options.cssPath, (app) =>
         app.use @cssPackage().createServer, @options.cssPath
@@ -108,13 +110,14 @@ class Hem
       if path.existsSync(@options.specs)
         @app.map @options.specsPath, (app) =>
           app.use @specsPackage().createServer, @options.specsPath
+    else
+      @build()
+      console.log 'Built minified files'
 
     mapped = false
     if path.existsSync(@options.testPublic)
-      mapped = true
       @app.map @options.testPath, (app) =>
         app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
-        @doMapping(app)
 
     if path.existsSync(@options.public)
       mapped = true
@@ -126,18 +129,29 @@ class Hem
       @app.map '/', (app) =>
         @doMapping(app)
     
-    if @server and @server.preInitOnce
-      @server.postInitOnce(@app)
+    if @server and @server.postInitOnce
+      @server.postInitOnce(@app, this)
 
     strata.run(@app, port: @options.port)
-    
+  
+  bustedName: (p, bust) ->
+    ext = path.extname(p)
+    p + '-' + bust + ext
+  
   build: ->
     source = @hemPackage().compile(not argv.debug)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
+    bustedJsPath = @bustedName(@options.jsPath, @hemPackage().cacheBust)
+    fs.writeFileSync(path.join(@options.public, bustedJsPath), source)
     
     source = @cssPackage().compile()
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
-    
+    bustedCssPath = @bustedName(@options.cssPath, @cssPackage().cacheBust)
+    fs.writeFileSync(path.join(@options.public, bustedCssPath), source)
+    @emit('bustedPaths', {"js": bustedJsPath, "css": bustedCssPath, "path": @options.public})
+    console.log "Busted CSS written to #{bustedCssPath} in #{@options.public}"
+    console.log "Busted JS written to #{bustedJsPath}"
+  
   clearCacheForDir: (dir) ->
     for file in fs.readdirSync(dir)
       if file is '.' or file is '..'
@@ -209,22 +223,23 @@ class Hem
     return {} unless slug and path.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
   
-  serverPackage: ->
-    package.createPackage(
-      @serverOptions
-    )
-  
   cssPackage: ->
-    css.createPackage(@options.css)
+    pack = css.createPackage(@options.css)
+    @cssPackage = ->
+      return pack
+    pack
 
   hemPackage: ->
-    package.createPackage(
+    pack = package.createPackage(
       dependencies: @options.dependencies
       paths: @options.paths
       libs: @options.libs
     )
+    @hemPackage = ->
+      return pack
+    pack
     
   specsPackage: ->
-    specs.createPackage(@options.specs)
+    @specsPackage = specs.createPackage(@options.specs)
 
 module.exports = Hem
