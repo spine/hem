@@ -190,11 +190,11 @@ class Hem
             console.log "#{file} changed. Rebuilding Server."
           else
             console.log "Somehing changed. Rebuilding Server."
-        else
-          require('watch').watchTree dir, (file, curr, prev) =>
-            if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-              console.log "#{file} changed.  Rebuilding Server."
-              @serverBuild()
+      else
+        require('watch').watchTree dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding Server."
+            @serverBuild()
 
   exec: (command = argv._[0]) ->
     return help() unless @[command]
