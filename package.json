@@ -1,7 +1,7 @@
 { 
   "name": "hem", 
   "description": "CommonJS stitcher.", 
-  "version": "0.1.11", 
+  "version": "0.1.12", 
   "author": "maccman", 
   "licenses":
     [{ 
