@@ -19,10 +19,10 @@ class CSS
   
   createServer: (app, path) =>
     return (env, callback) =>
-      if (env.requestMethod isnt 'GET') or (env.scriptName.substr(0, path.length - 1) is path)
-        app(env, callback)
-        return
       try
+        if (env.requestMethod isnt 'GET') or (env.scriptName.substr(0, path.length - 1) is path)
+          app(env, callback)
+          return
         content = @compile()
         callback(200, 
           'Content-Type': 'text/css', 
