@@ -28,7 +28,13 @@ class Package
     
   compile: (minify) ->
     result = [@compileLibs(), @compileModules()].join("\n")
-    result = uglify(result) if minify
+    try
+      result = uglify(result) if minify
+    catch e
+      fs.writeFileSync("error.js", result)
+      sys.puts("#{e.message} at error.js:#{e.line}:#{e.col}")
+      if e.stack
+        sys.puts(e.stack)
     @cacheBust = crypto.createHash('md5').update(result).digest("hex")
     result
     
