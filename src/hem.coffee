@@ -106,15 +106,15 @@ class Hem extends EventEmitter
         app.use @cssPackage().createServer, @options.cssPath
       @app.map @options.jsPath, (app) =>
         app.use @hemPackage().createServer, @options.jsPath
-
-      if path.existsSync(@options.specs)
-        @app.map @options.specsPath, (app) =>
-          app.use @specsPackage().createServer, @options.specsPath
     else
       @build()
       console.log 'Built minified files'
 
     mapped = false
+    if path.existsSync(@options.specs)
+      @app.map @options.specsPath, (app) =>
+        app.use @specsPackage().createServer, @options.specsPath
+
     if path.existsSync(@options.testPublic)
       @app.map @options.testPath, (app) =>
         app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
