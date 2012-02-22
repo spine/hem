@@ -1,6 +1,6 @@
 stitch = require('../assets/stitch')
 Stitch = require('./stitch')
-sys = require('sys')
+sys = require(/^v0\.[012]/.test(process.version) ? "sys" : "util")
 
 class Specs
   constructor: (@path) -> 

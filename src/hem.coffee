@@ -6,7 +6,7 @@ compilers = require('./compilers')
 package   = require('./package')
 css       = require('./css')
 specs     = require('./specs')
-sys       = require('sys')
+sys       = require(/^v0\.[012]/.test(process.version) ? "sys" : "util")
 EventEmitter = require('events').EventEmitter
 
 argv = optimist.usage([
