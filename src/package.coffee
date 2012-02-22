@@ -6,7 +6,10 @@ stitch       = require('../assets/stitch')
 Dependency   = require('./dependency')
 Stitch       = require('./stitch')
 {toArray}    = require('./utils')
-sys          = require(/^v0\.[012]/.test(process.version) ? "sys" : "util")
+if /^v0\.[012]/.test(process.version)
+  sys        = require("sys")
+else
+  sys        = require("util")
 crypto       = require('crypto')
 
 class Package

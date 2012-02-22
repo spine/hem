@@ -1,7 +1,10 @@
 {resolve} = require('path')
 compilers = require('./compilers')
 crypto    = require('crypto')
-sys       = require(/^v0\.[012]/.test(process.version) ? "sys" : "util")
+if /^v0\.[012]/.test(process.version)
+  sys        = require("sys")
+else
+  sys        = require("util")
 
 class CSS
   constructor: (path) ->
