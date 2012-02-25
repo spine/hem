@@ -185,33 +185,37 @@ class Hem extends EventEmitter
     @build() 
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
       continue unless path.existsSync(dir)
-      if fs.watch
+      try
+        require('watch').watchTree dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding."
+            @build()
+        console.log 'using watch.watchTree api to watch for changes'
+      catch e
         fs.watch dir, (event, file) =>
           if file
             console.log "#{file} changed. Rebuilding."
           else
             console.log "Something changed. Rebuilding."
-      else
-        require('watch').watchTree dir, (file, curr, prev) =>
-          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-            console.log "#{file} changed.  Rebuilding."
-            @build()
+        console.log 'using fs.watch api to watch for changes'
   
   serverWatch: ->
     @serverBuild()
     for dir in (path.resolve(process.cwd(), lib) for lib in @serverOptions.paths)
       continue unless path.existsSync(dir)
-      if fs.watch
+      try
+        require('watch').watchTree dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding Server."
+            @serverBuild()
+        console.log 'using watch.watchTree api to watch for server changes'
+      catch e
         fs.watch dir, (event, file) =>
           if file
             console.log "#{file} changed. Rebuilding Server."
           else
             console.log "Somehing changed. Rebuilding Server."
-      else
-        require('watch').watchTree dir, (file, curr, prev) =>
-          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-            console.log "#{file} changed.  Rebuilding Server."
-            @serverBuild()
+        console.log 'using fs.watch api to watch for server changes'
 
   exec: (command = argv._[0]) ->
     return help() unless @[command]
