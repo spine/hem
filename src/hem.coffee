@@ -11,6 +11,11 @@ if /^v0\.[012]/.test(process.version)
 else
   sys        = require("util")
 EventEmitter = require('events').EventEmitter
+cluster = null
+try
+  cluster = require('cluster')
+  numCPUs = require('os').cpus().length
+catch e
 
 argv = optimist.usage([
   '  usage: hem COMMAND',
@@ -70,6 +75,14 @@ class Hem extends EventEmitter
   
   production: ->
     @isProduction = true
+    
+    if cluster
+      if cluster.isMaster
+        console.log 'starting up master server... minimizing files...'
+      else
+        console.log "starting up worker #{process.pid}..."
+    else
+      console.log 'starting up server... minimizing files...'
     @server.apply(this, arguments)
   
   doMapping: (app) ->
@@ -110,8 +123,9 @@ class Hem extends EventEmitter
       @app.map @options.jsPath, (app) =>
         app.use @hemPackage().createServer, @options.jsPath
     else
-      @build()
-      console.log 'Built minified files'
+      if (not cluster) or (cluster.isMaster)
+        @build()
+        console.log 'Built minified files'
 
     mapped = false
     if path.existsSync(@options.specs)
@@ -135,7 +149,21 @@ class Hem extends EventEmitter
     if @server and @server.postInitOnce
       @server.postInitOnce(@app, this)
 
-    strata.run(@app, port: @options.port)
+    if cluster
+      if cluster.isMaster
+        # Fork workers.
+        console.log "master with #{numCPUs} cpus"
+        for i in [1..numCPUs - 1]
+          cluster.fork()
+        cluster.on 'death', (worker) ->
+          console.log "worker #{worker.pid} died"
+        strata.run(@app, port: @options.port)
+      else
+        # Worker processes have a http server.
+        strata.run(@app, port: @options.port)
+        console.log "worker #{process.pid} online"
+    else
+      strata.run(@app, port: @options.port)
   
   bustedName: (p, bust) ->
     ext = path.extname(p)
