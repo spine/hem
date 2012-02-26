@@ -154,13 +154,13 @@ class Hem extends EventEmitter
       if cluster.isMaster
         # Fork workers.
         console.log "master with #{numCPUs} cpus"
-        for i in [1..numCPUs - 1]
+        for i in [1..numCPUs]
           cluster.fork()
         cluster.on 'death', (worker) ->
           console.log "worker #{worker.pid} died"
-        strata.run(@app, port: @options.port, host: @options.host)
       else
         # Worker processes have a http server.
+        console.log "worked options #{@options.host}:#{@options.port}"
         strata.run(@app, port: @options.port, host: @options.host)
         console.log "worker #{process.pid} online"
     else
