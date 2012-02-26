@@ -53,6 +53,7 @@ class Hem extends EventEmitter
     paths:        ['./app']
     dependencies: []
     port:         process.env.PORT or argv.port or 9294
+    host:         process.env.HOST or argv.host or '0.0.0.0'
     cssPath:      '/application.css'
     jsPath:       '/application.js'
 
@@ -157,13 +158,13 @@ class Hem extends EventEmitter
           cluster.fork()
         cluster.on 'death', (worker) ->
           console.log "worker #{worker.pid} died"
-        strata.run(@app, port: @options.port)
+        strata.run(@app, port: @options.port, host: @options.host)
       else
         # Worker processes have a http server.
-        strata.run(@app, port: @options.port)
+        strata.run(@app, port: @options.port, host: @options.host)
         console.log "worker #{process.pid} online"
     else
-      strata.run(@app, port: @options.port)
+      strata.run(@app, port: @options.port, host: @options.host)
   
   bustedName: (p, bust) ->
     ext = path.extname(p)
