@@ -107,6 +107,10 @@ class Hem extends EventEmitter
     @app.use(strata.contentLength)
     
     @isProduction or= process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production')
+    if @isProduction
+      console.log 'Running in production mode'
+    else
+      console.log 'Running development server'
     if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
       if @isProduction
         @server = require(path.join(process.cwd(), @serverOptions.paths[0]))
@@ -150,7 +154,7 @@ class Hem extends EventEmitter
     if @server and @server.postInitOnce
       @server.postInitOnce(@app, this)
 
-    if cluster
+    if cluster and @isProduction
       if cluster.isMaster
         # Fork workers.
         console.log "master with #{numCPUs} cpus"
@@ -214,37 +218,37 @@ class Hem extends EventEmitter
     @build() 
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
       continue unless path.existsSync(dir)
-      try
-        require('watch').watchTree dir, (file, curr, prev) =>
-          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-            console.log "#{file} changed.  Rebuilding."
-            @build()
-        console.log 'using watch.watchTree api to watch for changes'
-      catch e
+      if fs.watch and process.platform isnt 'darwin'
         fs.watch dir, (event, file) =>
           if file
             console.log "#{file} changed. Rebuilding."
           else
             console.log "Something changed. Rebuilding."
         console.log 'using fs.watch api to watch for changes'
+      else
+        require('watch').watchTree dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding."
+            @build()
+        console.log 'using watch.watchTree api to watch for changes'
   
   serverWatch: ->
     @serverBuild()
     for dir in (path.resolve(process.cwd(), lib) for lib in @serverOptions.paths)
       continue unless path.existsSync(dir)
-      try
-        require('watch').watchTree dir, (file, curr, prev) =>
-          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-            console.log "#{file} changed.  Rebuilding Server."
-            @serverBuild()
-        console.log 'using watch.watchTree api to watch for server changes'
-      catch e
+      if fs.watch and process.platform isnt 'darwin'
         fs.watch dir, (event, file) =>
           if file
             console.log "#{file} changed. Rebuilding Server."
           else
             console.log "Somehing changed. Rebuilding Server."
         console.log 'using fs.watch api to watch for server changes'
+      else
+        require('watch').watchTree dir, (file, curr, prev) =>
+          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+            console.log "#{file} changed.  Rebuilding Server."
+            @serverBuild()
+        console.log 'using watch.watchTree api to watch for server changes'
 
   exec: (command = argv._[0]) ->
     return help() unless @[command]
