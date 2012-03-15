@@ -20,16 +20,21 @@ class CSS
     @cacheBust = crypto.createHash('md5').update(result).digest("hex")
     result
   
+  refresh: ->
+    @compiled = null
+  
   createServer: (app, path) =>
     return (env, callback) =>
       try
         if (env.requestMethod isnt 'GET') or (env.scriptName.substr(0, path.length - 1) is path)
           app(env, callback)
           return
-        content = @compile()
+        if not @compiled
+          console.log("compiling css")
+          @compiled = @compile()
         callback(200, 
           'Content-Type': 'text/css', 
-          content)
+          @compiled)
       catch e
         sys.puts(e.message)
         if e.stack

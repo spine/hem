@@ -28,7 +28,10 @@ class Package
     
   compileLibs: ->
     (fs.readFileSync(path, 'utf8') for path in @libs).join("\n")
-    
+  
+  refresh: ->
+    @compiled = null
+
   compile: (minify) ->
     result = [@compileLibs(), @compileModules()].join("\n")
     try
@@ -40,23 +43,6 @@ class Package
         sys.puts(e.stack)
     @cacheBust = crypto.createHash('md5').update(result).digest("hex")
     result
-    
-  createServer: (app, path) =>
-    return (env, callback) =>
-      try
-        if (env.requestMethod isnt 'GET') or (env.scriptName.substr(0, path.length - 1) is path)
-          app(env, callback)
-          return
-        content = @compile()
-        
-        callback(200, 
-          'Content-Type': 'text/javascript', 
-          content)
-      catch e
-        sys.puts(e.message)
-        if e.stack
-          sys.puts(e.stack)
-        callback(500, {}, e.message)
 
 module.exports = 
   compilers:  compilers

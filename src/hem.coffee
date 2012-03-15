@@ -123,15 +123,10 @@ class Hem extends EventEmitter
       @server.preInitOnce(@app, this)
 
     if not @isProduction
-      @app.map @options.cssPath, (app) =>
-        app.use @cssPackage().createServer, @options.cssPath
-      @app.map @options.jsPath, (app) =>
-        app.use @hemPackage().createServer, @options.jsPath
+      @watch()
     else
-      if (not cluster) or (cluster.isMaster)
-        @build()
-        console.log 'Built minified files'
-
+      @build()
+    
     mapped = false
     if path.existsSync(@options.specs)
       @app.map @options.specsPath, (app) =>
@@ -175,11 +170,11 @@ class Hem extends EventEmitter
     p + '-' + bust + ext
   
   build: ->
-    source = @hemPackage().compile(not argv.debug)
+    source = @hemPackage().compile(@isProduction)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
     bustedJsPath = @bustedName(@options.jsPath, @hemPackage().cacheBust)
     fs.writeFileSync(path.join(@options.public, bustedJsPath), source)
-    
+  
     source = @cssPackage().compile()
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
     bustedCssPath = @bustedName(@options.cssPath, @cssPackage().cacheBust)
@@ -187,7 +182,7 @@ class Hem extends EventEmitter
     @emit('bustedPaths', {"js": bustedJsPath, "css": bustedCssPath, "path": @options.public})
     console.log "Busted CSS written to #{bustedCssPath} in #{@options.public}"
     console.log "Busted JS written to #{bustedJsPath}"
-  
+      
   clearCacheForDir: (dir) ->
     for file in fs.readdirSync(dir)
       if file is '.' or file is '..'
@@ -216,7 +211,7 @@ class Hem extends EventEmitter
   
   watch: ->
     @build() 
-    for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
+    for dir in (path.resolve(process.cwd(), lib) for lib in @options.libs.concat @options.css, @options.paths)
       continue unless path.existsSync(dir)
       if fs.watch and process.platform isnt 'darwin'
         fs.watch dir, (event, file) =>
@@ -224,6 +219,7 @@ class Hem extends EventEmitter
             console.log "#{file} changed. Rebuilding."
           else
             console.log "Something changed. Rebuilding."
+          @build()
         console.log 'using fs.watch api to watch for changes'
       else
         require('watch').watchTree dir, (file, curr, prev) =>
