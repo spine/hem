@@ -125,7 +125,8 @@ class Hem extends EventEmitter
     if not @isProduction
       @watch()
     else
-      @build()
+      if not cluster?.isWorker
+        @build()
     
     mapped = false
     if path.existsSync(@options.specs)
@@ -161,7 +162,7 @@ class Hem extends EventEmitter
         # Worker processes have a http server.
         console.log "worked options #{@options.host}:#{@options.port}"
         strata.run(@app, port: @options.port, host: @options.host)
-        console.log "worker #{process.pid} online"
+        console.log "worker #{process.pid} online on #{@options.host}:#{@options.port}"
     else
       strata.run(@app, port: @options.port, host: @options.host)
   
