@@ -32,6 +32,13 @@ help = ->
   optimist.showHelp()
   process.exit()
 
+eachWorkers = (cb) ->
+  # Go througe all workers
+  if cluster?.isMaster
+    for id of cluster.workers
+      if cluster.workers.hasOwnProperty id
+        cb cluster.workers[id]
+
 class Hem extends EventEmitter
   @exec: (command, options) ->
     (new @(options)).exec(command)
@@ -80,8 +87,6 @@ class Hem extends EventEmitter
     if cluster
       if cluster.isMaster
         console.log 'starting up master server... minimizing files...'
-      else
-        console.log "starting up worker #{process.pid}..."
     else
       console.log 'starting up server... minimizing files...'
     @server.apply(this, arguments)
@@ -107,10 +112,11 @@ class Hem extends EventEmitter
     @app.use(strata.contentLength)
     
     @isProduction or= process.env.PRODUCTION or (process.env.ENVIRONMENT is 'production')
-    if @isProduction
-      console.log 'Running in production mode'
-    else
-      console.log 'Running development server'
+    if (not cluster) or cluster.isMaster
+      if @isProduction
+        console.log 'Running in production mode'
+      else
+        console.log 'Running development server'
     if @serverOptions.paths.length > 0 and path.existsSync(@serverOptions.paths[0])
       if @isProduction
         @server = require(path.join(process.cwd(), @serverOptions.paths[0]))
@@ -153,16 +159,30 @@ class Hem extends EventEmitter
     if cluster and @isProduction
       if cluster.isMaster
         # Fork workers.
-        console.log "master with #{numCPUs} cpus"
-        for i in [1..numCPUs]
-          cluster.fork()
         cluster.on 'death', (worker) ->
           console.log "worker #{worker.pid} died"
+        console.log "master with #{numCPUs} cpus"
+        for i in [1..numCPUs]
+          worker = cluster.fork()
+          self = this
+          worker.on 'message', (msg) ->
+            if msg.cmd is 'hem:worker-online'
+              console.log "Worker: Worker #{worker.pid} online"
+              obj = {'cmd':'hem:busted-paths', 'data':self.bustedPaths}
+              if @process?.send
+                @process.send obj
+              else
+                @send obj
+    
       else
         # Worker processes have a http server.
-        console.log "worked options #{@options.host}:#{@options.port}"
+        process.on 'message', (msg) =>
+          if msg.cmd is 'hem:busted-paths'
+            @bustedPaths = msg.data
+            console.log "Hashed files received #{@bustedPaths.css} and #{@bustedPaths.js} in #{@options.public}"
+            @emit 'bustedPaths', @bustedPaths
+        process.send {'cmd':'hem:worker-online'}
         strata.run(@app, port: @options.port, host: @options.host)
-        console.log "worker #{process.pid} online on #{@options.host}:#{@options.port}"
     else
       strata.run(@app, port: @options.port, host: @options.host)
   
@@ -180,9 +200,13 @@ class Hem extends EventEmitter
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
     bustedCssPath = @bustedName(@options.cssPath, @cssPackage().cacheBust)
     fs.writeFileSync(path.join(@options.public, bustedCssPath), source)
-    @emit('bustedPaths', {"js": bustedJsPath, "css": bustedCssPath, "path": @options.public})
-    console.log "Busted CSS written to #{bustedCssPath} in #{@options.public}"
-    console.log "Busted JS written to #{bustedJsPath}"
+    @bustedPaths = {"js": bustedJsPath, "css": bustedCssPath, "path": @options.public};
+    
+    if not @isProduction
+      @emit 'bustedPaths', @bustedPaths
+    eachWorkers (worker) =>
+      worker.process.send 'message', {'data': @bustedPaths, 'cmd':'hem:busted-paths'}
+    console.log "Hashed files written to #{bustedCssPath} and  #{bustedJsPath} in #{@options.public}"
       
   clearCacheForDir: (dir) ->
     for file in fs.readdirSync(dir)
