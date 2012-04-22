@@ -7,8 +7,7 @@ isAbsolute = (path) -> /^\//.test(path)
 # to create valid CommonJS module names
 modulerize = (id, filename = id) -> 
   ext = extname(filename)
-  modName = join(dirname(id), basename(id, ext))
-  modName.replace('\\', '/');
+  join(dirname(id), basename(id, ext)).replace(/\\/g, '/')
 
 modulePaths = Module._nodeModulePaths(process.cwd())
 
@@ -35,7 +34,7 @@ module.exports = (request, parent = repl) ->
   
   throw("Load path not found for #{filename}") if dir in invalidDirs
     
-  id = filename.replace("#{dir}/", '')
+  id = filename.replace("#{dir}/", '').replace("#{dir}\\", '')
 
   [modulerize(id, filename), filename]
   

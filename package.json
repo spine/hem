@@ -1,7 +1,7 @@
 { 
   "name": "hem", 
   "description": "CommonJS stitcher.", 
-  "version": "0.1.8", 
+  "version": "0.1.14", 
   "author": "maccman", 
   "licenses":
     [{ 
@@ -10,7 +10,7 @@
     }], 
   "repository": { 
     "type" : "git", 
-    "url": "http://github.com/maccman/hem.git"
+    "url": "http://github.com/richtera/hem.git"
   }, 
   "engine" : [ "node >=0.1.102" ], 
   "main" : "./lib/hem.js",
@@ -23,6 +23,6 @@
     "coffee-script" : "~1.3.0",
     "stylus" : "~0.22.6",
     "watch" : "~0.4.0",
-    "strata": "~0.8.1"
+    "strata": "~0.11.0"
   }
 }

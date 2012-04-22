@@ -1,6 +1,6 @@
 {
   "libs": [
-   "./lib/custom.js"
+    "./lib/custom.js"
   ],
   "dependencies": ["gfx"]
 }

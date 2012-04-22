@@ -1,5 +1,9 @@
 stitch = require('../assets/stitch')
 Stitch = require('./stitch')
+if /^v0\.[012]/.test(process.version)
+  sys        = require("sys")
+else
+  sys        = require("util")
 
 class Specs
   constructor: (@path) -> 
@@ -8,11 +12,21 @@ class Specs
     @stitch  = new Stitch([@path])
     stitch(identifier: 'specs', modules: @stitch.resolve())
 
-  createServer: ->
+  createServer: (app, path) =>
     (env, callback) =>
-      callback(200, 
-        'Content-Type': 'text/javascript', 
-        @compile())
+      try
+        if (env.requestMethod isnt 'GET') or (env.scriptName.substr(0, path.length - 1) is path)
+          app(env, callback)
+          return
+        content = @compile()
+        callback(200, 
+          'Content-Type': 'text/javascript', 
+          content)
+      catch e
+        sys.puts(e.message)
+        if e.stack
+          sys.puts(e.stack)
+        callback(500, {}, e.message)
       
 module.exports = 
   Specs: Specs
