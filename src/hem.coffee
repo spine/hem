@@ -35,6 +35,7 @@ class Hem
     css:          './css'
     libs:         []
     public:       './public'
+    catchAll:     './public/index.html'
     paths:        ['./app']
     dependencies: []
     port:         process.env.PORT or argv.port or 9294
@@ -68,9 +69,18 @@ class Hem
     
     if path.existsSync(@options.public)
       @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
-    
+
+    if path.existsSync(@options.catchAll)
+      @app.get /.+/, (env, callback) =>
+        fs.stat @options.catchAll, (err, stats) =>
+          callback 200,
+            'Content-Type': 'text/html'
+            'Content-Length': stats.size.toString(),
+            'Last-Modified': stats.mtime.toUTCString()
+            fs.createReadStream(@options.catchAll)
+
     strata.run(@app, port: @options.port)
-    
+
   build: ->
     source = @hemPackage().compile(not argv.debug)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
