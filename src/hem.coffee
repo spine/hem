@@ -62,7 +62,7 @@ class Hem
 
     if path.existsSync(@options.testPublic)
       strata.map @options.testPath, (app) =>
-        strata.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
+        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
 
     if path.existsSync(@options.public)
       strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
