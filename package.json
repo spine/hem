@@ -1,28 +1,28 @@
-{ 
-  "name": "hem", 
-  "description": "CommonJS stitcher.", 
-  "version": "0.1.8", 
-  "author": "maccman", 
+{
+  "name": "hem",
+  "description": "CommonJS stitcher.",
+  "version": "0.1.8",
+  "author": "maccman",
   "licenses":
-    [{ 
-      "type": "MIT", 
+    [{
+      "type": "MIT",
       "url": "https://github.com/maccman/hem/blob/master/LICENSE"
-    }], 
-  "repository": { 
-    "type" : "git", 
+    }],
+  "repository": {
+    "type" : "git",
     "url": "http://github.com/maccman/hem.git"
-  }, 
-  "engine" : [ "node >=0.1.102" ], 
+  },
+  "engine" : [ "node >=0.1.102" ],
   "main" : "./lib/hem.js",
   "bin": { "hem": "./bin/hem" },
-  "dependencies" : { 
+  "dependencies" : {
     "eco": "1.1.0-rc-3",
     "uglify-js": "~1.1.1",
     "fast-detective": "~0.0.1",
     "optimist": "~0.2.6",
     "coffee-script" : "~1.2.0",
-    "stylus" : "~0.22.6",
+    "stylus" : "~0.23.0",
     "watch" : "~0.4.0",
-    "strata": "~0.8.1"
+    "strata": "~0.11.0"
   }
 }
