@@ -51,25 +51,23 @@ class Hem
     @options[key] = value for key, value of options
     @options[key] = value for key, value of @readSlug()
 
-    @app = new strata.Builder
-
   server: ->
-    @app.use(strata.contentLength)
+    strata.use(strata.contentLength)
 
-    @app.get(@options.cssPath, @cssPackage().createServer())
-    @app.get(@options.jsPath, @hemPackage().createServer())
+    strata.get(@options.cssPath, @cssPackage().createServer())
+    strata.get(@options.jsPath, @hemPackage().createServer())
 
     if path.existsSync(@options.specs)
-      @app.get(@options.specsPath, @specsPackage().createServer())
+      strata.get(@options.specsPath, @specsPackage().createServer())
 
     if path.existsSync(@options.testPublic)
-      @app.map @options.testPath, (app) =>
-        app.use(strata.static, @options.testPublic, ['index.html', 'index.htm'])
+      strata.map @options.testPath, (app) =>
+        strata.use(strata.static, @options.testPublic, ['index.html', 'index.htm'])
 
     if path.existsSync(@options.public)
-      @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
+      strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
 
-    strata.run(@app, port: @options.port)
+    strata.run(port: @options.port)
 
   build: ->
     source = @hemPackage().compile(not argv.debug)
