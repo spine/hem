@@ -13,6 +13,9 @@ class Package
     @libs         = toArray(config.libs)
     @paths        = toArray(config.paths)
     @dependencies = toArray(config.dependencies)
+    if ( config.compilers?)
+      for ext, mod of config.compilers
+        compilers[ext] = require(mod).compile
 
   compileModules: ->
     @dependency or= new Dependency(@dependencies)
