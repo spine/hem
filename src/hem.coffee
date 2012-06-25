@@ -45,7 +45,7 @@ class Hem
     testPublic:   './test/public'
     testPath:     '/test'
     specs:        './test/specs'
-    specsPath:    '/specs.js'
+    specsPath:    '/test/specs.js'
 
   constructor: (options = {}) ->
     @options[key] = value for key, value of options
@@ -54,14 +54,17 @@ class Hem
   server: ->
     strata.use(strata.contentLength)
 
-    strata.get(@options.cssPath, @cssPackage().createServer())
-    strata.get(@options.jsPath, @hemPackage().createServer())
+    strata.map @options.cssPath, (app) =>
+      app.run @cssPackage().createServer()
+    strata.map @options.jsPath, (app) =>
+      app.run @hemPackage().createServer()
 
-    strata.map @options.testPath, (app) =>
-      if path.existsSync(@options.specs)
-        app.get(@options.specsPath, @specsPackage().createServer())
+    if path.existsSync(@options.specs)
+      strata.map @options.specsPath, (app) =>
+        app.run @specsPackage().createServer()
 
-      if path.existsSync(@options.testPublic)
+    if path.existsSync(@options.testPublic)
+      strata.map @options.testPath, (app) =>
         app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
 
     if path.existsSync(@options.public)
