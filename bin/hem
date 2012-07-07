@@ -3,7 +3,7 @@ var path   = require('path'),
     Module = require('module'),
     fs     = require('fs');
     
-if (path.existsSync('./slug.js')) {
+if (fs.existsSync('./slug.js')) {
   return Module._load('./slug.js');
 }
 
