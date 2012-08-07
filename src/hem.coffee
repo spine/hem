@@ -79,8 +79,12 @@ class Hem
     source = @cssPackage().compile()
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
+    # TODO add build for tests??
+
   watch: ->
     @build()
+    # TODO watch specs folder too??
+    # TODO or separate watchTests folder that will build and launch phantomjs
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
@@ -98,6 +102,8 @@ class Hem
   # Private
 
   readSlug: (slug = @options.slug) ->
+    # TODO: give error if slug missing
+    # TODO: or walk up directory structure to find slug??
     return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
 
