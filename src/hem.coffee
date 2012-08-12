@@ -58,13 +58,13 @@ class Hem
     strata.get(@options.jsPath, @hemPackage().createServer())
 
     strata.map @options.testPath, (app) =>
-      if path.existsSync(@options.specs)
+      if fs.existsSync(@options.specs)
         app.get(@options.specsPath, @specsPackage().createServer())
 
-      if path.existsSync(@options.testPublic)
+      if fs.existsSync(@options.testPublic)
         app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
 
-    if path.existsSync(@options.public)
+    if fs.existsSync(@options.public)
       strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
 
     strata.run(port: @options.port)
@@ -79,7 +79,7 @@ class Hem
   watch: ->
     @build()
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
-      continue unless path.existsSync(dir)
+      continue unless fs.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
@@ -95,7 +95,7 @@ class Hem
   # Private
 
   readSlug: (slug = @options.slug) ->
-    return {} unless slug and path.existsSync(slug)
+    return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
 
   cssPackage: ->

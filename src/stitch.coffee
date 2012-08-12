@@ -14,7 +14,7 @@ class Stitch
   # Private
 
   walk: (path, parent = path, result = []) ->
-    return unless npath.existsSync(path)
+    return unless fs.existsSync(path)
     for child in fs.readdirSync(path)
       child = npath.join(path, child)
       stat  = fs.statSync(child)
