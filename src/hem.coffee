@@ -3,7 +3,7 @@ fs        = require('fs')
 optimist  = require('optimist')
 strata    = require('strata')
 compilers = require('./compilers')
-package   = require('./package')
+pkg       = require('./package')
 css       = require('./css')
 specs     = require('./specs')
 
@@ -24,13 +24,13 @@ help = ->
 class Hem
   @exec: (command, options) ->
     (new @(options)).exec(command)
-  
+
   @include: (props) ->
     @::[key] = value for key, value of props
-    
+
   compilers: compilers
-    
-  options: 
+
+  options:
     slug:         './slug.json'
     css:          './css'
     libs:         []
@@ -45,48 +45,46 @@ class Hem
     testPublic:   './test/public'
     testPath:     '/test'
     specs:        './test/specs'
-    specsPath:    '/test/specs.js'
+    specsPath:    '/specs.js'
 
   constructor: (options = {}) ->
-    @options[key] = value for key, value of options    
+    @options[key] = value for key, value of options
     @options[key] = value for key, value of @readSlug()
-    
-    @app = new strata.Builder
-    
+
   server: ->
-    @app.use(strata.contentLength)
-      
-    @app.get(@options.cssPath, @cssPackage().createServer())
-    @app.get(@options.jsPath, @hemPackage().createServer())
-    
-    if path.existsSync(@options.specs)
-      @app.get(@options.specsPath, @specsPackage().createServer())
-          
-    if path.existsSync(@options.testPublic)
-      @app.map @options.testPath, (app) =>
-        app.use(strata.static, @options.testPublic, ['index.html', 'index.htm'])
-    
+    strata.use(strata.contentLength)
+
+    strata.get(@options.cssPath, @cssPackage().createServer())
+    strata.get(@options.jsPath, @hemPackage().createServer())
+
+    strata.map @options.testPath, (app) =>
+      if path.existsSync(@options.specs)
+        app.get(@options.specsPath, @specsPackage().createServer())
+
+      if path.existsSync(@options.testPublic)
+        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
+
     if path.existsSync(@options.public)
-      @app.use(strata.static, @options.public, ['index.html', 'index.htm'])
-    
-    strata.run(@app, port: @options.port)
-    
+      strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
+
+    strata.run(port: @options.port)
+
   build: ->
     source = @hemPackage().compile(not argv.debug)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
-    
+
     source = @cssPackage().compile()
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
   watch: ->
-    @build() 
+    @build()
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
       continue unless path.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
           @build()
-          
+
   exec: (command = argv._[0]) ->
     return help() unless @[command]
     @[command]()
@@ -95,21 +93,21 @@ class Hem
       when 'watch'  then console.log 'Watching application'
 
   # Private
-    
-  readSlug: (slug = @options.slug) -> 
+
+  readSlug: (slug = @options.slug) ->
     return {} unless slug and path.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
-    
+
   cssPackage: ->
     css.createPackage(@options.css)
 
   hemPackage: ->
-    package.createPackage(
+    pkg.createPackage(
       dependencies: @options.dependencies
       paths: @options.paths
       libs: @options.libs
     )
-    
+
   specsPackage: ->
     specs.createPackage(@options.specs)
 
