@@ -1,7 +1,7 @@
 npath        = require('path')
 fs           = require('fs')
 compilers    = require('./compilers')
-{modulerize} = require('./resolve')
+{modulerize, pathSeparator} = require('./resolve')
 {flatten}    = require('./utils')
 
 class Stitch
@@ -14,7 +14,7 @@ class Stitch
   # Private
 
   walk: (path, parent = path, result = []) ->
-    return unless npath.existsSync(path)
+    return unless fs.existsSync(path)
     for child in fs.readdirSync(path)
       child = npath.join(path, child)
       stat  = fs.statSync(child)
@@ -28,7 +28,7 @@ class Stitch
 class Module
   constructor: (@filename, @parent) ->
     @ext = npath.extname(@filename).slice(1)
-    @id  = modulerize(@filename.replace(npath.join(@parent, '/'), ''))
+    @id  = modulerize(@filename.replace(@parent + pathSeparator, ''))
     
   compile: ->
     compilers[@ext](@filename)

@@ -67,4 +67,26 @@ try
     module._compile "module.exports = #{source}", filename
 catch err
 
+compilers.html = (path) ->
+  content = fs.readFileSync(path, 'utf8')
+  "module.exports = #{JSON.stringify(content)};\n"
+	
+require.extensions['.html'] = (module, filename) ->
+	module._compile compilers.html(filename), filename
+
+try
+  jade = require('jade')
+  
+  compilers.jade = (path) ->
+    content = fs.readFileSync(path, 'utf8')
+    options = {}
+    template = jade.compile content, options
+    locals = {}
+    html = template(locals)
+    "module.exports = #{JSON.stringify(html)};\n"
+	
+  require.extensions['.jade'] = (module, filename) ->
+    module._compile compilers.jade(filename), filename
+catch err
+
 module.exports = compilers

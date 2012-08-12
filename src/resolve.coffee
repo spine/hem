@@ -3,16 +3,22 @@ Module = require('module')
 
 isAbsolute = (path) -> /^\//.test(path)
 
+# use the node.js path module way
+isWindows = process.platform is 'win32' 
+pathSeparator = if isWindows then '\\' else '/'
+
 # Normalize paths and remove extensions
 # to create valid CommonJS module names
 modulerize = (id, filename = id) -> 
   ext = extname(filename)
   modName = join(dirname(id), basename(id, ext))
-  modName.replace('\\', '/');
+  if isWindows
+    modName = modName.replace(/\\/g, '/')
+  modName
 
 modulePaths = Module._nodeModulePaths(process.cwd())
 
-invalidDirs = ['/', '.']
+invalidDirs = [pathSeparator, '.']
 
 repl =
   id: 'repl'
@@ -34,10 +40,13 @@ module.exports = (request, parent = repl) ->
     dir = dirname(dir)
   
   throw("Load path not found for #{filename}") if dir in invalidDirs
-    
-  id = filename.replace("#{dir}/", '')
+  
+  id = filename.replace("#{dir + pathSeparator}", '')
 
   [modulerize(id, filename), filename]
+  
+
+module.exports.pathSeparator = pathSeparator
   
 module.exports.paths = (filename) ->
   Module._nodeModulePaths(dirname(filename))
