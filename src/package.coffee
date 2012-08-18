@@ -31,7 +31,7 @@ class Package
   createServer: ->
     (env, callback) =>
       callback(200, 
-        'Content-Type': 'text/javascript', 
+        'Content-Type': 'text/javascript',
         @compile())
 
 module.exports = 

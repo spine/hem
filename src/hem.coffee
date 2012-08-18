@@ -54,8 +54,13 @@ class Hem
   server: ->
     strata.use(strata.contentLength)
 
-    strata.get(@options.cssPath, @cssPackage().createServer())
-    strata.get(@options.jsPath, @hemPackage().createServer())
+    # strata.get(@options.cssPath, @cssPackage().createServer())
+    # strata.get(@options.jsPath, @hemPackage().createServer())
+    
+    strata.map @options.cssPath, (app) =>
+      app.run @cssPackage().createServer()
+    strata.map @options.jsPath, (app) =>
+      app.run @hemPackage().createServer()
 
     strata.map @options.testPath, (app) =>
       if path.existsSync(@options.specs)
