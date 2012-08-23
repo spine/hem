@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/maccman/hem.png)](http://travis-ci.org/maccman/hem)
 #Introduction
 
 Hem is a project for compiling CommonJS modules when building JavaScript web applications. You can think of Hem as [Bundler](http://gembundler.com/) for Node, or [Stitch](https://github.com/sstephenson/stitch) on steroids. 
