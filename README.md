@@ -24,6 +24,8 @@ Please see the [Hem guide](http://spinejs.com/docs/hem) for usage instructions.
 * This would be cool -> integrate with live-reload for changes. We should be able to inject https://github.com/livereload/livereload-js while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
 * Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
 * consider merging dust and html templates feature from: git://github.com/guillaume86/hem.git ( at least including strait html templates is probably a good idea considering eco's current ineffeciancies)
-* update stylus (current 27.1 latest 29)
 * port and update hem guide here since hem will probably be depricated in spine docs in favor of catapult
-* 
+
+#History
+
+Originally developed by @maccman to compliment Spine.js. He started a replacement project which is a ruby based project called catapult. Some of us still love the mode.js and hem way of doing things. In the spirit of open source it is forked and we are hoping to disccus moving npm repo to point to this version of hem which we plan to maintain for the near future at least.
