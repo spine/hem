@@ -113,6 +113,7 @@ This will ensure that your server can statically serve your application, without
 * Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
 * consider merging dust and html templates feature from: git://github.com/guillaume86/hem.git ( at least including strait html templates is probably a good idea considering eco's current ineffeciancies)
 * port and update hem guide here since hem will probably be depricated in spine docs in favor of catapult
+* configuable to proxy requests - enabling app running via hem locally to use api server (also running locally?) so don't bump into annoying cross domain issues with ajax persistence.
 
 #History
 
