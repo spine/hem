@@ -24,12 +24,12 @@ compilers.eco = (path) ->
 compilers.jeco = (path) -> 
   content = eco.precompile fs.readFileSync path, 'utf8'
   """
-  module.exports = function(values){ 
+  module.exports = function(values, data){ 
     var $  = jQuery, result = $();
     values = $.makeArray(values);
-    
+    data = data || {};
     for(var i=0; i < values.length; i++) {
-      var value = values[i];
+      var value = $.extend({}, values[i], data, {index: i});
       var elem  = $((#{content})(value));
       elem.data('item', value);
       $.merge(result, elem);
@@ -39,6 +39,7 @@ compilers.jeco = (path) ->
   """
 
 require.extensions['.jeco'] = require.extensions['.eco']
+# require.extensions['.eco'] in eco package contains the function
 
 compilers.tmpl = (path) ->
   content = fs.readFileSync(path, 'utf8')
