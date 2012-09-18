@@ -6,7 +6,7 @@ compilers = require('./compilers')
 pkg       = require('./package')
 css       = require('./css')
 specs     = require('./specs')
-http      = require('http'),
+http      = require('http')
 httpProxy = require('http-proxy')
 
 argv = optimist.usage([
@@ -85,7 +85,7 @@ class Hem
     # the same host and port to avoid crossDomain ajax issues
     if @options.useProxy
       proxy = new httpProxy.RoutingProxy()
-      http.createServer(function (req, res) {
+      http.createServer (req, res) => 
         if someSpinePath
           proxy.proxyRequest(req, res, {
             host: @options.host
@@ -96,7 +96,7 @@ class Hem
             host: @options.apiHost
             port: @options.apiPort
           })
-      }).listen(@options.proxyPort)
+      .listen(@options.proxyPort)
 
   build: ->
     source = @hemPackage().compile(not argv.debug)
