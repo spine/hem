@@ -6,6 +6,8 @@ compilers = require('./compilers')
 pkg       = require('./package')
 css       = require('./css')
 specs     = require('./specs')
+http      = require('http'),
+httpProxy = require('http-proxy')
 
 argv = optimist.usage([
   '  usage: hem COMMAND',
@@ -39,6 +41,10 @@ class Hem
     dependencies: []
     port:         process.env.PORT or argv.port or 9294
     host:         argv.host or 'localhost'
+    useProxy:     argv.useProxy or false
+    apiHost:      argv.apiHost or 'localhost'
+    apiPort:      argv.apiPort or 8080
+    proxyPort:    argv.proxyPort or 8001
     cssPath:      '/application.css'
     jsPath:       '/application.js'
 
@@ -53,6 +59,7 @@ class Hem
     @options[key] = value for key, value of @readSlug()
 
   server: ->
+    # setup the strata server to handle the spine app
     strata.use(strata.contentLength)
 
     strata.map @options.cssPath, (app) =>
@@ -72,6 +79,24 @@ class Hem
       strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
 
     strata.run(port: @options.port, host: @options.host)
+    
+    # Optionally setup the proxyServer to conditionally route requests.
+    # The spine app and the api need to appear to the browser to be coming from
+    # the same host and port to avoid crossDomain ajax issues
+    if @options.useProxy
+      proxy = new httpProxy.RoutingProxy()
+      http.createServer(function (req, res) {
+        if someSpinePath
+          proxy.proxyRequest(req, res, {
+            host: @options.host
+            port: @options.port
+          })
+        else
+          proxy.proxyRequest(req, res, {
+            host: @options.apiHost
+            port: @options.apiPort
+          })
+      }).listen(@options.proxyPort)
 
   build: ->
     source = @hemPackage().compile(not argv.debug)
