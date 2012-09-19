@@ -8,6 +8,7 @@ css       = require('./css')
 specs     = require('./specs')
 http      = require('http')
 httpProxy = require('http-proxy')
+url       = require('url')
 
 argv = optimist.usage([
   '  usage: hem COMMAND',
@@ -82,11 +83,23 @@ class Hem
     
     # Optionally setup the proxyServer to conditionally route requests.
     # The spine app and the api need to appear to the browser to be coming from
-    # the same host and port to avoid crossDomain ajax issues
+    # the same host and port to avoid crossDomain ajax issues.
+    # Ultimately it may be a good idea to configure an api server to accept
+    # calls from other domains but sometimes not... 
     if @options.useProxy
       proxy = new httpProxy.RoutingProxy()
       http.createServer (req, res) => 
-        if someSpinePath
+        console.log 'just stock url', req.url
+        console.log 'parsed url', url.parse(req.url)
+        regex = ""
+        # baseSpinePath is in config, 
+        #application(.js|.css)
+        #if url starts with string in the baseSpinePath
+          # set req.url = /
+          #pass off to spine host:port
+        #else 
+          #pass off to apiHost:apiPort
+        if req.url is @options.baseSpinePath
           proxy.proxyRequest(req, res, {
             host: @options.host
             port: @options.port
