@@ -8,7 +8,6 @@ css       = require('./css')
 specs     = require('./specs')
 http      = require('http')
 httpProxy = require('http-proxy')
-url       = require('url')
 
 argv = optimist.usage([
   '  usage: hem COMMAND',
@@ -90,16 +89,16 @@ class Hem
       proxy = new httpProxy.RoutingProxy()
       http.createServer (req, res) => 
         console.log 'just stock url', req.url
-        console.log 'parsed url', url.parse(req.url)
-        regex = ""
+        startsWithBasePath = new RegExp("^#{@options.baseSpinePath}")
         # baseSpinePath is in config, 
         #application(.js|.css)
         #if url starts with string in the baseSpinePath
-          # set req.url = /
+          # set req.url -= baseSpinePath
           #pass off to spine host:port
         #else 
           #pass off to apiHost:apiPort
-        if req.url is @options.baseSpinePath
+        if startsWithBasePath.test(req.url)
+          req.url = req.url.replace(@options.baseSpinePath, '/')
           proxy.proxyRequest(req, res, {
             host: @options.host
             port: @options.port
