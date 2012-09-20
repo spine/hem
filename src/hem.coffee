@@ -12,6 +12,7 @@ argv = optimist.usage([
   '    server  start a dynamic development server',
   '    build   serialize application to disk',
   '    watch   build & watch disk for changes'
+  '    test    build and run tests'
 ].join("\n"))
 .alias('p', 'port')
 .alias('d', 'debug')
@@ -90,18 +91,23 @@ class Hem
     source = @cssPackage().compile()
     fs.writeFileSync(path.join(@options.public, @options.cssPath), source)
 
-    # TODO add build for tests??
+    if buildTests
+      source = @specsPackage().compile()
+      fs.writeFileSync(path.join(@options.testPublic, @options.specsPath), source)
 
-  watch: ->
+  watch: (callback) ->
     @build()
-    # TODO watch specs folder too??
-    # TODO or separate watchTests folder that will build and launch phantomjs
-    for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths
+    for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths, @options.specs
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
           @build()
+          # TODO: run script here if option is provided
+
+  test: ->
+    @build true
+    # TODO: run phatomjs and print output
 
   exec: (command = argv._[0]) ->
     return help() unless @[command]
@@ -109,6 +115,7 @@ class Hem
     switch command
       when 'build'  then console.log 'Built application'
       when 'watch'  then console.log 'Watching application'
+      when 'test'   then console.log 'Testing application'
 
   # Private
 
