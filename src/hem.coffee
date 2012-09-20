@@ -70,8 +70,6 @@ class Hem
     if fs.existsSync(@options.testPublic)
       strata.map @options.testPath, (app) =>
         app.get(@options.specsPath, @specsPackage().createServer())
-        app.get("", (env, callback) ->
-          callback(200, 'Content-Type':'text', 'hmmm'))
         app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
 
     # start server
