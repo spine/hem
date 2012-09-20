@@ -10,7 +10,7 @@ This is rather awesome, as it means you don't need to faff around with coping ar
 
 or
 
-    npm install -g git@github.com:aeischeid/hem.git
+    npm install -g git://github.com/aeischeid/hem.git
 
 #Usage
 
