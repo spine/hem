@@ -41,38 +41,49 @@ class Hem
     cssPath:      '/application.css'
     jsPath:       '/application.js'
 
-    test:         './test'
     testPublic:   './test/public'
     testPath:     '/test'
     specs:        './test/specs'
-    specsPath:    '/test/specs.js'
+    specsPath:    '/specs.js'
 
   constructor: (options = {}) ->
     @options[key] = value for key, value of options
     @options[key] = value for key, value of @readSlug()
 
   server: ->
+    # make sure the old compiled files are removed so its always dynamic
+    @removeOldBuilds()
+
+    # setup strata instance
     strata.use(strata.contentLength)
 
-    strata.map @options.cssPath, (app) =>
-      app.run @cssPackage().createServer()
-    strata.map @options.jsPath, (app) =>
-      app.run @hemPackage().createServer()
+    # get dynamically compiled javascript/css files
+    strata.get(@options.cssPath, @cssPackage().createServer())
+    strata.get(@options.jsPath, @hemPackage().createServer())
 
-    if fs.existsSync(@options.specs)
-      strata.map @options.specsPath, (app) =>
-        app.run @specsPackage().createServer()
-
-    if fs.existsSync(@options.testPublic)
-      strata.map @options.testPath, (app) =>
-        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
-
+    # get static public folder
     if fs.existsSync(@options.public)
       strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
 
+    # handle test directory
+    if fs.existsSync(@options.testPublic)
+      strata.map @options.testPath, (app) =>
+        app.get(@options.specsPath, @specsPackage().createServer())
+        app.get("", (env, callback) ->
+          callback(200, 'Content-Type':'text', 'hmmm'))
+        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
+
+    # start server
     strata.run(port: @options.port)
 
-  build: ->
+  removeOldBuilds: ->
+    files = [
+      path.join(@options.public, @options.jsPath),
+      path.join(@options.public, @options.cssPath),
+      path.join(@options.testPublic, @options.specsPath)]
+    fs.unlinkSync(filePath) for filePath in files when fs.existsSync(filePath)
+
+  build: (buildTests = false) ->
     source = @hemPackage().compile(not argv.debug)
     fs.writeFileSync(path.join(@options.public, @options.jsPath), source)
 
