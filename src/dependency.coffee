@@ -37,7 +37,7 @@ class Module
   # Find calls to require()
   calls: ->
     if @ext in @constructor.walk
-      detective(@compile()) 
+      detective(@compile())
     else []
 
 class Dependency
@@ -55,7 +55,7 @@ class Dependency
       search[module.filename] = true
       result.push(module)
       @deepResolve(
-        module.modules(), 
+        module.modules(),
         result
         search
       )
