@@ -46,18 +46,20 @@ class Hem
     #     test: ""
     #     callback: ""
     slug:         './slug.json'
-    css:          './css'
-    libs:         []
-    public:       './public'
     paths:        ['./app']
-    dependencies: []
+    
     port:         process.env.PORT or argv.port or 9294
     host:         argv.host or 'localhost'
     useProxy:     argv.useProxy or false
     apiHost:      argv.apiHost or 'localhost'
     apiPort:      argv.apiPort or 8080
     proxyPort:    argv.proxyPort or 8001
+    
+    public:       './public'
+    css:          './css'
     cssPath:      '/application.css'
+    libs:         []
+    dependencies: []
     jsPath:       '/application.js'
 
     testPublic:   './test/public'
@@ -102,24 +104,20 @@ class Hem
     # Ultimately it may be a good idea to configure an api server to accept
     # calls from other domains but sometimes not... 
     if @options.useProxy
+      console.log "proxy server @ http://localhost:#{@options.proxyPort}"
       proxy = new httpProxy.RoutingProxy()
-      http.createServer (req, res) => 
-        console.log 'just stock url', req.url
-        startsWithBasePath = new RegExp("^#{@options.baseSpinePath}")
-        # baseSpinePath is in config, 
-        #application(.js|.css)
-        #if url starts with string in the baseSpinePath
-          # set req.url -= baseSpinePath
-          #pass off to spine host:port
-        #else 
-          #pass off to apiHost:apiPort
-        if startsWithBasePath.test(req.url)
+      startsWithSpinePath = new RegExp("^#{@options.baseSpinePath}")
+      #console.log 'my spine regex base path is... ', startsWithSpinePath
+      http.createServer (req, res) =>
+        if startsWithSpinePath.test(req.url)
           req.url = req.url.replace(@options.baseSpinePath, '/')
+          #console.log 'spine url turned into : ', req.url
           proxy.proxyRequest(req, res, {
             host: @options.host
             port: @options.port
           })
         else
+          #console.log 'off to api : ', req.url
           proxy.proxyRequest(req, res, {
             host: @options.apiHost
             port: @options.apiPort
