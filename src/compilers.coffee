@@ -17,19 +17,19 @@ catch err
 
 eco = require 'eco'
 
-compilers.eco = (path) ->
+compilers.eco = (path) -> 
   content = eco.precompile fs.readFileSync path, 'utf8'
   "module.exports = #{content}"
 
-compilers.jeco = (path) ->
+compilers.jeco = (path) -> 
   content = eco.precompile fs.readFileSync path, 'utf8'
   """
-  module.exports = function(values){
+  module.exports = function(values, data){ 
     var $  = jQuery, result = $();
     values = $.makeArray(values);
-
+    data = data || {};
     for(var i=0; i < values.length; i++) {
-      var value = values[i];
+      var value = $.extend({}, values[i], data, {index: i});
       var elem  = $((#{content})(value));
       elem.data('item', value);
       $.merge(result, elem);
@@ -39,7 +39,7 @@ compilers.jeco = (path) ->
   """
 
 require.extensions['.jeco'] = require.extensions['.eco']
-# function for require.extensions['.eco'] is defined in eco source
+# require.extensions['.eco'] in eco package contains the function
 
 # tmpl is depricated should probably remove this.
 compilers.tmpl = (path) ->
@@ -47,7 +47,7 @@ compilers.tmpl = (path) ->
   "var template = jQuery.template(#{JSON.stringify(content)});\n" +
   "module.exports = (function(data){ return jQuery.tmpl(template, data); });\n"
 
-require.extensions['.tmpl'] = (module, filename) ->
+require.extensions['.tmpl'] = (module, filename) -> 
   module._compile(compilers.tmpl(filename))
 
 compilers.html = (path) ->
@@ -74,19 +74,19 @@ catch err
 
 try
   stylus = require('stylus')
-
+  
   compilers.styl = (path) ->
     content = fs.readFileSync(path, 'utf8')
     result = ''
     stylus(content)
       .include(dirname(path))
-      .render((err, css) ->
+      .render((err, css) -> 
         throw err if err
         result = css
       )
     result
-
-  require.extensions['.styl'] = (module, filename) ->
+    
+  require.extensions['.styl'] = (module, filename) -> 
     source = JSON.stringify(compilers.styl(filename))
     module._compile "module.exports = #{source}", filename
 catch err
