@@ -31,7 +31,7 @@ Stitch modules: Hem will bundle up your whole application (without any static de
 
 In a nutshell, Hem will make sure your application and all its dependencies are wrapped up in a single file, ready to be served to web browsers.
 
-*TODO*: figure out a way to have common depenencies share easily between multiple spine apps. 
+**TODO**: figure out a way to have common depenencies share easily between multiple spine apps. 
 for example. jqery, es5-shim, or certain js-plugins shouldn't have to be wrapped inside of 3 different application.js files if you have three spine apps served at the same domain. you probably would have shared css, images, and maybe even some share spine models and controllers. 
 
 ##CommonJS
@@ -137,9 +137,19 @@ When you're ready to deploy, you should build your application, serializing it t
 
 This will ensure that your server can statically serve your application, without having to use Node, or have any npm dependencies installed.
 
-*TODO*: hem build should have an option to version the js/css it producess and replace the references in index.html as well
+**TODO**: hem build should have an option to version the js/css it producess and replace the references in index.html as well
 
     hem build -v
+    
+###Views
+
+Currently Hem supports three template options out of the box 
+* Straigt Html - stringifed html... that you can render... 
+* [Eco](https://github.com/sstephenson/eco) - erb like syntax, like ejs, but with coffeeScript. Nice, but seems to be a somewhat abandoned project
+* [Jade](https://github.com/visionmedia/jade/blob/master/runtime.js) - haml like syntax with optional coffeescript filter
+  * to use jade templates you must include jades runtime.js as a lib in your spine projects slug.json
+  
+    "libs": ["lib/runtime.js"],
 
 #TODO
 
@@ -150,11 +160,7 @@ This will ensure that your server can statically serve your application, without
 * This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
 * Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
   * actually with more generic projects out there like [yeoman](http://yeoman.io/) maybe Hem should aim to be a dedicated spine dev tool.
-* consider merging jade and html templates feature from: git://github.com/guillaume86/hem.git ( at least including strait html templates is probably a good idea considering eco's current ineffeciancies)
 * Update this readme
-* configuable to proxy requests - enabling app running via hem locally to use api server (also running locally?) so don't bump into annoying cross domain issues with ajax persistence.
-  * mostly done in proxy branch
-  * document and merge after further experimentation
 
 #History
 
