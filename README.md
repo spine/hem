@@ -144,23 +144,22 @@ This will ensure that your server can statically serve your application, without
 ###Views
 
 Currently Hem supports three template options out of the box 
-* Straigt Html - stringifed html... that you can render... 
+* Straigt HTML - stringifed html... that you can render... 
 * [Eco](https://github.com/sstephenson/eco) - erb like syntax, like ejs, but with coffeeScript. Nice, but seems to be a somewhat abandoned project
-* [Jade](https://github.com/visionmedia/jade/blob/master/runtime.js) - haml like syntax with optional coffeescript filter
-  * to use jade templates you must include jades runtime.js as a lib in your spine projects slug.json
-  
-    "libs": ["lib/runtime.js"],
+* [Jade](https://github.com/visionmedia/jade) - haml like syntax with optional coffeescript filter
+  * to use jade templates you must include jades [runtime.js](https://github.com/visionmedia/jade/blob/master/runtime.js) as a lib in your spine projects slug.json
+      "libs": ["lib/runtime.js"],
 
 #TODO
 
 * Need to setup HEM so that it will build/compile a physical specs file (in progress)
-* Integrate with phantom for running tests by command or by watching for file changes -> need to setup the index.html file to determine if running the server or by file system, should be able to look at the url fro http: or file://. Also need different output formats from the phantom script, sometimes report everything, other times just errors? Ability to only specific specs or test? Perhaps this can be configured by slug file.
+* Integrate with [Testacular](https://github.com/aeischeid/hem/tree/testacular)
   * document usage instructions
 * Check if running at root at project, look for slug.json file and throw error if its not there??
 * This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
 * Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
   * actually with more generic projects out there like [yeoman](http://yeoman.io/) maybe Hem should aim to be a dedicated spine dev tool.
-* Update this readme
+* Update this readme or maybe make some github pages
 
 #History
 
