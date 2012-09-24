@@ -41,15 +41,6 @@ compilers.jeco = (path) ->
 require.extensions['.jeco'] = require.extensions['.eco']
 # require.extensions['.eco'] in eco package contains the function
 
-# tmpl is depricated should probably remove this.
-compilers.tmpl = (path) ->
-  content = fs.readFileSync(path, 'utf8')
-  "var template = jQuery.template(#{JSON.stringify(content)});\n" +
-  "module.exports = (function(data){ return jQuery.tmpl(template, data); });\n"
-
-require.extensions['.tmpl'] = (module, filename) -> 
-  module._compile(compilers.tmpl(filename))
-
 compilers.html = (path) ->
   content = fs.readFileSync(path, 'utf8')
   "module.exports = #{JSON.stringify(content)};\n"
@@ -59,17 +50,20 @@ require.extensions['.html'] = (module, filename) ->
 
 try
   jade = require('jade')
-
+  
   compilers.jade = (path) ->
     content = fs.readFileSync(path, 'utf8')
-    options = {}
-    template = jade.compile content, options
-    locals = {}
-    html = template(locals)
-    "module.exports = #{JSON.stringify(html)};\n"
+    template = jade.compile content,
+      filename: path
+      compileDebug: ('-d' in process.argv) or ('--debug' in process.argv)
+      client: true
+    source = template.toString()
+    """
+    module.exports = #{source};
+    """
 
   require.extensions['.jade'] = (module, filename) ->
-    module._compile compilers.jade(filename), filename
+    module._compile compilers.jade(filename)
 catch err
 
 try
