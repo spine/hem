@@ -6,7 +6,6 @@ compilers = require('./compilers')
 Package   = require('./package')
 css       = require('./css')
 spawn     = require('child_process').spawn
-http      = require('http')
 httpProxy = require('http-proxy')
 
 argv = optimist.usage([
@@ -105,24 +104,31 @@ class Hem
     # calls from other domains but sometimes not... 
     if @options.useProxy
       console.log "proxy server @ http://localhost:#{@options.proxyPort}"
-      proxy = new httpProxy.RoutingProxy()
       startsWithSpinePath = new RegExp("^#{@options.baseSpinePath}")
-      #console.log 'my spine regex base path is... ', startsWithSpinePath
-      http.createServer (req, res) =>
-        if startsWithSpinePath.test(req.url)
-          req.url = req.url.replace(@options.baseSpinePath, '/')
-          #console.log 'spine url turned into : ', req.url
-          proxy.proxyRequest(req, res, {
-            host: @options.host
-            port: @options.port
-          })
-        else
-          #console.log 'off to api : ', req.url
-          proxy.proxyRequest(req, res, {
-            host: @options.apiHost
-            port: @options.apiPort
-          })
-      .listen(@options.proxyPort)
+      
+      proxyServer = httpProxy.createServer(
+        forward: {
+          port: @options.apiPort
+          host: @options.apiHost
+        },
+        (req, res, proxy) =>
+          if startsWithSpinePath.test(req.url)
+            req.url = req.url.replace(@options.baseSpinePath, '/')
+            console.log 'spine url turned into : ', req.url
+            proxy.proxyRequest(req, res, {
+              host: @options.host
+              port: @options.port
+            })
+          else
+            console.log 'off to api : ', req.url
+            #console.log 'what is the proxy? : ', proxy
+            proxy.proxyRequest(req, res, {
+              host: @options.apiHost
+              port: @options.apiPort
+            })
+      ).listen(@options.proxyPort)
+      
+      #console.log 'what is the proxyServer? : ', proxyServer
 
   removeOldBuilds: ->
     packages = [@hemPackage(), @cssPackage(), @specsPackage()]
