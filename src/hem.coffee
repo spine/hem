@@ -106,29 +106,21 @@ class Hem
       console.log "proxy server @ http://localhost:#{@options.proxyPort}"
       startsWithSpinePath = new RegExp("^#{@options.baseSpinePath}")
       
-      proxyServer = httpProxy.createServer(
-        forward: {
-          port: @options.apiPort
-          host: @options.apiHost
-        },
-        (req, res, proxy) =>
-          if startsWithSpinePath.test(req.url)
-            req.url = req.url.replace(@options.baseSpinePath, '/')
-            console.log 'spine url turned into : ', req.url
-            proxy.proxyRequest(req, res, {
-              host: @options.host
-              port: @options.port
-            })
-          else
-            console.log 'off to api : ', req.url
-            #console.log 'what is the proxy? : ', proxy
-            proxy.proxyRequest(req, res, {
-              host: @options.apiHost
-              port: @options.apiPort
-            })
-      ).listen(@options.proxyPort)
-      
-      #console.log 'what is the proxyServer? : ', proxyServer
+      httpProxy.createServer (req, res, proxy) =>
+        if startsWithSpinePath.test(req.url)
+          req.url = req.url.replace(@options.baseSpinePath, '/')
+          #console.log 'spine url turned into : ', req.url
+          proxy.proxyRequest(req, res, {
+            host: @options.host
+            port: @options.port
+          })
+        else
+          #console.log 'off to api : ', req.url
+          proxy.proxyRequest(req, res, {
+            host: @options.apiHost
+            port: @options.apiPort
+          })
+      .listen(@options.proxyPort)
 
   removeOldBuilds: ->
     packages = [@hemPackage(), @cssPackage(), @specsPackage()]
