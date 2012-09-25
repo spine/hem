@@ -58,12 +58,10 @@ try
       compileDebug: ('-d' in process.argv) or ('--debug' in process.argv)
       client: true
     source = template.toString()
-    """
-    module.exports = #{source};
-    """
+    "module.exports = #{source};"
 
   require.extensions['.jade'] = (module, filename) ->
-    module._compile compilers.jade(filename)
+    module._compile compilers.jade(filename), filename
 catch err
 
 try
