@@ -56,6 +56,9 @@ try
     result = ''
     stylus(content)
       .include(dirname(path))
+      .set('filename', path)
+      .set('compress', true)
+      .set('include css', true)
       .render((err, css) -> 
         throw err if err
         result = css
@@ -65,6 +68,24 @@ try
   require.extensions['.styl'] = (module, filename) -> 
     source = JSON.stringify(compilers.styl(filename))
     module._compile "module.exports = #{source}", filename
+catch err
+
+try
+  jade = require('jade')
+  
+  compilers.jade = (path) ->
+    content = fs.readFileSync(path, 'utf8')
+    fn = jade.compile content, 
+      filename:path,
+      pretty:false,
+      client: true,
+      compileDebug: false
+      
+    return "var jade={};\n#{fn.toString()}\nmodule.exports = anonymous;\n"
+    
+  require.extensions['.jade'] = (module, filename) -> 
+    JSON.stringify(compilers.jade(filename))
+
 catch err
 
 module.exports = compilers
