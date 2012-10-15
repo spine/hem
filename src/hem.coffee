@@ -208,7 +208,7 @@ class Hem
       identifier : 'specs'
       paths      : @options.specs
       target     : path.join(@options.testPublic, @options.specsPath)
-      extraJS    : "for (var key in specs.modules) specs(key);"
+      extraJS    : "require('lib/setup'); for (var key in specs.modules) specs(key);"
       test       : true
     )
 
