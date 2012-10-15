@@ -149,6 +149,23 @@ Currently Hem supports three template options out of the box
 * [Jade](https://github.com/visionmedia/jade) - haml like syntax with optional coffeescript filter
   * to use jade templates you must include jades [runtime.js](https://github.com/visionmedia/jade/blob/master/runtime.js) as a lib in your spine projects slug.json
       "libs": ["lib/runtime.js"],
+      
+###Testing
+
+[Testacular](https://github.com/aeischeid/hem/tree/testacular) is a neat little tool that we leverage with hem. 
+
+    hem test
+
+Will run tests in a spine projects test directory. Tests can be written in CoffeeScript! 
+
+    hem watch -t
+
+Will run tests as test files are updated. Testacular makes it smart. Only previously failing tests run. If there were no previously failing tests all will run. 
+Default is to run tests in a new Chrome window, Firefox, Phantom or some others can be used as well.
+
+    hem server
+
+will watch and comile jasmine tests, but you will have to go to localhost:9294/test (or whereever you configured hem to run...) and manually trigger page tests to run.
 
 #TODO
 
