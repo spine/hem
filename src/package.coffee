@@ -27,9 +27,13 @@ class Package
     (fs.readFileSync(path, 'utf8') for path in @libs).join("\n")
 
   compile: (minify) ->
-    result = [@compileLibs(), @compileModules(), @extraJS].join("\n")
-    result = uglify(result) if minify
-    result
+    try
+      result = [@compileLibs(), @compileModules(), @extraJS].join("\n")
+      result = uglify(result) if minify
+      result
+    catch ex
+      console.log ex
+      result = "console.log(\"#{ex}\");"
 
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
