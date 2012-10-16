@@ -13,7 +13,7 @@ class Package
     @libs         = toArray(config.libs || [])
     @paths        = toArray(config.paths || [])
     @dependencies = toArray(config.dependencies || [])
-    @target       = config.target # TODO: should be required or if no target the assume to just compile in paths folder?
+    @target       = config.target
     @extraJS      = config.extraJS or ""
     @test         = config.test
 
@@ -33,7 +33,7 @@ class Package
       result
     catch ex
       console.log ex
-      result = "console.log(\"#{ex}\");"
+      result = "console.log(\"Error: #{ex}\");"
 
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)

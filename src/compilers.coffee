@@ -53,12 +53,15 @@ try
   
   compilers.jade = (path) ->
     content = fs.readFileSync(path, 'utf8')
-    template = jade.compile content,
-      filename: path
-      compileDebug: ('-d' in process.argv) or ('--debug' in process.argv)
-      client: true
-    source = template.toString()
-    "module.exports = #{source};"
+    try
+      template = jade.compile content,
+        filename: path
+        compileDebug: ('-d' in process.argv) or ('--debug' in process.argv)
+        client: true
+      source = template.toString()
+      "module.exports = #{source};"
+    catch ex
+      throw new Error("#{ex} in #{path}")
 
   require.extensions['.jade'] = (module, filename) ->
     module._compile compilers.jade(filename), filename
