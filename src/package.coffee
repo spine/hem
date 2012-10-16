@@ -32,8 +32,8 @@ class Package
       result = uglify(result) if minify
       result
     catch ex
-      console.log ex
-      result = "console.log(\"Error: #{ex}\");"
+      console.log ex.message
+      result = "console.log(\"#{ex.message}\");"
 
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
