@@ -34,16 +34,6 @@ class Hem
   compilers: compilers
 
   options:
-    # TODO orgainzie this so we can have multiple packages, based on target use appropiate package setup
-    # package:
-    #   specs:
-    #     path: ""
-    #     target: ""
-    #     urlMap: ""
-    #     dependicies: ""
-    #     libs: ""
-    #     test: ""
-    #     callback: ""
     slug:         './slug.json'
     paths:        ['./app']
     
@@ -144,20 +134,22 @@ class Hem
       source = @specsPackage().compile()
       fs.writeFileSync(@specsPackage().target, source)
 
-  watch: (callback) ->
+  watch: () ->
     @build()
     @executeTestacular() if argv.tests
-    # TODO: add watch() for each package and provide a call ball back which takes file that changed??
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths, @options.specs
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           console.log "#{file} changed.  Rebuilding."
-          @build(specs: true) # TODO: pass in different build option based on file changed??
-          
+          # quick hack to only build the package that changed, will have a better
+          # fix in a later commit that redos the package structure
+          specsBuild = ("./" + file).indexOf(@options.specs) == 0
+          hemBuild = not specsBuild
+          @build({ specs: specsBuild, hem: hemBuild }) # TODO: pass in different build option based on file changed??
+
 
   test: ->
-    # TODO: mark some packages at 'test', so loop over them and call build with callback
     @build()
     @executeTestacular(true)
 
@@ -171,7 +163,9 @@ class Hem
         configFile: require.resolve("../assets/testacular.conf.js")
         basePath: process.cwd()
         singleRun: singleRun
-        logLevel: 1
+        browsers: ['PhantomJS']
+        logLevel: 2
+        reporters: ['progress']
       # start testacular serveri
       @testacular.start(testConfig)
 
