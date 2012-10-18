@@ -10,12 +10,12 @@ This is rather awesome, as it means you don't need to faff around with coping ar
 
 or
 
-    npm install -g git://github.com/aeischeid/hem.git
+    npm install -g git://github.com/globalvetlink/hem.git
 
 or ...fun trick I just learned
 
     hem install -g hem 
-    git clone https://github.com/aeischeid/hem.git
+    git clone https://github.com/globalvetlink/hem.git
     cd hem
     npm link
 
