@@ -17,12 +17,15 @@ class CSS
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
   
-  createServer: ->
-    (env, callback) =>
-      callback(200,
-        'Content-Type': 'text/css',
-        @compile())
-      
+  # TODO: move this to a separate middleware class, pass in package to call compile and content type on..
+  middleware: (req, res, next) =>
+    str = @compile()
+    contentType = "text/css"
+    res.charset = 'utf-8'
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Length', Buffer.byteLength(str))
+    res.end((req.method is 'HEAD' and null) or str)
+
 module.exports =
   CSS: CSS
   createPackage: (config) ->

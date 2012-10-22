@@ -38,11 +38,14 @@ class Package
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
-  createServer: ->
-    (env, callback) =>
-      callback(200,
-        'Content-Type': 'text/javascript',
-        @compile())
+  # TODO: move this to a separate middleware class, pass in package to call compile and content type on..
+  middleware: (req, res, next) =>
+    str = @compile()
+    contentType = "text/javascript"
+    res.charset = 'utf-8'
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Length', Buffer.byteLength(str))
+    res.end((req.method is 'HEAD' and null) or str)
 
 module.exports =
   compilers:  compilers

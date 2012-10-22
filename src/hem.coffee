@@ -1,12 +1,13 @@
 path      = require('path')
 fs        = require('fs')
 optimist  = require('optimist')
-strata    = require('strata')
+connect   = require('connect')
+httpProxy = require('http-proxy')
+http      = require('http')
+
 compilers = require('./compilers')
 Package   = require('./package')
 css       = require('./css')
-spawn     = require('child_process').spawn
-httpProxy = require('http-proxy')
 
 argv = optimist.usage([
   '  usage: hem COMMAND',
@@ -68,49 +69,30 @@ class Hem
     # remove old compiled files are removed so its always dynamic (TODO: make this an option??)
     @removeOldBuilds()
 
-    # setup strata instance
-    strata.use(strata.contentLength)
+    # create mappings
+    app = connect()
 
-    # get dynamically compiled javascript/css files
-    strata.get(@options.cssPath, @cssPackage().createServer())
-    strata.get(@options.jsPath, @hemPackage().createServer())
+    # setup dynamic files
+    app.use("/segway/healthlink/application.js", @hemPackage().middleware)
+    app.use("/segway/healthlink/application.css", @cssPackage().middleware)
+    app.use("/test/specs.js", @specsPackage().middleware)
 
-    # get static public folder
-    if fs.existsSync(@options.public)
-      strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
+    # setup static folders
+    app.use("/segway/healthlink", connect.static(@options.public))
+    app.use("/test", connect.static(@options.testPublic))
 
-    # handle test directory
-    if fs.existsSync(@options.testPublic)
-      strata.map @options.testPath, (app) =>
-        app.get(@options.specsPath, @specsPackage().createServer())
-        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
-
+    # setup proxy
+    app.use("/segway", @createRoutingProxy(host:'localhost', port: 8080))
+    
     # start server
-    strata.run(port: @options.port, host: @options.host)
-    # Optionally setup the proxyServer to conditionally route requests.
-    # The spine app and the api need to appear to the browser to be coming from
-    # the same host and port to avoid crossDomain ajax issues.
-    # Ultimately it may be a good idea to configure an api server to accept
-    # calls from other domains but sometimes not... 
-    if @options.useProxy
-      console.log "proxy server @ http://localhost:#{@options.proxyPort}"
-      startsWithSpinePath = new RegExp("^#{@options.baseSpinePath}")
-      
-      httpProxy.createServer (req, res, proxy) =>
-        if startsWithSpinePath.test(req.url)
-          req.url = req.url.replace(@options.baseSpinePath, '/')
-          #console.log 'spine url turned into : ', req.url
-          proxy.proxyRequest(req, res, {
-            host: @options.host
-            port: @options.port
-          })
-        else
-          #console.log 'off to api : ', req.url
-          proxy.proxyRequest(req, res, {
-            host: @options.apiHost
-            port: @options.apiPort
-          })
-      .listen(@options.proxyPort)
+    http.createServer(app).listen(@options.port)
+
+  createRoutingProxy: (options = {}) ->
+    proxy = new httpProxy.RoutingProxy()
+    return (req, res, next) ->
+      # TODO make the additional path another options setting to pass in
+      req.url = "/segway#{req.url}"
+      proxy.proxyRequest(req, res, options)
 
   removeOldBuilds: ->
     packages = [@hemPackage(), @cssPackage(), @specsPackage()]
@@ -147,7 +129,6 @@ class Hem
           specsBuild = ("./" + file).indexOf(@options.specs) == 0
           hemBuild = not specsBuild
           @build({ specs: specsBuild, hem: hemBuild }) # TODO: pass in different build option based on file changed??
-
 
   test: ->
     @build()
