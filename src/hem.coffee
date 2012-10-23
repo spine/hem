@@ -69,35 +69,37 @@ class Hem
       throw new Error "Unable to find #{@options.slug} file."
 
   server: ->
-    # remove old compiled files are removed so its always dynamic (TODO: make this an option??)
-    @removeOldBuilds()
-
-    # create mappings
+    # create app
     app = connect()
 
+    # TODO: if the user doesn't definie any packages in slug.json assume traditional spine app..
     # setup dynamic files
-    app.use("/segway/healthlink/application.js", @hemPackage().middleware)
-    app.use("/segway/healthlink/application.css", @cssPackage().middleware)
-    app.use("/test/specs.js", @specsPackage().middleware)
+    app.use(path.join(@options.appPath,@options.jsPath), @hemPackage().middleware)
+    app.use(path.join(@options.appPath,@options.cssPath), @cssPackage().middleware)
+    app.use(path.join(@options.testPath,@options.specsPath), @specsPackage().middleware)
 
+    # TODO: this should be done in the order defined in slug.json
     # setup static folders
-    app.use("/segway/healthlink", connect.static(@options.public))
-    app.use("/test", connect.static(@options.testPublic))
+    app.use(@options.appPath, connect.static(@options.public))
+    app.use(@options.testPath, connect.static(@options.testPublic))
 
     # setup proxy
-    app.use("/segway", @createRoutingProxy(host:'localhost', port: 8080))
+    app.use(@options.proxy.path, @createRoutingProxy(@options.proxy)) if @options.proxy
     
     # start server
     http.createServer(app).listen(@options.port)
 
   createRoutingProxy: (options = {}) ->
     proxy = new httpProxy.RoutingProxy()
+    index = options.host.indexOf("/")
+    # additional options
+    options.hostPath or= ""
+    # return function used by connect to access proxy
     return (req, res, next) ->
-      # TODO make the additional path another options setting to pass in
-      req.url = "/segway#{req.url}"
+      req.url = "#{options.hostPath}#{req.url}"
       proxy.proxyRequest(req, res, options)
 
-  removeOldBuilds: ->
+  clean: ->
     packages = [@hemPackage(), @cssPackage(), @specsPackage()]
     pkg.unlink() for pkg in packages
 
