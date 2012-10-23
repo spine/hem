@@ -15,6 +15,7 @@ argv = optimist.usage([
   '    build   serialize application to disk',
   '    watch   build & watch disk for changes'
   '    test    build and run tests'
+  '    clean   clean compiled files'
 ].join("\n"))
 .alias('p', 'port')
 .alias('d', 'debug')
@@ -158,6 +159,7 @@ class Hem
       when 'build'  then console.log 'Build application'
       when 'watch'  then console.log 'Watching application'
       when 'test'   then console.log 'Test application'
+      when 'clean'  then console.log 'Clean application'
     @[command]()
 
   # Private
