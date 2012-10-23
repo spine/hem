@@ -19,6 +19,7 @@ argv = optimist.usage([
 .alias('p', 'port')
 .alias('d', 'debug')
 .alias('t', 'tests')
+.alias('s', 'slug')
 .argv
 
 help = ->
@@ -35,17 +36,18 @@ class Hem
   compilers: compilers
 
   options:
-    slug:         './slug.json'
+    # TODO: make a default spine app configuration available??
+    slug:         argv.slug       or './slug.json'
+    port:         argv.port       or 9294
+    host:         argv.host       or 'localhost'
+    useProxy:     argv.useProxy   or false
+    apiHost:      argv.apiHost    or 'localhost'
+    apiPort:      argv.apiPort    or 8080
+    proxyPort:    argv.proxyPort  or 8001
+    
     paths:        ['./app']
-    
-    port:         process.env.PORT or argv.port or 9294
-    host:         argv.host or 'localhost'
-    useProxy:     argv.useProxy or false
-    apiHost:      argv.apiHost or 'localhost'
-    apiPort:      argv.apiPort or 8080
-    proxyPort:    argv.proxyPort or 8001
-    
     public:       './public'
+    appPath:      '/'
     css:          './css'
     cssPath:      '/application.css'
     libs:         []
