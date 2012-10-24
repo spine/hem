@@ -161,7 +161,7 @@ class Hem
       singleRun  : singleRun
       basePath   : process.cwd()
       logLevel   : 2
-      browsers   : argv.browser and [argv.browser] or ['PhantomJS']
+      browsers   : argv.browser and argv.browser.split(/[ ,]+/) or ['PhantomJS']
       files      : @createTestacularFileList()
 
     # start testacular server
@@ -173,9 +173,9 @@ class Hem
                 require.resolve("../node_modules/testacular/adapter/jasmine.js")]
     # TODO: would we ever need a way to specificy only certain files to test??
     # Perhaps a special package type that just lists a group of packages to build/test??
-    # "testGroup" : [ "spine", "test" ], test for array to use this type?? Would need a 
+    # "testGroup" : [ "spine", "test" ], then check typeof array to use this group?? Would need a
     # new function to create the targets array used by the build/watch/clean methods...
-    # 
+    #
     # loop over javascript packages and add their targets
     fileList.push pkg.target for pkg in @packages when pkg.isJavascript()
     return fileList
