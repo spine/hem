@@ -1,5 +1,5 @@
 fs        = require('fs')
-{dirname} = require('path')
+path      = require('path')
 compilers = {}
 
 compilers.js = compilers.css = (path) ->
@@ -39,7 +39,6 @@ compilers.jeco = (path) ->
   """
 
 require.extensions['.jeco'] = require.extensions['.eco']
-# require.extensions['.eco'] in eco package contains the function
 
 compilers.html = (path) ->
   content = fs.readFileSync(path, 'utf8')
@@ -70,11 +69,11 @@ catch err
 try
   stylus = require('stylus')
   
-  compilers.styl = (path) ->
-    content = fs.readFileSync(path, 'utf8')
+  compilers.styl = (_path) ->
+    content = fs.readFileSync(_path, 'utf8')
     result = ''
     stylus(content)
-      .include(dirname(path))
+      .include(path.dirname(_path))
       .render((err, css) -> 
         throw err if err
         result = css
