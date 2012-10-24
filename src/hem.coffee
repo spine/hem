@@ -92,9 +92,18 @@ class Hem
         # setup proxy
         console.log "Proxy requests from #{url} to #{value.host}"
         app.use(url, @createRoutingProxy(value)) if value.host
-    
+
     # start server
     http.createServer(app).listen(@options.server.port, @options.server.host)
+
+    # start addition process if any
+    if @options.server.spawn
+        spawn = @options.server.spawn
+        console.log "Spawning process: #{spawn.command} #{spawn.args}"
+        child = require('child_process')
+        process = child.spawn(spawn.command, spawn.args, spawn.options)
+        process.on 'exit', (code) ->
+          console.log('child process exited with code ' + code)
 
   clean: () ->
     targets = argv._[1..]
