@@ -4,6 +4,8 @@ Hem is a project for compiling CommonJS modules when building JavaScript web app
 
 This is rather awesome, as it means you don't need to faff around with coping around JavaScript files. jQuery can be a npm dependency, so can jQueryUI and all your custom components. Hem will resolve dependencies dynamically, bundling them together into one file to be served up. Upon deployment, you can serialize your application to disk and serve it statically.
 
+Hem's other major role is to tie up some of the other lose ends of a frontend development project - things like javascript tests, and css. It can even help out in the API connection stuff if your app needs that.
+
 #Installation
 
     npm install -g hem
@@ -170,14 +172,13 @@ will watch and comile jasmine tests, but you will have to go to localhost:9294/t
 #TODO
 
 * Need to setup HEM so that it will build/compile a physical specs file (in progress)
-* Integrate with [Testacular](https://github.com/aeischeid/hem/tree/testacular)
-  * document usage instructions
-* Check if running at root at project, look for slug.json file and throw error if its not there??
+* Better document [Testacular](https://github.com/aeischeid/hem/tree/testacular) usage instructions.
+* Major restructure of slug.json. Much more customizeable in how hem outputs packages and what directory structure it expects.
 * This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
 * Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
   * actually with more generic projects out there like [yeoman](http://yeoman.io/) maybe Hem should aim to be a dedicated spine dev tool.
-* Update this readme or maybe make some github pages
+* Update this readme or maybe make some github pages (gh-pages branch)
 
 #History
 
-Originally developed by @maccman to compliment Spine.js. He started a replacement project which is a ruby based project called catapult. Some of us still love the mode.js and hem way of doing things. In the spirit of open source it is forked and we are hoping to disccus moving npm repo to point to this version of hem which we plan to maintain for the near future at least.
+Originally developed by @maccman to compliment Spine.js. He started a replacement project which is a Ruby based project called Catapult. Some of us still love the node.js and hem way of doing things. In the spirit of open source hem advanced in a fork and a couple of us who use it at work plan to maintain for the near future at least.
