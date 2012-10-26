@@ -12,7 +12,7 @@ class Package
     @name        = name
     @argv        = argv
     # set config values
-    @require     = config.require
+    @identifier  = config.identifier
     @target      = config.target
     @libs        = toArray(config.libs || [])
     @paths       = toArray(config.paths || [])
@@ -27,7 +27,7 @@ class Package
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@paths)
     _modules  = @depend.resolve().concat(_stitch.resolve())
-    stitchFile(identifier: @require, modules: _modules)
+    stitchFile(identifier: @identifier, modules: _modules)
 
   compileLibs: ->
     # TODO: be able to handle being given a folder and loading each file...can this compile coffeescript??
