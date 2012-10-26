@@ -48,7 +48,7 @@ class Hem
   compilers: compilers
 
   # TODO: include way to handle older slug.json files?? backwards compatible??
-  slug:   argv.slug or './slug.json'
+  slug: argv.slug or './slug.json'
 
   options:
     server:
@@ -79,7 +79,7 @@ class Hem
         console.log "ERROR: Unable to determine url mapping for package: #{pkg.name}"
         process.exit(1)
       # set route
-      console.log "Map package #{pkg.name} to #{pkg.url}"
+      console.log "Map package '#{pkg.name}' to #{pkg.url}" if argv.v
       app.use(pkg.url, pkg.middleware)
 
     # setup static routes
@@ -89,7 +89,7 @@ class Hem
       if (typeof value is 'string')
         # make sure path exists
         if fs.existsSync(value)
-          console.log "Map directory #{value} to #{url}"
+          console.log "Map directory '#{value}' to #{url}" if argv.v
           app.use(url, connect.static(value))
         else
           console.log "ERROR: The folder #{value} does not exist."
@@ -102,7 +102,7 @@ class Hem
     # start server
     http.createServer(app).listen(@options.server.port, @options.server.host)
 
-    # start addition process if any
+    # spawn addition process if any
     if @options.server.spawn
         spawn = @options.server.spawn
         console.log "Spawning process: #{spawn.command} #{spawn.args}"
