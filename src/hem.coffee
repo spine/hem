@@ -10,19 +10,25 @@ Package   = require('./package')
 # ------- Commandline arguments
 
 argv = optimist.usage([
-  '  usage: hem COMMAND',
-  '    server  start a dynamic development server',
-  '    build   serialize application to disk',
-  '    watch   build & watch disk for changes'
-  '    test    build and run tests'
-  '    clean   clean compiled files'
+  'usage:\nhem COMMAND',
+  '    server  :start a dynamic development server',
+  '    build   :serialize application to disk',
+  '    watch   :build & watch disk for changes'
+  '    test    :build and run tests'
+  '    clean   :clean compiled files'
 ].join("\n"))
-.alias('p', 'port')
-.alias('d', 'debug')
-.alias('t', 'test')
-.alias('s', 'slug')
-.alias('b', 'browser')
+.alias('p', 'port').describe('p',':hem server port')
+.alias('d', 'debug').describe('d',':all compilations use debug mode')
+.alias('t', 'test').describe('t',':run testacular while using watch')
+.alias('s', 'slug').describe('s',':run hem using a specified slug file')
+.alias('b', 'browser').describe('b',':run testacular using the supplied browser[s]')
+.describe('v',':make hem more talkative')
 .argv
+
+# set command and targets properties
+argv.command = argv._[0]
+argv.targets = argv._[1..]
+
 
 # ------- Global Functions
 
@@ -106,31 +112,30 @@ class Hem
           console.log('child process exited with code ' + code)
 
   clean: () ->
-    targets = argv._[1..]
+    targets = argv.targets
     cleanAll = targets.length is 0
     pkg.unlink() for pkg in @packages when pkg.name in targets or cleanAll
 
   build: ->
     @clean()
-    targets = argv._[1..]
-    @buildTargets(targets)
+    @buildTargets(argv.targets)
 
   watch: ->
-    targets = argv._[1..]
+    targets = argv.targets
     @buildTargets(targets)
-    # also run testacular tests if -x is passed in the command line
+    # also run testacular tests if -t is passed in the command line
     @startTestacular(targets, false) if argv.test
     # begin watching package targets
     watchAll = targets.length is 0
     pkg.watch() for pkg in @packages when pkg.name in targets or watchAll
 
   test: ->
-    targets = argv._[1..]
-    @buildTargets(targets)
-    @startTestacular(targets)
+    @buildTargets(argv.targets)
+    @startTestacular(argv.targets)
 
-  exec: (command = argv._[0]) ->
+  exec: (command = argv.command) ->
     return help() unless @[command]
+    # TODO: make sure argv.targets exist before proceeding??
     switch command
       when 'build'  then console.log 'Build application'
       when 'watch'  then console.log 'Watching application'
@@ -144,7 +149,7 @@ class Hem
     return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
 
-  createPackage: (name, config) ->
+  createPackage: (name, config, argv) ->
     pkg = new Package(name, config)
 
   buildTargets: (targets = []) ->
