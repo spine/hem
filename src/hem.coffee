@@ -29,6 +29,9 @@ argv = optimist.usage([
 argv.command = argv._[0]
 argv.targets = argv._[1..]
 
+# set compilers debug mode
+compilers.DEBUG = argv.debug and true or false
+
 
 # ------- Global Functions
 

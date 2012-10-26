@@ -17,7 +17,7 @@ catch err
 
 eco = require 'eco'
 
-compilers.eco = (path) -> 
+compilers.eco = (path) ->
   content = eco.precompile fs.readFileSync path, 'utf8'
   "module.exports = #{content}"
 
@@ -55,7 +55,7 @@ try
     try
       template = jade.compile content,
         filename: path
-        compileDebug: ('-d' in process.argv) or ('--debug' in process.argv)
+        compileDebug: compilers.DEBUG
         client: true
       source = template.toString()
       "module.exports = #{source};"
