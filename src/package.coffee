@@ -1,33 +1,36 @@
 fs           = require('fs')
 path         = require('path')
 uglify       = require('uglify-js')
-stitch       = require('../assets/stitch')
+stitchFile   = require('../assets/stitch')
 Dependency   = require('./dependency')
 Stitch       = require('./stitch')
 {toArray}    = require('./utils')
 mime         = require('connect').static.mime
 
 class Package
-  constructor: (name, config = {}) ->
-    @name         = name
-    @require      = config.require
-    @libs         = toArray(config.libs || [])
-    @paths        = toArray(config.paths || [])
-    @modules      = toArray(config.modules || [])
-    @target       = config.target
-    @jsAfter      = config.jsAfter or ""
-    @url          = config.url or ""
-    # determine content type based on target
-    @contentType  = mime.lookup(@target)
-    # check required config values
+  constructor: (name, config = {}, argv = {}) ->
+    @name        = name
+    @argv        = argv
+    # set config values
+    @require     = config.require
+    @target      = config.target
+    @libs        = toArray(config.libs || [])
+    @paths       = toArray(config.paths || [])
+    @modules     = toArray(config.modules || [])
+    @jsAfter     = config.jsAfter or ""
+    @url         = config.url or ""
+    # TODO: sanity checkes on config values??
+    # determine content type based on target file name
+    @contentType = mime.lookup(@target)
 
   compileModules: ->
-    @dependency or= new Dependency(@modules)
-    @stitch       = new Stitch(@paths)
-    @stuff        = @dependency.resolve().concat(@stitch.resolve())
-    stitch(identifier: @require, modules: @stuff)
+    @depend or= new Dependency(@modules)
+    _stitch   = new Stitch(@paths)
+    _modules  = @depend.resolve().concat(_stitch.resolve())
+    stitchFile(identifier: @require, modules: _modules)
 
   compileLibs: ->
+    # TODO: be able to handle being given a folder and loading each file...can this compile coffeescript??
     (fs.readFileSync(lib, 'utf8') for lib in @libs).join("\n")
 
   compile: (minify = false) ->
@@ -44,16 +47,15 @@ class Package
           _path  = require.resolve(path.resolve(_path))
           delete require.cache[_path]
           result.push require(_path)
+        # TODO: do we want a minify option for css??
         result.join("\n")
     catch ex
       console.trace ex
-      # only return when in server mode, otherwise exit
-      # TODO: pass in mode as argument instead of checking process.argv??
-      command = process.argv[2]
-      switch command
+      # only return when in server/watch mode, otherwise exit
+      switch @argv.command
         when "server" then return "console.log(\"#{ex}\");"
         when "watch"  then return ""
-        when "build"  then process.exit(1)
+        else process.exit(1)
 
   isJavascript: ->
     @contentType is "application/javascript"
@@ -62,7 +64,7 @@ class Package
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
   build: (minify = false) ->
-    console.log "Building #{@name} to target: #{@target}"
+    console.log "Building '#{@name}' target: #{@target}"
     source = @compile(minify)
     fs.writeFileSync(@target, source) if source
 
@@ -72,7 +74,6 @@ class Package
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
         @build() if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
 
-  # TODO: move this to a separate middleware class, pass in package to call compile and content type on..
   middleware: (req, res, next) =>
     str = @compile()
     res.charset = 'utf-8'
