@@ -149,8 +149,8 @@ class Hem
     return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
 
-  createPackage: (name, config, argv) ->
-    pkg = new Package(name, config)
+  createPackage: (name, config) ->
+    pkg = new Package(name, config, argv)
 
   buildTargets: (targets = []) ->
     buildAll = targets.length is 0
