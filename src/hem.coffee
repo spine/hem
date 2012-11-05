@@ -100,14 +100,14 @@ class Hem
           process.exit(1)
       else
         # setup proxy
-        console.log "Proxy requests from #{url} to #{value.host}"
+        console.log "Proxy requests from #{url} to #{value.host}" if argv.v
         app.use(url, @createRoutingProxy(value)) if value.host
 
     # start server
     http.createServer(app).listen(@options.server.port, @options.server.host)
 
     # spawn addition process if any
-    if @options.server.spawn
+    if @options.server.spawn__
         spawn = @options.server.spawn
         console.log "Spawning process: #{spawn.command} #{spawn.args}"
         child = require('child_process')
@@ -145,6 +145,7 @@ class Hem
       when 'watch'  then console.log 'Watching application'
       when 'test'   then console.log 'Test application'
       when 'clean'  then console.log 'Clean application'
+      when 'server' then console.log "Starting Server at #{@options.server.host}:#{@options.server.port}"
     @[command]()
 
   # ------- Private Functions
