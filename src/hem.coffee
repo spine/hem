@@ -22,6 +22,7 @@ argv = optimist.usage([
 .alias('t', 'test').describe('t',':run testacular while using watch')
 .alias('s', 'slug').describe('s',':run hem using a specified slug file')
 .alias('b', 'browser').describe('b',':run testacular using the supplied browser[s]')
+.alias('n', 'noBuild').describe('n',':turn off dynamic builds during server mode')
 .describe('v',':make hem more talkative')
 .argv
 
@@ -74,7 +75,7 @@ class Hem
     app = connect()
 
     # setup dynamic targets first
-    for pkg in @packages
+    for pkg in @packages when not argv.n
       # determine url if its not already set
       pkg.url or= @determinePackageUrl(pkg)
       # exit if pkg.url isn't defined
