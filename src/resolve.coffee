@@ -1,5 +1,5 @@
 Module = require('module')
-{join, extname, dirname, basename, resolve} = require('path')
+{join, extname, dirname, basename, resolve, sep} = require('path')
 
 isAbsolute = (path) -> /^\//.test(path)
 
@@ -8,7 +8,7 @@ isAbsolute = (path) -> /^\//.test(path)
 modulerize = (id, filename = id) -> 
   ext = extname(filename)
   modName = join(dirname(id), basename(id, ext))
-  modName.replace('\\', '/');
+  modName.replace('\\', '/')
 
 modulePaths = Module._nodeModulePaths(process.cwd())
 
@@ -35,7 +35,7 @@ module.exports = (request, parent = repl) ->
   
   throw("Load path not found for #{filename}") if dir in invalidDirs
     
-  id = filename.replace("#{dir}/", '')
+  id = filename.replace("#{dir}#{sep}", '')
 
   [modulerize(id, filename), filename]
   
