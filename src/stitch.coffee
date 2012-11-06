@@ -28,7 +28,7 @@ class Stitch
 class Module
   constructor: (@filename, @parent) ->
     @ext = npath.extname(@filename).slice(1)
-    @id  = modulerize(@filename.replace(npath.join(@parent, '/'), ''))
+    @id  = modulerize(@filename.replace(npath.join(@parent, npath.sep), ''))
     
   compile: ->
     compilers[@ext](@filename)

@@ -1,14 +1,14 @@
 Module = require('module')
-{join, extname, dirname, basename, resolve} = require('path')
+{join, extname, dirname, basename, resolve, sep} = require('path')
 
 isAbsolute = (path) -> /^\//.test(path)
 
 # Normalize paths and remove extensions
 # to create valid CommonJS module names
-modulerize = (id, filename = id) -> 
+modulerize = (id, filename = id) ->
   ext = extname(filename)
   modName = join(dirname(id), basename(id, ext))
-  modName.replace('\\', '/');
+  modName.replace('\\', '/')
 
 modulePaths = Module._nodeModulePaths(process.cwd())
 
@@ -20,10 +20,10 @@ repl =
   paths: modulePaths
 
 # Resolves a `require()` call. Pass in the name of the module where
-# the call was made, and the path that was required. 
+# the call was made, and the path that was required.
 # Returns an array of: [moduleName, scriptPath]
 module.exports = (request, parent = repl) ->
-  [_, paths]  = Module._resolveLookupPaths(request, parent)  
+  [_, paths]  = Module._resolveLookupPaths(request, parent)
   filename    = Module._findPath(request, paths)
   dir         = filename
   
@@ -35,7 +35,7 @@ module.exports = (request, parent = repl) ->
   
   throw("Load path not found for #{filename}") if dir in invalidDirs
     
-  id = filename.replace("#{dir}/", '')
+  id = filename.replace("#{dir}#{sep}", '')
 
   [modulerize(id, filename), filename]
   
