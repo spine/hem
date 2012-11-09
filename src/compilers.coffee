@@ -19,7 +19,14 @@ eco = require 'eco'
 
 compilers.eco = (path) ->
   content = eco.precompile fs.readFileSync path, 'utf8'
-  "module.exports = #{content}"
+  # TODO: wrap this in a function to be able to call jQuery
+  # and store the module.id and values in the data attribute,
+  # then have some way of calling replace with the same view
+  # and function call with livereload
+  """
+  var content = #{content};
+  module.exports = content;
+  """
 
 compilers.jeco = (path) -> 
   content = eco.precompile fs.readFileSync path, 'utf8'

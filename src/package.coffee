@@ -69,7 +69,9 @@ class Package
     fs.writeFileSync(@target, source) if source
 
   watch: ->
+    console.log "Watching '#{@name}'"
     for dir in (path.dirname(lib) for lib in @libs).concat @paths
+      # TODO: handle symlink files/directories here??
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
         @build() if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
