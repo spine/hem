@@ -76,11 +76,12 @@ class Package
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
         @build() if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
 
-  middleware: (req, res, next) =>
-    str = @compile()
-    res.charset = 'utf-8'
-    res.setHeader('Content-Type', @contentType)
-    res.setHeader('Content-Length', Buffer.byteLength(str))
-    res.end((req.method is 'HEAD' and null) or str)
+  middleware: (debug) =>
+    (req, res, next) =>
+      str = @compile(not debug)
+      res.charset = 'utf-8'
+      res.setHeader('Content-Type', @contentType)
+      res.setHeader('Content-Length', Buffer.byteLength(str))
+      res.end((req.method is 'HEAD' and null) or str)
 
 module.exports = Package

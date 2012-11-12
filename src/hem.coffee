@@ -15,7 +15,7 @@ argv = optimist.usage([
   '    build   :serialize application to disk',
   '    watch   :build & watch disk for changes'
   '    test    :build and run tests'
-  '    clean   :clean compiled files'
+  '    clean   :clean compiled targets'
 ].join("\n"))
 .alias('p', 'port').describe('p',':hem server port')
 .alias('d', 'debug').describe('d',':all compilations use debug mode')
@@ -84,7 +84,7 @@ class Hem
         process.exit(1)
       # set route
       console.log "Map package '#{pkg.name}' to #{pkg.url}" if argv.v
-      app.use(pkg.url, pkg.middleware)
+      app.use(pkg.url, pkg.middleware(argv.debug))
 
     # setup static routes
     for route in @options.routes
