@@ -87,6 +87,7 @@ class Hem
       app.use(pkg.url, pkg.middleware(argv.debug))
 
     # setup static routes
+    @options.routes or= []
     for route in @options.routes
       url   = Object.keys(route)[0]
       value = route[url]
