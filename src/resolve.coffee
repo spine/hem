@@ -8,7 +8,7 @@ isAbsolute = (path) -> /^\//.test(path)
 modulerize = (id, filename = id) ->
   ext = extname(filename)
   modName = join(dirname(id), basename(id, ext))
-  modName.replace('\\', '/')
+  modName.replace(/\\/g, '/')
 
 modulePaths = Module._nodeModulePaths(process.cwd())
 
