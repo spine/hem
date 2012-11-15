@@ -22,6 +22,11 @@ class Package
     # TODO: sanity checkes on config values??
     # determine content type based on target file name
     @contentType = mime.lookup(@target)
+    # set correct compiler based on mime type, set @compile = javascriptCompiler
+    if @isJavascript()
+      @compile = @compileJavascript
+    else
+      @compile = @compileCss
 
   compileModules: ->
     @depend or= new Dependency(@modules)
@@ -33,29 +38,38 @@ class Package
     # TODO: be able to handle being given a folder and loading each file...can this compile coffeescript??
     (fs.readFileSync(lib, 'utf8') for lib in @libs).join("\n")
 
-  compile: (minify = false) ->
+  compileJavascript: (minify = false) ->
     try
-      if @isJavascript()
-        result = [@compileLibs(), @compileModules(), @jsAfter].join("\n")
-        result = uglify(result) if minify
-        result
-      else
-        result = []
-        for _path in @paths
-          # TODO: currently this only works with index files, perhaps someday loop over the directory
-          # contents and pickup the other files?? though with stylus can always get other content by mixins
-          _path  = require.resolve(path.resolve(_path))
-          delete require.cache[_path]
-          result.push require(_path)
-        # TODO: do we want a minify option for css??
-        result.join("\n")
+      result = [@compileLibs(), @compileModules(), @jsAfter].join("\n")
+      result = uglify(result) if minify
+      result
     catch ex
-      console.trace ex
-      # only return when in server/watch mode, otherwise exit
-      switch @argv.command
-        when "server" then return "console.log(\"#{ex}\");"
-        when "watch"  then return ""
-        else process.exit(1)
+      @handleCompileError(ex)
+
+  compileCss: (minify = false) ->
+    try 
+      result = []
+      for _path in @paths
+        # TODO: currently this only works with index files, perhaps someday loop over the directory
+        # contents and pickup the other files?? though with stylus can always get other content by mixins
+        _path  = require.resolve(path.resolve(_path))
+        delete require.cache[_path]
+        result.push require(_path)
+      # TODO: do we want a minify option for css or is that built into the compilers??
+      result.join("\n")
+    catch ex
+      @handleCompileError(ex)
+
+  handleCompileError: (ex) ->
+    if ex.stack 
+      console.error ex.stack
+    else
+      console.trace(ex)
+    # only return when in server/watch mode, otherwise exit
+    switch @argv.command
+      when "server" then return "console.log(\"#{ex}\");"
+      when "watch"  then return ""
+      else process.exit(1)
 
   isJavascript: ->
     @contentType is "application/javascript"
