@@ -11,7 +11,6 @@ modulerize = (id, filename = id) ->
   modName.replace(/\\/g, '/')
 
 modulePaths = Module._nodeModulePaths(process.cwd())
-
 invalidDirs = ['/', '.']
 
 repl =
@@ -25,17 +24,23 @@ repl =
 module.exports = (request, parent = repl) ->
   [_, paths]  = Module._resolveLookupPaths(request, parent)
   filename    = Module._findPath(request, paths)
-  dir         = filename
   throw new Error("Cannot find module: #{request}. Have you run `npm install .` ?") unless filename
-
+  
   # Find package root relative to localModules folder
-  #console.log request, dir, modulePaths
+  dir = filename
   while dir not in invalidDirs and dir not in modulePaths
     dir = dirname(dir)
 
-  #console.log request, filename, dir, id
-  throw new Error("Load path not found for #{filename}") if dir in invalidDirs
+  # make sure we have a valid directory path
+  if dir in invalidDirs
+    # possibly a linked module?
+    index = filename.indexOf("#{sep}#{request}")
+    if index > 0 
+      dir = filename.substring(0,index)
+    else
+      throw new Error("Load path not found for #{filename}")
 
+  # create the id/scriptPath array
   id = filename.replace("#{dir}#{sep}", '')
   [modulerize(id, filename), filename]
 
