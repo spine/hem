@@ -160,7 +160,12 @@ class Hem
 
   buildTargets: (targets = []) ->
     buildAll = targets.length is 0
+    # TODO: preset a versionAddOn var if argv.setVersion 
+    #if argv.setVersion and argv.version is null
+      #version = new Date().getUTCMilliseconds()  #or something like this...
     pkg.build(not argv.debug) for pkg in @packages when pkg.name in targets or buildAll
+    # TODO: add auto build of an application.cache file with relevant target files pre-filled
+    #cache = pkg.compileCache()
 
   createRoutingProxy: (options = {}) ->
     proxy = new httpProxy.RoutingProxy()

@@ -60,6 +60,11 @@ class Package
     catch ex
       @handleCompileError(ex)
 
+  compileCache: (packages, versionAddOn)->
+    #start with a date header
+    #define content...
+    #fs.writeFileSync('app.cache', content) if content
+  
   handleCompileError: (ex) ->
     if ex.stack 
       console.error ex.stack
@@ -77,11 +82,14 @@ class Package
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
-  build: (minify = false) ->
+  build: (minify = false, versionAddOn) ->
+    # TODO: add an option to add timestamp or other string to the target js and css files
+    #if versionAddOn
+      #@target += "-#{versionAddOn}"
     console.log "Building '#{@name}' target: #{@target}"
     source = @compile(minify)
     fs.writeFileSync(@target, source) if source
-
+    
   watch: ->
     console.log "Watching '#{@name}'"
     for dir in (path.dirname(lib) for lib in @libs).concat @paths
