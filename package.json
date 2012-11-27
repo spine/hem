@@ -1,8 +1,9 @@
 {
   "name": "hem",
-  "description": "CommonJS stitcher.",
-  "version": "0.2.6",
-  "author": "maccman",
+  "version": "0.2.7",
+  "description": "stiches CommonJS, and ties up other lose ends of web-app development.",
+  "keywords": ["spine", "commonsJS", "coffeescript", "stylus", "jade", "eco", "testacular", "jasmine"],
+  "contributors": ["maccman", "aeischeid", "cengebretson"],
   "licenses":
     [{
       "type": "MIT",

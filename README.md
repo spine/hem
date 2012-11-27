@@ -14,7 +14,7 @@ or
 
     npm install -g git://github.com/globalvetlink/hem.git
 
-or ...fun trick I just learned
+or ...fun trick.
 
     hem install -g hem 
     git clone https://github.com/globalvetlink/hem.git
@@ -33,15 +33,13 @@ Stitch modules: Hem will bundle up your whole application (without any static de
 
 In a nutshell, Hem will make sure your application and all its dependencies are wrapped up in a single file, ready to be served to web browsers.
 
-**TODO**: figure out a way to have common depenencies share easily between multiple spine apps. 
-for example. jqery, es5-shim, or certain js-plugins shouldn't have to be wrapped inside of 3 different application.js files if you have three spine apps served at the same domain. you probably would have shared css, images, and maybe even some share spine models and controllers. 
-
 ##CommonJS
 
 CommonJS modules are at the core of Hem, and are the format Hem aspects every module to adhere to. As well as ensuring your code is encapsulated and modular, CommonJS modules give you dependency management, scope isolation, and namespacing. They should be used in any JavaScript application that spans more than a few files.
 
 To find out more about why CommonJS modules are the best solution to JavaScript dependency management, see the CommonJS guide
-The format
+
+###The Format
 
 The format is remarkably straightforward, but is something you'll have to adhere to in every file to make it work. CommonJS uses explicit exporting; so to expose a property inside a module to other modules, you'll need to do something like this:
 
@@ -111,9 +109,9 @@ Now, we can start a development server, which will dynamically build our applica
 By default, your spine application is served at http://localhost:9294. 
 You can configure the host and port from command line or as settings in your package.json
 
-    hem server -p 9295 -host 192.168.1.1
+    hem server -p 9295 -host 192.168.1.1 -d
     
-Would result in your application being served at http://192.168.1.1:9295/
+Would result in your application being served in debug mode at http://192.168.1.1:9295/
 
 If there's an index.html file under public, it'll be served up. Likewise, any calls to /application.js and /application.css will return the relevant JavaScript and CSS.
 
@@ -141,8 +139,9 @@ This will ensure that your server can statically serve your application, without
 
 **TODO**: hem build should have an option to version the js/css it producess and replace the references in index.html as well
 
-    hem build -v
+    hem build -setVersion -version 24
     
+
 ###Views
 
 Currently Hem supports three template options out of the box 
@@ -151,7 +150,7 @@ Currently Hem supports three template options out of the box
 * [Jade](https://github.com/visionmedia/jade) - haml like syntax with optional coffeescript filter
   * to use jade templates you must include jades [runtime.js](https://github.com/visionmedia/jade/blob/master/runtime.js) as a lib in your spine projects slug.json
       "libs": ["lib/runtime.js"],
-      
+
 ###Testing
 
 [Testacular](https://github.com/aeischeid/hem/tree/testacular) is a neat little tool that we leverage with hem. 
@@ -171,14 +170,14 @@ will watch and comile jasmine tests, but you will have to go to localhost:9294/t
 
 #TODO
 
-* Need to setup HEM so that it will build/compile a physical specs file (in progress)
 * Better document [Testacular](https://github.com/aeischeid/hem/tree/testacular) usage instructions.
-* Major restructure of slug.json. Much more customizeable in how hem outputs packages and what directory structure it expects.
+* Major restructure of slug.json. Much more customizeable in how hem outputs packages and what directory structure it expects. (coming in Hem 3!)
 * This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
 * Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
   * actually with more generic projects out there like [yeoman](http://yeoman.io/) maybe Hem should aim to be a dedicated spine dev tool.
-* Update this readme or maybe make some github pages (gh-pages branch)
+* Option to version generated js and css output when building (good for long cache optimization)
+* Auto build a cache.manifest file
 
 #History
 
-Originally developed by @maccman to compliment Spine.js. He started a replacement project which is a Ruby based project called Catapult. Some of us still love the node.js and hem way of doing things. In the spirit of open source hem advanced in a fork and a couple of us who use it at work plan to maintain for the near future at least.
+Originally developed by @maccman to compliment Spine.js. He started a replacement project which is a Ruby based project called Catapult. Some of us still love the node.js and Hem way of doing things. In the spirit of open source Hem advanced in a fork and a couple of us who use it at work plan to maintain for the near future at least.
