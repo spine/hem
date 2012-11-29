@@ -109,6 +109,7 @@ class Hem
   hemPackage: ->
     pkg.createPackage(
       dependencies: @options.dependencies
+      compilers: @options.compilers
       paths: @options.paths
       libs: @options.libs
     )
