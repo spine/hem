@@ -34,9 +34,10 @@ module.exports = (request, parent = repl) ->
   # make sure we have a valid directory path
   if dir in invalidDirs
     # possibly a linked module?
-    index = filename.indexOf("#{sep}#{request}")
+    index = filename.lastIndexOf("#{sep}#{request}")
     if index > 0 
       dir = filename.substring(0,index)
+      modulePaths.push(dir)
     else
       throw new Error("Load path not found for #{filename}")
 
