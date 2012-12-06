@@ -46,6 +46,7 @@ compilers.jeco = (path) ->
   """
 
 require.extensions['.jeco'] = require.extensions['.eco']
+# require.extensions['.eco'] in eco package contains the function
 
 compilers.html = (path) ->
   content = fs.readFileSync(path, 'utf8')
@@ -81,6 +82,9 @@ try
     result = ''
     stylus(content)
       .include(path.dirname(_path))
+      .set('include css', true)
+      .set('line-numbers', compilers.DEBUG
+      .set('firebug', ('--firebug' in process.argv))
       .render((err, css) -> 
         throw err if err
         result = css
