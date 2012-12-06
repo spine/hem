@@ -56,8 +56,8 @@ class Hem
 
   options:
     server:
-      port: argv.port or 9294
-      host: argv.host or 'localhost'
+      port: 9294
+      host: 'localhost'
 
   constructor: (options = {}) ->
     @options[key] = value for key, value of options
@@ -69,6 +69,9 @@ class Hem
      process.exit(1)
     # setup packages from options/slug
     @packages = (@createPackage(name, config) for name, config of @options.packages)
+    # allow overrides
+    @options.server.port = argv.port if argv.port
+    @options.server.host or= ""
 
   server: ->
     # create app
@@ -99,10 +102,13 @@ class Hem
         else
           console.log "ERROR: The folder #{value} does not exist."
           process.exit(1)
-      else
+      else if value.host
         # setup proxy
         console.log "Proxy requests from #{url} to #{value.host}" if argv.v
-        app.use(url, @createRoutingProxy(value)) if value.host
+        app.use(url, @createRoutingProxy(value))
+        @patchServerResponseForRedirects(@options.server.port, value) if value.patchRedirect
+      else
+        throw new Error("Invalid route configuration for #{url}")
 
     # start server
     http.createServer(app).listen(@options.server.port, @options.server.host)
@@ -176,6 +182,18 @@ class Hem
       req.url = "#{options.hostPath}#{req.url}"
       proxy.proxyRequest(req, res, options)
 
+  patchServerResponseForRedirects: (port, config) ->
+      writeHead = http.ServerResponse.prototype.writeHead
+      http.ServerResponse.prototype.writeHead = ->
+        @.emit('header') if (!@._emittedHeader)
+        @._emittedHeader = true
+        [ status, head ] = arguments
+        if status in [301,302]
+          oldLocation = "://#{config.host}:#{config.port}"
+          newLocation = "://#{config.host}:#{port}"
+          head.location = head.location.replace(oldLocation,newLocation)
+        return writeHead.apply(this, arguments)
+
   startTestacular: (targets = [], singleRun = true) ->
     # use custom testacular config file provided by user
     testConfig = fs.existsSync(argv.test) and fs.realpathSync(argv.test)
@@ -218,3 +236,4 @@ class Hem
     bestMatch.url
 
 module.exports = Hem
+
