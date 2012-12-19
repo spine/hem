@@ -21,7 +21,7 @@ or ...fun trick.
     cd hem
     npm link
 
-this last approach is great if you want to customize hem for your own use, or for developing npm packages in general
+this last approach is great if you want to customize hem for your own use, or for developing npm packages in general. Just fork and use you own path!
 
 ##Dependencies
 
@@ -29,7 +29,7 @@ Hem has two types of dependency resolutions: Node modules and Stitch modules.
 
 Node modules: Hem will recursively resolve any external Node modules your code references. This means that Spine, jQuery etc, can all be external Node modules - you don't have lots of libraries floating around your application. This also has the advantage of explicit versioning; you'll have much more control over external libraries.
 
-Stitch modules: Hem will bundle up your whole application (without any static dependency analysis), automatically converting CoffeeScript (.coffee) and jQuery template (.tmpl) files. Hem doesn't use static analysis of your application to determine dependencies, as that's often not-viable considering the amount of dynamically loaded dependencies most applications use.
+Stitch modules: Hem will bundle up your whole application (without any static dependency analysis), automatically converting CoffeeScript (.coffee), Jade templates (.jade) and Eco templates (.eco or .jeco). Hem doesn't use static analysis of your application to determine dependencies, as that's often not-viable considering the amount of dynamically loaded dependencies most applications use.
 
 In a nutshell, Hem will make sure your application and all its dependencies are wrapped up in a single file, ready to be served to web browsers.
 
@@ -74,7 +74,7 @@ Also in the pipeline is the ability to bundle up CSS from Node modules.
 
 Hem has some good defaults (convention over configuration), but sometimes you'll need to change them, especially when adding libraries and dependencies.
 
-For configuration, Hem use a slug.json file, located in the root of your application. Hem expects a certain directory structure. A main JavaScript/CoffeeScript file under app/index, a main CSS/Stylus file under css/index and a public directory to serve static assets from. If you're using Spine.app, these will all be generated for you.
+For configuration, Hem uses a slug.json file, located in the root of your application. Hem expects a certain directory structure. A main JavaScript/CoffeeScript file under app/index, a main CSS/Stylus file under css/index and a public directory to serve static assets from. If you're using Spine.app, these will all be generated for you.
 
 Hem also allows you to specify static JavaScript libraries to include, under the "libs" option:
 
