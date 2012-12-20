@@ -129,7 +129,7 @@ now http://localhost:8001/apiapp/spineapp/ will return the spine app.
 
 and http://localhost:8001/apiapp/ will return your apiApp
 
-so relative links like @url = "../api/album/" from inside your spine app can resolve against your apiapp without issue
+so relative links like @url = "../api/album/" from inside your spine app can resolve against your apiApp without issue
 
 When you're ready to deploy, you should build your application, serializing it to disk.
 
@@ -150,6 +150,10 @@ Currently Hem supports three template options out of the box
 * [Jade](https://github.com/visionmedia/jade) - haml like syntax with optional coffeescript filter
   * to use jade templates you must include jades [runtime.js](https://github.com/visionmedia/jade/blob/master/runtime.js) as a lib in your spine projects slug.json
       "libs": ["lib/runtime.js"],
+      
+Note: hem > 0.2 dropped support for jquery templates (.tmpl) as it is an abandoned project for quite some time
+
+We are looking into ways to inject custom compilers down then road.
 
 ###Testing
 
@@ -162,11 +166,11 @@ Will run tests in a spine projects test directory. Tests can be written in Coffe
     hem watch -t
 
 Will run tests as test files are updated. Testacular makes it smart. Only previously failing tests run. If there were no previously failing tests all will run. 
-Default is to run tests in a new Chrome window, Firefox, Phantom or some others can be used as well.
+Default is to run tests in a new Chrome window. Firefox, Phantom or some others can be used as well.
 
     hem server
 
-will watch and comile jasmine tests, but you will have to go to localhost:9294/test (or whereever you configured hem to run...) and manually trigger page tests to run.
+will watch and compile jasmine tests, but you will have to go to localhost:9294/test (or whereever you configured hem to run...) and manually trigger page tests to run.
 
 #TODO
 
