@@ -84,7 +84,7 @@ try
       .include(path.dirname(_path))
       .set('include css', true)
       .set('line-numbers', compilers.DEBUG)
-      .set('firebug', ('--firebug' in process.argv))
+      .set('compress', unless compilers.DEBUG)
       .render((err, css) -> 
         throw err if err
         result = css
