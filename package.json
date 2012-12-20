@@ -7,11 +7,11 @@
   "licenses":
     [{
       "type": "MIT",
-      "url": "https://github.com/globalvetlink/hem/blob/master/LICENSE"
+      "url": "https://github.com/maccman/hem/blob/master/LICENSE"
     }],
   "repository": {
     "type" : "git",
-    "url": "https://github.com/globalvetlink/hem.git"
+    "url": "https://github.com/maccman/hem.git"
   },
   "engine" : [ "node >=0.6.0" ],
   "main" : "./lib/hem.js",
