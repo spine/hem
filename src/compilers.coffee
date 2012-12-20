@@ -75,9 +75,9 @@ try
     result = ''
     stylus(content)
       .include(dirname(path))
-      .set('include css', true)
+      .set('include css', ('--includeCss' in process.argv))
       .set('line-numbers', ('-d' in process.argv) or ('--debug' in process.argv))
-      .set('firebug', ('--firebug' in process.argv))
+      .set('compress', unless ('-d' in process.argv) or ('--debug' in process.argv))
       .render((err, css) -> 
         throw err if err
         result = css
