@@ -12,13 +12,13 @@ Hem's other major role is to tie up some of the other lose ends of a frontend de
 
 or
 
-    npm install -g git://github.com/globalvetlink/hem.git
+    npm install -g git://github.com/maccman/hem.git
 
 or ...fun trick.
 
     hem install -g hem 
-    git clone https://github.com/globalvetlink/hem.git
-    cd hem
+    git clone https://github.com/maccman/hem.git
+    cd hem		
     npm link
 
 this last approach is great if you want to customize hem for your own use, or for developing npm packages in general. Just fork and use you own path!
