@@ -113,15 +113,6 @@ class Hem
     # start server
     http.createServer(app).listen(@options.server.port, @options.server.host)
 
-    # spawn addition process if any
-    if @options.server.spawn__
-        spawn = @options.server.spawn
-        console.log "Spawning process: #{spawn.command} #{spawn.args}"
-        child = require('child_process')
-        process = child.spawn(spawn.command, spawn.args, spawn.options)
-        process.on 'exit', (code) ->
-          console.log('child process exited with code ' + code)
-
   clean: () ->
     targets = argv.targets
     cleanAll = targets.length is 0
