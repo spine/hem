@@ -23,7 +23,7 @@ argv = optimist.usage([
 .alias('s', 'slug').describe('s',':run hem using a specified slug file')
 .alias('b', 'browser').describe('b',':run testacular using the supplied browser[s]')
 .alias('n', 'noBuild').describe('n',':turn off dynamic builds during server mode')
-.describe('v',':make hem more talkative')
+.describe('v',':make hem more talkative(verbose)')
 .argv
 
 # set command and targets properties
