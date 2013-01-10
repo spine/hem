@@ -111,37 +111,65 @@ Now, we can start a development server, which will dynamically build our applica
 By default, your spine application is served at http://localhost:9294. 
 You can configure the host and port from command line or as settings in your package.json
 
-    hem server -p 9295 -host 192.168.1.1
+    hem server -p 9295
     
-Would result in your application being served at http://192.168.1.1:9295/
+Would result in your application being served at http://localhost:9295/
 
 If there's an index.html file under public, it'll be served up. Likewise, any calls to /application.js and /application.css will return the relevant JavaScript and CSS.
 
 For the sake of avoiding cross domain issues in development environments when your spine app is utilizing an ajax api there is a optional proxy server built into hem.
-Including the following in your slug.json configures that:
+As of Hem 0.3 including a 'routes' block in your slug.json configures that:
+    
+    "server": {
+        "port"  : 9294
+    },
+    "routes": [
+        { "/myApiApp/mySpineApp"        : "./public" },
+        { "/myApiApp/mySpineApp/test"   : "./test/public" },
+        { "/myApiApp"                   : { "host": "127.0.0.1", "port": 8080, "hostPath": "/myApiApp", "patchRedirect": true } }
+    ],
+    "packages": {
+        "sampleApp": {
+          "libs"    : ["lib/runtime.js"],
+          "modules" : [
+              "es5-shimify",
+              "json2ify",
+              "jqueryify",
+              "spine",
+              "spine/lib/local",
+              "spine/lib/ajax",
+              "spine/lib/route",
+              "spine/lib/manager"
+          ],
+          "paths"  : ["./app"],
+          "target" : "./public/application.js",
+          "jsAfter": "jade.rethrow = function rethrow(err, filename, lineno){ throw err; } "
+        },
+    "css": {
+      "paths"  : "./css",
+      "target" : "./public/application.css"
+    },
+    "test": {
+      "identifier" : "specs",
+      "jsAfter"    : "require('lib/setup'); for (var key in specs.modules) specs(key);",
+      "paths"      : ["./test/specs"],
+      "target"     : "./test/public/specs.js"
+    }
+  }
 
-    "useProxy": true,
-    "baseSpinePath": "/apiapp/spineapp/",
-    "baseApiPath": "/apiapp/",
-    "apiHost": "localhost",
-    "apiPort": 8080,
-    "proxyPort": 8001,
+now http://127.0.0.1:9294/myApiApp/mySpineApp/ will return the spine app.
 
-now http://localhost:8001/apiapp/spineapp/ will return the spine app.
+and http://127.0.0.1:9294/myApiApp/ will return your API App
 
-and http://localhost:8001/apiapp/ will return your apiApp
-
-so relative links like @url = "../api/album/" from inside your spine app can resolve against your apiapp without issue
+so relative links like @url = "../api/album/" from inside your spine app models can resolve against your apiapp without issue
 
 When you're ready to deploy, you should build your application, serializing it to disk.
 
     hem build
 
-This will ensure that your server can statically serve your application, without having to use Node, or have any npm dependencies installed.
+This will writes application.js and application.css and specs.js to the file system. You can then commit it with version control and have your server can statically serve your application, without having to use Node, or have any npm dependencies installed.
 
 **TODO**: hem build should have an option to version the js/css it producess and replace the references in index.html as well
-
-    hem build -v
     
 ###Views
 
