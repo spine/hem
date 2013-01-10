@@ -109,7 +109,7 @@ Now, we can start a development server, which will dynamically build our applica
 By default, your spine application is served at http://localhost:9294. 
 You can configure the host and port from command line or as settings in your package.json
 
-    hem server -p 9295 -host 192.168.1.1 -d
+    hem server -p 9295 --host 192.168.1.1 -d
     
 Would result in your application being served in debug mode at http://192.168.1.1:9295/
 
