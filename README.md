@@ -45,10 +45,12 @@ It's not that AMD pattern is bad by the way, just not the way hem went for now.
 
 The format is remarkably straightforward, but is something you'll have to adhere to in every file to make it work. CommonJS uses explicit exporting; so to expose a property inside a module to other modules, you'll need to do something like this:
 
-  # In app/controllers/users.coffee:
+In app/controllers/users.coffee:
+
     class Users extends Spine.Controller
 
-  # Explicitly export the Users object
+Explicitly export the Users object
+
     module.exports = Users
 
 The format mandates that a module object will be available in every module. However, if you're targeting both the CommonJS format, and a normal environment, you can do a conditional export, checking that the module object exists.
