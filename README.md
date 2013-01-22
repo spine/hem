@@ -4,7 +4,7 @@ Hem is a project for compiling CommonJS modules when building JavaScript web app
 
 This is rather awesome, as it means you don't need to faff around with coping around JavaScript files. jQuery can be a npm dependency, so can jQueryUI and all your custom components. Hem will resolve dependencies dynamically, bundling them together into one file to be served up. Upon deployment, you can serialize your application to disk and serve it statically.
 
-Hem's other major role is to tie up some of the other lose ends of a frontend development project - things like javascript tests, and css. It can even help out in the API connection stuff if your app needs that.
+Hem was primarily designed for developing Spine.js based Single Page Web Applications (SPA's), so a major role it fills is to tie up some of the other lose ends of a frontend development project - things like running tests, precompiling code, and preparing it for deployment. It can even help out in the API connection stuff if your app needs that.
 
 #Installation
 
@@ -12,16 +12,16 @@ Hem's other major role is to tie up some of the other lose ends of a frontend de
 
 or
 
-    npm install -g git://github.com/maccman/hem.git
+    npm install -g git://github.com/spine/hem.git
 
-or ...fun trick I just learned
+or ...fun trick.
 
     hem install -g hem 
-    git clone https://github.com/maccman/hem.git
-    cd hem		
+    git clone https://github.com/spine/hem.git
+    cd hem
     npm link
 
-this last approach is great if you want to customize hem for your own use, or for developing npm packages in general
+this last approach is great if you want to customize hem for your own use, (...or for developing npm packages in general). Just fork and use you own path!
 
 ##Dependencies
 
@@ -33,29 +33,31 @@ Stitch modules: Hem will bundle up your whole application (without any static de
 
 In a nutshell, Hem will make sure your application and all its dependencies are wrapped up in a single file, ready to be served to web browsers.
 
-**TODO**: figure out a way to have common depenencies share easily between multiple spine apps. 
-for example. jqery, es5-shim, or certain js-plugins shouldn't have to be wrapped inside of 3 different application.js files if you have three spine apps served at the same domain. you probably would have shared css, images, and maybe even some share spine models and controllers. 
-
 ##CommonJS
 
 CommonJS modules are at the core of Hem, and are the format Hem aspects every module to adhere to. As well as ensuring your code is encapsulated and modular, CommonJS modules give you dependency management, scope isolation, and namespacing. They should be used in any JavaScript application that spans more than a few files.
 
-To find out more about why CommonJS modules are the best solution to JavaScript dependency management, see the CommonJS guide
-The format
+To find out more about why CommonJS modules are a great solution to JavaScript dependency management, see the CommonJS guide
+
+It's not that AMD pattern is bad by the way, just not the way hem went for now.
+
+###The Format
 
 The format is remarkably straightforward, but is something you'll have to adhere to in every file to make it work. CommonJS uses explicit exporting; so to expose a property inside a module to other modules, you'll need to do something like this:
 
-  # In app/controllers/users.coffee:
+In app/controllers/users.coffee:
+
     class Users extends Spine.Controller
 
-  # Explicitly export the Users object
+Explicitly export the Users object
+
     module.exports = Users
 
 The format mandates that a module object will be available in every module. However, if you're targeting both the CommonJS format, and a normal environment, you can do a conditional export, checking that the module object exists.
 
     module?.exports = Users
 
-##Requiring modules
+###Requiring modules
 
 Requiring other modules is just as straightforward; just use the require() function.
 
@@ -63,6 +65,8 @@ Requiring other modules is just as straightforward; just use the require() funct
 
 In Hem apps, all module paths are relative to the app folder - so don't require files relative to the specific module.
 CSS
+
+##Styling your app
 
 Hem will also bundle up all your application's CSS into one file, ready to serve up to clients. CSS encapsulation and modularity is just as important as JavaScript de-coupling (and can get as equally messy if it's not done right); Hem goes some way to help you with this. To compile CSS, Hem uses an excellent library called Stylus. Stylus is mostly a superset of CSS, and the normal CSS syntax will work just fine if that's all you want.
 
@@ -76,7 +80,7 @@ Also in the pipeline is the ability to bundle up CSS from Node modules.
 
 Hem has some good defaults (convention over configuration), but sometimes you'll need to change them, especially when adding libraries and dependencies.
 
-For configuration, Hem use a slug.json file, located in the root of your application. Hem expects a certain directory structure. A main JavaScript/CoffeeScript file under app/index, a main CSS/Stylus file under css/index and a public directory to serve static assets from. If you're using Spine.app, these will all be generated for you.
+For configuration, Hem uses a slug.json file, located in the root of your application. Hem expects a certain directory structure. A main JavaScript/CoffeeScript file under app/index, a main CSS/Stylus file under css/index and a public directory to serve static assets from. If you're using Spine.app, these will all be generated for you.
 
 Hem also allows you to specify static JavaScript libraries to include, under the "libs" option:
 
@@ -167,10 +171,10 @@ When you're ready to deploy, you should build your application, serializing it t
 
     hem build
 
-This will writes application.js and application.css and specs.js to the file system. You can then commit it with version control and have your server can statically serve your application, without having to use Node, or have any npm dependencies installed.
+This will write application.js and application.css and specs.js to the file system. You can then commit it with version control and have your server can statically serve your application, without having to use Node, or have any npm dependencies installed.
 
 **TODO**: hem build should have an option to version the js/css it producess and replace the references in index.html as well
-    
+
 ###Views
 
 Currently Hem supports three template options out of the box 
@@ -191,22 +195,19 @@ Will run tests in a spine projects test directory. Tests can be written in Coffe
     hem watch -t
 
 Will run tests as test files are updated. Testacular makes it smart. Only previously failing tests run. If there were no previously failing tests all will run. 
-Default is to run tests in a new Chrome window, Firefox, Phantom or some others can be used as well.
+Default is to run tests in a new Chrome window. Firefox, Phantom or some others can be used as well.
 
     hem server
 
-will watch and comile jasmine tests, but you will have to go to localhost:9294/test (or whereever you configured hem to run...) and manually trigger page tests to run.
+will watch and compile jasmine tests, but you will have to go to localhost:9294/test (or whereever you configured hem to run...) and manually trigger page tests to run.
 
 #TODO
 
-* Need to setup HEM so that it will build/compile a physical specs file (in progress)
 * Better document [Testacular](https://github.com/aeischeid/hem/tree/testacular) usage instructions.
-* Major restructure of slug.json. Much more customizeable in how hem outputs packages and what directory structure it expects.
 * This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
 * Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
   * actually with more generic projects out there like [yeoman](http://yeoman.io/) maybe Hem should aim to be a dedicated spine dev tool.
-* Update this readme or maybe make some github pages (gh-pages branch)
 
 #History
 
-Originally developed by @maccman to compliment Spine.js. He started a replacement project which is a Ruby based project called Catapult. Some of us still love the node.js and hem way of doing things. In the spirit of open source hem advanced in a fork and a couple of us who use it at work plan to maintain for the near future at least.
+Originally developed by @maccman to compliment Spine.js. He started a replacement project which is a Ruby based project called Catapult. Some of us still love the node.js and Hem way of doing things. In the spirit of open source Hem advanced in a fork and a couple of us who use it at work plan to maintain for the near future at least.
