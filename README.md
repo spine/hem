@@ -4,7 +4,7 @@ Hem is a project for compiling CommonJS modules when building JavaScript web app
 
 This is rather awesome, as it means you don't need to faff around with coping around JavaScript files. jQuery can be a npm dependency, so can jQueryUI and all your custom components. Hem will resolve dependencies dynamically, bundling them together into one file to be served up. Upon deployment, you can serialize your application to disk and serve it statically.
 
-Hem's other major role is to tie up some of the other lose ends of a frontend development project - things like javascript tests, and css. It can even help out in the API connection stuff if your app needs that.
+Hem was primarily designed for developing Spine.js based Single Page Web Applications (SPA's), so a major role it fills is to tie up some of the other lose ends of a frontend development project - things like running tests, precompiling code, and preparing it for deployment. It can even help out in the API connection stuff if your app needs that.
 
 #Installation
 
@@ -12,16 +12,16 @@ Hem's other major role is to tie up some of the other lose ends of a frontend de
 
 or
 
-    npm install -g git://github.com/maccman/hem.git
+    npm install -g git://github.com/spine/hem.git
 
 or ...fun trick.
 
     hem install -g hem 
-    git clone https://github.com/maccman/hem.git
-    cd hem		
+    git clone https://github.com/spine/hem.git
+    cd hem
     npm link
 
-this last approach is great if you want to customize hem for your own use, or for developing npm packages in general. Just fork and use you own path!
+this last approach is great if you want to customize hem for your own use, (...or for developing npm packages in general). Just fork and use you own path!
 
 ##Dependencies
 
@@ -37,7 +37,9 @@ In a nutshell, Hem will make sure your application and all its dependencies are 
 
 CommonJS modules are at the core of Hem, and are the format Hem aspects every module to adhere to. As well as ensuring your code is encapsulated and modular, CommonJS modules give you dependency management, scope isolation, and namespacing. They should be used in any JavaScript application that spans more than a few files.
 
-To find out more about why CommonJS modules are the best solution to JavaScript dependency management, see the CommonJS guide
+To find out more about why CommonJS modules are a great solution to JavaScript dependency management, see the CommonJS guide
+
+It's not that AMD pattern is bad by the way, just not the way hem went for now.
 
 ###The Format
 
@@ -53,7 +55,7 @@ The format mandates that a module object will be available in every module. Howe
 
     module?.exports = Users
 
-##Requiring modules
+###Requiring modules
 
 Requiring other modules is just as straightforward; just use the require() function.
 
@@ -61,6 +63,8 @@ Requiring other modules is just as straightforward; just use the require() funct
 
 In Hem apps, all module paths are relative to the app folder - so don't require files relative to the specific module.
 CSS
+
+##Styling your app
 
 Hem will also bundle up all your application's CSS into one file, ready to serve up to clients. CSS encapsulation and modularity is just as important as JavaScript de-coupling (and can get as equally messy if it's not done right); Hem goes some way to help you with this. To compile CSS, Hem uses an excellent library called Stylus. Stylus is mostly a superset of CSS, and the normal CSS syntax will work just fine if that's all you want.
 
