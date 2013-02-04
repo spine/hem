@@ -72,7 +72,8 @@ class Hem
     strata.use(strata.contentLength)
 
     # get dynamically compiled javascript/css files
-    strata.get(@options.cssPath, @cssPackage().createServer())
+    if @options.css
+    	strata.get(@options.cssPath, @cssPackage().createServer())
     strata.get(@options.jsPath, @hemPackage().createServer())
 
     # get static public folder
@@ -137,6 +138,14 @@ class Hem
   watch: () ->
     @build()
     @executeTestacular() if argv.tests
+    # watch CSS?
+    #cssDir = if @options.css then [@options.css] else []
+    # extract the folders for each included lib
+    #libDir = []
+    #for lib in @options.libs
+      #libDir.push path.dirname(lib)
+    # start watching
+    #for dir in cssDir.concat @options.paths, libDir
     for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths, @options.specs
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
