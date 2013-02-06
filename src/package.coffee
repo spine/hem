@@ -1,3 +1,4 @@
+npath = require("path")
 fs           = require('fs')
 eco          = require('eco')
 uglify       = require('uglify-js')
@@ -38,10 +39,10 @@ class Package
         console.trace ex
       result = "console.log(\"#{ex}\");"
 
-  compileSingle: (path) ->
+  compileSingle: (path, parent) ->
     if path
       @stitch       = new Stitch([path])
-      @modules = @stitch.resolveFiles()
+      @modules = @stitch.resolveFiles(parent)
       if not @modules.length
         return null
     else
@@ -72,7 +73,7 @@ class Package
         result = @compileSingle()
       else
         path = path
-        result = @compileSingle(path)
+        result = @compileSingle(path, npath.resolve(prefix))
 
       if result
         callback(200,
