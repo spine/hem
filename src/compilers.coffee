@@ -87,5 +87,21 @@ try
     source = JSON.stringify(compilers.styl(filename))
     module._compile "module.exports = #{source}", filename
 catch err
+try
+  less = require('less')
+  
+  compilers.less = (path) ->
+    content = fs.readFileSync(path, 'utf8')
+    result = ''
+    p = new less.Parser()
+    p.parse content, (err, tree) ->
+      throw err if err
+      result = tree.toCSS();
+    return result
+    
+  require.extensions['.less'] = (module, filename) -> 
+    source = JSON.stringify(compilers.less(filename))
+    module._compile "module.exports = #{source}", filename
+catch err
 
 module.exports = compilers
