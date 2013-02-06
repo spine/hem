@@ -37,7 +37,21 @@ class Package
       else
         console.trace ex
       result = "console.log(\"#{ex}\");"
-
+  
+  compileSingle: (path) ->
+    if path
+      @stitch       = new Stitch([path])
+      @modules = @stitch.resolveFiles()
+      if not @modules.length
+        return null
+    else
+      @dependency or= new Dependency(@dependencies)
+      @modules      = @dependency.resolve()
+      mods = stitch(identifier: @identifier, modules: @modules)
+      result = [@compileLibs(), mods, @extraJS].join("\n")
+    
+    return stitch(identifier: @identifier, modules: @modules)
+    
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
@@ -46,6 +60,27 @@ class Package
       callback(200,
         'Content-Type': 'text/javascript',
         @compile())
+        
+  createIServer: ->
+    (env, callback) =>
+      
+      if env.pathInfo.slice(-3) == '.js'
+        path = env.pathInfo.slice(1, -3)
+      else 
+        path = env.pathInfo.slice(1)
+      if path == 'app/core'
+        result = @compileSingle()
+      else
+        result = @compileSingle(path)
+      
+      if result
+        callback(200,
+          'Content-Type': 'text/javascript',
+          result)
+      else
+        callback(400,
+          'Content-Type': 'text/javascript',
+          'No such file')
 
 module.exports =
   compilers:  compilers

@@ -11,8 +11,20 @@ class Stitch
   resolve: ->
     flatten(@walk(path) for path in @paths)
 
-  # Private
+  resolveFiles: ->
+    result= []
+    for path in @paths
+      console.log("path", path + '.coffee');
+      if fs.existsSync(path + '.coffee')
+        child =  path + '.coffee'
+        console.log("exists", child);
+        parent = npath.dirname(child)
+        module = new Module(child, parent)
+        result.push(module) if module.valid()
+    result
 
+  # Private
+  
   walk: (path, parent = path, result = []) ->
     return unless fs.existsSync(path)
     for child in fs.readdirSync(path)

@@ -74,6 +74,7 @@ class Hem
     # get dynamically compiled javascript/css files
     strata.get(@options.cssPath, @cssPackage().createServer())
     strata.get(@options.jsPath, @hemPackage().createServer())
+    strata.get(/^\/app\/(.*)$/, @hemPackage().createIServer())
 
     # get static public folder
     if fs.existsSync(@options.public)
