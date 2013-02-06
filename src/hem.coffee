@@ -36,14 +36,14 @@ class Hem
   options:
     slug:         './slug.json'
     paths:        ['./app']
-    
+
     port:         process.env.PORT or argv.port or 9294
     host:         argv.host or 'localhost'
     useProxy:     argv.useProxy or false
     apiHost:      argv.apiHost or 'localhost'
     apiPort:      argv.apiPort or 8080
     proxyPort:    argv.proxyPort or 8001
-    
+
     public:       './public'
     css:          './css'
     cssPath:      '/application.css'
@@ -74,7 +74,11 @@ class Hem
     # get dynamically compiled javascript/css files
     strata.get(@options.cssPath, @cssPackage().createServer())
     strata.get(@options.jsPath, @hemPackage().createServer())
-    strata.get(/^\/app\/(.*)$/, @hemPackage().createIServer())
+    for prefix in @options.paths
+      prefix = path.normalize(prefix)
+      console.log('prefix', prefix)
+      regex = "^\/#{prefix}\/(.*)$"
+      strata.get(new RegExp(regex), @hemPackage().createIServer(prefix))
 
     # get static public folder
     if fs.existsSync(@options.public)
@@ -92,11 +96,11 @@ class Hem
     # The spine app and the api need to appear to the browser to be coming from
     # the same host and port to avoid crossDomain ajax issues.
     # Ultimately it may be a good idea to configure an api server to accept
-    # calls from other domains but sometimes not... 
+    # calls from other domains but sometimes not...
     if @options.useProxy
       console.log "proxy server @ http://localhost:#{@options.proxyPort}"
       startsWithSpinePath = new RegExp("^#{@options.baseSpinePath}")
-      
+
       httpProxy.createServer (req, res, proxy) =>
         if startsWithSpinePath.test(req.url)
           req.url = req.url.replace(@options.baseSpinePath, '/')
@@ -125,12 +129,12 @@ class Hem
       source = @hemPackage().compile(not argv.debug)
       fs.writeFileSync(@hemPackage().target, source)
 
-    if options.css
+    if options.css and @options.css
       console.log "Building css target: #{@cssPackage().target}"
       source = @cssPackage().compile()
       fs.writeFileSync(@cssPackage().target, source)
 
-    if options.specs
+    if options.specs and @options.specs
       console.log "Building specs target: #{@specsPackage().target}"
       source = @specsPackage().compile()
       fs.writeFileSync(@specsPackage().target, source)
