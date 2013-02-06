@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "es5-shimify", 
+    "json2ify", 
+    "jqueryify",
+    "backbone"
+  ],
+  "libs": []
+}
