@@ -83,7 +83,6 @@ try
     stylus(content)
       .include(path.dirname(_path))
       .set('include css', ('--includeCss' in process.argv))
-      .set('line-numbers', compilers.DEBUG)
       .set('compress', not compilers.DEBUG)
       .render((err, css) -> 
         throw err if err
