@@ -47,7 +47,6 @@ class Hem
     public:       './public'
     css:          './css'
     cssPath:      '/application.css'
-    cssPublic:      '/public'
     libs:         []
     dependencies: []
     jsPath:       '/application.js'
@@ -81,10 +80,9 @@ class Hem
       regex = "^\/#{prefix}\/(.*)$"
       strata.get(new RegExp(regex), @hemPackage().createIServer(prefix))
 
-    #hugo... this route conflicts with application.css, and i don't know why...
     # get static public folder
-    # if fs.existsSync(@options.public)
-    #   strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
+    if fs.existsSync(@options.public)
+      strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
 
     # handle test directory
     if fs.existsSync(@options.testPublic)
@@ -193,7 +191,7 @@ class Hem
   cssPackage: ->
     css.createPackage(
       path   : @options.css
-      target : path.join(@options.cssPublic, @options.cssPath)
+      target : path.join(@options.public, @options.cssPath)
     )
 
   hemPackage: ->
