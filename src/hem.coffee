@@ -36,7 +36,7 @@ class Hem
   options:
     slug:         './slug.json'
     paths:        ['./app']
-
+    identifier : 'require'
     port:         process.env.PORT or argv.port or 9294
     host:         argv.host or 'localhost'
     useProxy:     argv.useProxy or false
@@ -47,6 +47,7 @@ class Hem
     public:       './public'
     css:          './css'
     cssPath:      '/application.css'
+    cssPublic:      '/public'
     libs:         []
     dependencies: []
     jsPath:       '/application.js'
@@ -191,11 +192,12 @@ class Hem
   cssPackage: ->
     css.createPackage(
       path   : @options.css
-      target : path.join(@options.public, @options.cssPath)
+      target : path.join(@options.cssPublic, @options.cssPath)
     )
 
   hemPackage: ->
     Package.createPackage(
+      identifier : @options.identifier
       dependencies : @options.dependencies
       paths        : @options.paths
       libs         : @options.libs
