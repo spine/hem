@@ -6,7 +6,7 @@ compilers    = require('./compilers')
 _ = require('underscore')
 
 class Stitch
-  ignores : [/.*~/, /^#/, /^\.#/]
+  ignores : [/.*~/, /^#/, /^\./]
   constructor: (@paths = []) ->
     @paths = (npath.resolve(path) for path in @paths)
 
