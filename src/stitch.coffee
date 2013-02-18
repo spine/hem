@@ -16,13 +16,15 @@ class Stitch
   resolveFiles: (parent) ->
     result= []
     for path in @paths
-      console.log("path", path + '.coffee');
+      console.log("path", path);
       if fs.existsSync(path + '.coffee')
         child =  path + '.coffee'
         console.log("exists", child);
-        console.log('building single module', child, parent)
-        module = new Module(child, parent)
-        result.push(module) if module.valid()
+      else if fs.existsSync(path + '.eco')
+        child =  path + '.eco'
+      console.log('building single module', child, parent)
+      module = new Module(child, parent)
+      result.push(module) if module.valid()
     result
 
   # Private
