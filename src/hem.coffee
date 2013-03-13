@@ -18,6 +18,7 @@ argv = optimist.usage([
 .alias('p', 'port')
 .alias('d', 'debug')
 .alias('t', 'tests')
+.alias('s', 'slug')
 .argv
 
 help = ->
@@ -34,7 +35,7 @@ class Hem
   compilers: compilers
 
   options:
-    slug:         './slug.json'
+    slug:         argv.slug or './slug.json'
     paths:        ['./app']
     identifier : 'require'
     port:         process.env.PORT or argv.port or 9294
