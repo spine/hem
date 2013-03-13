@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>App</title>
+  <link rel="stylesheet" href="/application.css" type="text/css" charset="utf-8">
+  
+  <!-- <script src="/application.js" type="text/javascript" charset="utf-8"></script> -->
+  
+  <script src="/app/core" type="text/javascript" charset="utf-8"></script>
+  
+  <script src="/app/index" type="text/javascript" charset="utf-8"></script>
+  <script src="/app/lib/setup" type="text/javascript" charset="utf-8"></script>
+  <script src="/app/lib/test" type="text/javascript" charset="utf-8"></script>
+  
+  <script type="text/javascript" charset="utf-8">
+    var jQuery  = require("jqueryify");
+    
+    var exports = this;
+    jQuery(function(){
+      var index = require("index");
+      var test = require("lib/test");
+  	  console.log("test me!", test.start());          
+    });
+  </script>
+  
+  <!-- Getting started script - should be removed -->
+  <!-- <script src="http://maccman-spine.herokuapp.com/start.js" type="text/javascript" charset="utf-8"></script> -->
+</head>
+<body></body>
+</html>

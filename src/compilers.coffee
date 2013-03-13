@@ -20,14 +20,14 @@ catch err
 
 eco = require 'eco'
 
-compilers.eco = (path) -> 
+compilers.eco = (path) ->
   content = eco.precompile fs.readFileSync path, 'utf8'
   "module.exports = #{content}"
 
-compilers.jeco = (path) -> 
+compilers.jeco = (path) ->
   content = eco.precompile fs.readFileSync path, 'utf8'
   """
-  module.exports = function(values, data){ 
+  module.exports = function(values, data){
     var $  = jQuery, result = $();
     values = $.makeArray(values);
     data = data || {};
@@ -53,7 +53,7 @@ require.extensions['.html'] = (module, filename) ->
 
 try
   jade = require('jade')
-  
+
   compilers.jade = (path) ->
     content = fs.readFileSync(path, 'utf8')
     try
@@ -72,7 +72,7 @@ catch err
 
 try
   stylus = require('stylus')
-  
+
   compilers.styl = (path) ->
     content = fs.readFileSync(path, 'utf8')
     result = ''
@@ -80,15 +80,38 @@ try
       .include(dirname(path))
       .set('include css', ('--includeCss' in process.argv))
       .set('compress', not('-d' in process.argv) and not('--debug' in process.argv))
-      .render((err, css) -> 
+      .render((err, css) ->
         throw err if err
         result = css
       )
     result
-    
-  require.extensions['.styl'] = (module, filename) -> 
+
+  require.extensions['.styl'] = (module, filename) ->
     source = JSON.stringify(compilers.styl(filename))
     module._compile "module.exports = #{source}", filename
 catch err
+require("hem-less");
+# try
+#   less = require('less')
+#   compilers.less = (path) ->
+#     content = fs.readFileSync(path, 'utf8')
+#     result = ''
+#     p = new less.Parser(
+#       paths : [dirname(path)]
+#       filename : path
+#     )
+#     console.log('here1')
+#     p.parse content, (err, tree) ->
+#       console.log('HERE2')
+#       throw err if err
+#       result = tree.toCSS();
+#     console.log('here3')
+#     return result
+
+#   require.extensions['.less'] = (module, filename) ->
+#     source = JSON.stringify(compilers.less(filename))
+#     debugger;
+#     module._compile "module.exports = #{source}", filename
+# catch err
 
 module.exports = compilers
