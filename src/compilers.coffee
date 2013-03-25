@@ -13,6 +13,9 @@ try
   cs = require 'coffee-script'
   compilers.coffee = (path) ->
     cs.compile(fs.readFileSync(path, 'utf8'), filename: path)
+    
+  compilers.litcoffee = (path) ->
+    cs.compile(fs.readFileSync(path, 'utf8'), filename: path, literate: true)
 catch err
 
 eco = require 'eco'
