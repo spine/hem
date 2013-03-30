@@ -194,17 +194,17 @@ class Hem
       configFile : require.resolve("../assets/testacular.conf.js")
       singleRun  : singleRun
       basePath   : process.cwd()
-      logLevel   : 2
+      logLevel   : 'error'
       browsers   : argv.browser and argv.browser.split(/[ ,]+/) or ['PhantomJS']
       files      : @createTestacularFileList()
 
     # start testacular server
-    require('testacular').server.start(testConfig)
+    require('karma').server.start(testConfig)
 
   createTestacularFileList: () ->
     # look at at test type to see what assets we add
-    fileList = [require.resolve("../node_modules/testacular/adapter/lib/jasmine.js"),
-                require.resolve("../node_modules/testacular/adapter/jasmine.js")]
+    fileList = [require.resolve("../node_modules/karma/adapter/lib/jasmine.js"),
+                require.resolve("../node_modules/karma/adapter/jasmine.js")]
     # TODO: would we ever need a way to specificy only certain files to test??
     # Perhaps a special package type that just lists a group of packages to build/test??
     # "testGroup" : [ "spine", "test" ], then check typeof array to use this group?? Would need a
