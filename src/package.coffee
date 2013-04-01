@@ -66,10 +66,9 @@ class Package
     #fs.writeFileSync('app.cache', content) if content
   
   handleCompileError: (ex) ->
-    if ex.stack 
-      console.error ex.stack
-    else
-      console.trace(ex)
+    console.error ex.message
+    console.error ex.path if ex.path
+    console.error ex.location if ex.location
     # only return when in server/watch mode, otherwise exit
     switch @argv.command
       when "server" then return "console.log(\"#{ex}\");"

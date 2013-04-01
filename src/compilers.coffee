@@ -11,11 +11,16 @@ require.extensions['.css'] = (module, filename) ->
 
 try
   cs = require 'coffee-script'
-  compilers.coffee = (path) ->
-    cs.compile(fs.readFileSync(path, 'utf8'), filename: path)
-    
-  compilers.litcoffee = (path) ->
-    cs.compile(fs.readFileSync(path, 'utf8'), filename: path, literate: true)
+  compilers.coffee    = (path) -> compileCoffeescript(path)
+  compilers.litcoffee = (path) -> compileCoffeescript(path, true)
+  compileCoffeescript = (path, literate = false) ->
+    try
+      cs.compile(fs.readFileSync(path, 'utf8'), filename: path, literate: literate)
+    catch err
+      err.message = "Coffeescript Error: " + err.message
+      err.path    = "Coffeescript Path:  " + path
+      err.path = err.path + ":" + (err.location.first_line + 1) if err.location
+      throw err
 catch err
 
 eco = require 'eco'
