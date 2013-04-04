@@ -180,7 +180,7 @@ class Hem
         @._emittedHeader = true
         [ status, head ] = arguments
         if status in [301,302]
-          oldLocation = "://#{config.host}:#{config.port}"
+          oldLocation = "://#{config.host}:?[0-9]*"
           newLocation = "://#{config.host}:#{port}"
           head.location = head.location.replace(oldLocation,newLocation)
         return writeHead.apply(this, arguments)
