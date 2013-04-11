@@ -3,18 +3,23 @@
   if (!this.<%= @identifier %>) {
     var modules = {}, cache = {}, require = function(name, root) {
       var path = expand(root, name), indexPath = expand(path, './index'), module, fn;
-      module   = cache[path] || cache[indexPath]      
+      module   = cache[path] || cache[indexPath]
       if (module) {
-        return module;
+        return module.exports;
       } else if (fn = modules[path] || modules[path = indexPath]) {
         module = {id: path, exports: {}};
-        cache[path] = module.exports;
-        fn(module.exports, function(name) {
-          return require(name, dirname(path));
-        }, module);
-        return cache[path] = module.exports;
+        try {
+          cache[path] = module;
+          fn(module.exports, function(name) {
+            return require(name, dirname(path));
+          }, module);
+          return module.exports;
+        } catch (err) {
+          delete cache[path];
+          throw err;
+        }
       } else {
-        throw 'module ' + name + ' not found';
+        throw 'module \'' + name + '\' not found';
       }
     }, expand = function(root, name) {
       var results = [], parts, part;

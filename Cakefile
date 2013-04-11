@@ -1,8 +1,8 @@
 {print} = require 'util'
 {spawn} = require 'child_process'
 
-build = (callback) ->
-  coffee = spawn 'coffee', ['-c', '-o', 'lib', 'src']
+build = (callback, watch = false) ->
+  coffee = spawn 'coffee', [(if watch then '-cw' else '-c'), '-o', 'lib', 'src']
   coffee.stderr.on 'data', (data) ->
     process.stderr.write data.toString()
   coffee.stdout.on 'data', (data) ->
@@ -12,3 +12,6 @@ build = (callback) ->
 
 task 'build', 'Build lib/ from src/', ->
   build()
+
+task 'watch', 'Watch lib/ from src/', ->
+  build(null, true)

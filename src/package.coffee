@@ -10,32 +10,45 @@ Stitch       = require('./stitch')
 class Package
   constructor: (config = {}) ->
     @identifier   = config.identifier
-    @libs         = toArray(config.libs)
-    @paths        = toArray(config.paths)
-    @dependencies = toArray(config.dependencies)
+    @libs         = toArray(config.libs || [])
+    @paths        = toArray(config.paths || [])
+    @dependencies = toArray(config.dependencies || [])
+    @target       = config.target
+    @extraJS      = config.extraJS or ""
+    @test         = config.test
 
   compileModules: ->
     @dependency or= new Dependency(@dependencies)
     @stitch       = new Stitch(@paths)
     @modules      = @dependency.resolve().concat(@stitch.resolve())
     stitch(identifier: @identifier, modules: @modules)
-    
+
   compileLibs: ->
     (fs.readFileSync(path, 'utf8') for path in @libs).join("\n")
-    
+
   compile: (minify) ->
-    result = [@compileLibs(), @compileModules()].join("\n")
-    result = uglify(result) if minify
-    result
-    
+    try
+      result = [@compileLibs(), @compileModules(), @extraJS].join("\n")
+      result = uglify(result) if minify
+      result
+    catch ex
+      if ex.stack
+        console.error ex
+      else
+        console.trace ex
+      result = "console.log(\"#{ex}\");"
+
+  unlink: ->
+    fs.unlinkSync(@target) if fs.existsSync(@target)
+
   createServer: ->
     (env, callback) =>
-      callback(200, 
+      callback(200,
         'Content-Type': 'text/javascript',
         @compile())
 
-module.exports = 
+module.exports =
   compilers:  compilers
   Package:    Package
-  createPackage: (config) -> 
+  createPackage: (config) ->
     new Package(config)

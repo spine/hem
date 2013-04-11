@@ -1,28 +1,32 @@
 {
   "name": "hem",
-  "description": "CommonJS stitcher.",
-  "version": "0.1.9",
-  "author": "maccman",
+  "version": "0.2.9",
+  "description": "stiches CommonJS, and ties up other lose ends of web-app development.",
+  "keywords": ["spine", "commonsJS", "coffeescript", "stylus", "jade", "eco", "testacular", "jasmine"],
+  "contributors": ["maccman", "aeischeid", "cengebretson"],
   "licenses":
     [{
       "type": "MIT",
-      "url": "https://github.com/maccman/hem/blob/master/LICENSE"
+      "url": "https://github.com/spine/hem/blob/master/LICENSE"
     }],
   "repository": {
     "type" : "git",
-    "url": "http://github.com/maccman/hem.git"
+    "url": "https://github.com/spine/hem.git"
   },
-  "engine" : [ "node >=0.1.102" ],
+  "engine" : [ "node >=0.6.0" ],
   "main" : "./lib/hem.js",
   "bin": { "hem": "./bin/hem" },
   "dependencies" : {
     "eco": "1.1.0-rc-3",
     "uglify-js": "~1.3.3",
-    "fast-detective": "~0.0.1",
-    "optimist": "~0.2.6",
-    "stylus" : "~0.23.0",
-    "coffee-script" : "~1.3.0",
-    "watch" : "~0.4.0",
-    "strata": "0.15.1"
+    "fast-detective": "~0.0.2",
+    "optimist": "~0.3.0",
+    "stylus" : ">=0.29",
+    "coffee-script" : ">=1.3.0",
+    "watch" : "~0.5.0",
+    "strata": ">=0.16.1",
+    "http-proxy": "~0.8.2",
+    "testacular": "~0.4",
+    "jade": ">=0.27.2"
   }
 }
