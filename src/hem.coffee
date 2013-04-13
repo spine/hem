@@ -18,6 +18,7 @@ argv = optimist.usage([
 .alias('p', 'port')
 .alias('d', 'debug')
 .alias('t', 'tests')
+.alias('s','slug')
 .argv
 
 help = ->
@@ -34,7 +35,7 @@ class Hem
   compilers: compilers
 
   options:
-    slug:         './slug.json'
+    slug:         argv.slug or './slug.json'
     paths:        ['./app']
     
     port:         process.env.PORT or argv.port or 9294
@@ -180,6 +181,7 @@ class Hem
 
   exec: (command = argv._[0]) ->
     return help() unless @[command]
+    console.log "Using slug #{@options.slug}"
     switch command
       when 'build'  then console.log 'Build application'
       when 'watch'  then console.log 'Watching application'
