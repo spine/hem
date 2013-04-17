@@ -11,7 +11,6 @@ modulerize = (id, filename = id) ->
   modName.replace(/\\/g, '/')
 
 modulePaths = Module._nodeModulePaths(process.cwd())
-
 invalidDirs = ['/', '.']
 
 repl =
@@ -45,8 +44,8 @@ module.exports = (request, parent = repl) ->
   # create the id/scriptPath array
   id = filename.replace("#{dir}#{sep}", '')
   [modulerize(id, filename), filename]
-  
+
 module.exports.paths = (filename) ->
   Module._nodeModulePaths(dirname(filename))
-  
+
 module.exports.modulerize = modulerize

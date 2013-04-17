@@ -1,5 +1,5 @@
 fs        = require('fs')
-{dirname} = require('path')
+path      = require('path')
 compilers = {}
 
 compilers.js = compilers.css = (path) ->
@@ -11,18 +11,30 @@ require.extensions['.css'] = (module, filename) ->
 
 try
   cs = require 'coffee-script'
-  compilers.coffee = (path) ->
-    cs.compile(fs.readFileSync(path, 'utf8'), filename: path)
-    
-  compilers.litcoffee = (path) ->
-    cs.compile(fs.readFileSync(path, 'utf8'), filename: path, literate: true)
+  compilers.coffee    = (path) -> compileCoffeescript(path)
+  compilers.litcoffee = (path) -> compileCoffeescript(path, true)
+  compileCoffeescript = (path, literate = false) ->
+    try
+      cs.compile(fs.readFileSync(path, 'utf8'), filename: path, literate: literate)
+    catch err
+      err.message = "Coffeescript Error: " + err.message
+      err.path    = "Coffeescript Path:  " + path
+      err.path = err.path + ":" + (err.location.first_line + 1) if err.location
+      throw err
 catch err
 
 eco = require 'eco'
 
-compilers.eco = (path) -> 
+compilers.eco = (path) ->
   content = eco.precompile fs.readFileSync path, 'utf8'
-  "module.exports = #{content}"
+  # TODO: wrap this in a function to be able to call jQuery
+  # and store the module.id and values in the data attribute,
+  # then have some way of calling replace with the same view
+  # and function call with livereload
+  """
+  var content = #{content};
+  module.exports = content;
+  """
 
 compilers.jeco = (path) -> 
   content = eco.precompile fs.readFileSync path, 'utf8'
@@ -59,7 +71,7 @@ try
     try
       template = jade.compile content,
         filename: path
-        compileDebug: ('-d' in process.argv) or ('--debug' in process.argv)
+        compileDebug: compilers.DEBUG
         client: true
       source = template.toString()
       "module.exports = #{source};"
@@ -73,13 +85,13 @@ catch err
 try
   stylus = require('stylus')
   
-  compilers.styl = (path) ->
-    content = fs.readFileSync(path, 'utf8')
+  compilers.styl = (_path) ->
+    content = fs.readFileSync(_path, 'utf8')
     result = ''
     stylus(content)
-      .include(dirname(path))
+      .include(path.dirname(_path))
       .set('include css', ('--includeCss' in process.argv))
-      .set('compress', not('-d' in process.argv) and not('--debug' in process.argv))
+      .set('compress', not compilers.DEBUG)
       .render((err, css) -> 
         throw err if err
         result = css

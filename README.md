@@ -29,7 +29,7 @@ Hem has two types of dependency resolutions: Node modules and Stitch modules.
 
 Node modules: Hem will recursively resolve any external Node modules your code references. This means that Spine, jQuery etc, can all be external Node modules - you don't have lots of libraries floating around your application. This also has the advantage of explicit versioning; you'll have much more control over external libraries.
 
-Stitch modules: Hem will bundle up your whole application (without any static dependency analysis), automatically converting CoffeeScript (.coffee), Jade templates (.jade) and Eco templates (.eco or .jeco). Hem doesn't use static analysis of your application to determine dependencies, as that's often not-viable considering the amount of dynamically loaded dependencies most applications use.
+Stitch modules: Hem will bundle up your whole application (without any static dependency analysis), automatically converting CoffeeScript (.coffee) and jQuery template (.tmpl) files. Hem doesn't use static analysis of your application to determine dependencies, as that's often not-viable considering the amount of dynamically loaded dependencies most applications use.
 
 In a nutshell, Hem will make sure your application and all its dependencies are wrapped up in a single file, ready to be served to web browsers.
 
@@ -115,38 +115,65 @@ Now, we can start a development server, which will dynamically build our applica
 By default, your spine application is served at http://localhost:9294. 
 You can configure the host and port from command line or as settings in your package.json
 
-    hem server -p 9295 --host 192.168.1.1 -d
+    hem server -p 9295
     
-Would result in your application being served in debug mode at http://192.168.1.1:9295/
+Would result in your application being served at http://localhost:9295/
 
 If there's an index.html file under public, it'll be served up. Likewise, any calls to /application.js and /application.css will return the relevant JavaScript and CSS.
 
 For the sake of avoiding cross domain issues in development environments when your spine app is utilizing an ajax api there is a optional proxy server built into hem.
-Including the following in your slug.json configures that:
+As of Hem 0.3 including a 'routes' block in your slug.json configures that:
+    
+    "server": {
+        "port"  : 9294
+    },
+    "routes": [
+        { "/myApiApp/mySpineApp"        : "./public" },
+        { "/myApiApp/mySpineApp/test"   : "./test/public" },
+        { "/myApiApp"                   : { "host": "127.0.0.1", "port": 8080, "hostPath": "/myApiApp", "patchRedirect": true } }
+    ],
+    "packages": {
+        "sampleApp": {
+          "libs"    : ["lib/runtime.js"],
+          "modules" : [
+              "es5-shimify",
+              "json2ify",
+              "jqueryify",
+              "spine",
+              "spine/lib/local",
+              "spine/lib/ajax",
+              "spine/lib/route",
+              "spine/lib/manager"
+          ],
+          "paths"  : ["./app"],
+          "target" : "./public/application.js",
+          "jsAfter": "jade.rethrow = function rethrow(err, filename, lineno){ throw err; } "
+        },
+    "css": {
+      "paths"  : "./css",
+      "target" : "./public/application.css"
+    },
+    "test": {
+      "identifier" : "specs",
+      "jsAfter"    : "require('lib/setup'); for (var key in specs.modules) specs(key);",
+      "paths"      : ["./test/specs"],
+      "target"     : "./test/public/specs.js"
+    }
+  }
 
-    "useProxy": true,
-    "baseSpinePath": "/apiapp/spineapp/",
-    "baseApiPath": "/apiapp/",
-    "apiHost": "localhost",
-    "apiPort": 8080,
-    "proxyPort": 8001,
+now http://127.0.0.1:9294/myApiApp/mySpineApp/ will return the spine app.
 
-now http://localhost:8001/apiapp/spineapp/ will return the spine app.
+and http://127.0.0.1:9294/myApiApp/ will return your API App
 
-and http://localhost:8001/apiapp/ will return your apiApp
-
-so relative links like @url = "../api/album/" from inside your spine app can resolve against your apiApp without issue
+so relative links like @url = "../api/album/" from inside your spine app models can resolve against your apiapp without issue
 
 When you're ready to deploy, you should build your application, serializing it to disk.
 
     hem build
 
-This will ensure that your server can statically serve your application, without having to use Node, or have any npm dependencies installed.
+This will write application.js and application.css and specs.js to the file system. You can then commit it with version control and have your server can statically serve your application, without having to use Node, or have any npm dependencies installed.
 
 **TODO**: hem build should have an option to version the js/css it producess and replace the references in index.html as well
-
-    hem build -setVersion -version 24
-    
 
 ###Views
 
@@ -157,10 +184,6 @@ Currently Hem supports three template options out of the box
   * to use jade templates you must include jades [runtime.js](https://github.com/visionmedia/jade/blob/master/runtime.js) as a lib in your spine projects slug.json
       "libs": ["lib/runtime.js"],
       
-Note: hem > 0.2 dropped support for jquery templates (.tmpl) as it is an abandoned project for quite some time
-
-We are looking into ways to inject custom compilers down then road.
-
 ###Testing
 
 [Testacular](https://github.com/aeischeid/hem/tree/testacular) is a neat little tool that we leverage with hem. 
@@ -181,12 +204,9 @@ will watch and compile jasmine tests, but you will have to go to localhost:9294/
 #TODO
 
 * Better document [Testacular](https://github.com/aeischeid/hem/tree/testacular) usage instructions.
-* Major restructure of slug.json. Much more customizeable in how hem outputs packages and what directory structure it expects. (coming in Hem 3!)
 * This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
 * Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
   * actually with more generic projects out there like [yeoman](http://yeoman.io/) maybe Hem should aim to be a dedicated spine dev tool.
-* Option to version generated js and css output when building (good for long cache optimization)
-* Auto build a cache.manifest file
 
 #History
 

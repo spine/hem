@@ -1,28 +1,46 @@
 path      = require('path')
 fs        = require('fs')
 optimist  = require('optimist')
-strata    = require('strata')
+connect   = require('connect')
+httpProxy = require('http-proxy')
+http      = require('http')
 compilers = require('./compilers')
 Package   = require('./package')
-css       = require('./css')
-spawn     = require('child_process').spawn
-httpProxy = require('http-proxy')
+
+# ------- Commandline arguments
 
 argv = optimist.usage([
-  '  usage: hem COMMAND',
-  '    server  start a dynamic development server',
-  '    build   serialize application to disk',
-  '    watch   build & watch disk for changes'
-  '    test    build and run tests'
+  'usage:\nhem COMMAND',
+  '    server  :start a dynamic development server',
+  '    build   :serialize application to disk',
+  '    watch   :build & watch disk for changes'
+  '    test    :build and run tests'
+  '    clean   :clean compiled targets'
 ].join("\n"))
-.alias('p', 'port')
-.alias('d', 'debug')
-.alias('t', 'tests')
+.alias('p', 'port').describe('p',':hem server port')
+.alias('d', 'debug').describe('d',':all compilations use debug mode')
+.alias('t', 'test').describe('t',':run testacular while using watch')
+.alias('s', 'slug').describe('s',':run hem using a specified slug file')
+.alias('b', 'browser').describe('b',':run testacular using the supplied browser[s]')
+.alias('n', 'noBuild').describe('n',':turn off dynamic builds during server mode')
+.describe('v',':make hem more talkative(verbose)')
 .argv
+
+# set command and targets properties
+argv.command = argv._[0]
+argv.targets = argv._[1..]
+
+# set compilers debug mode
+compilers.DEBUG = argv.debug and true or false
+
+
+# ------- Global Functions
 
 help = ->
   optimist.showHelp()
   process.exit()
+
+# ------- Hem Class
 
 class Hem
   @exec: (command, options) ->
@@ -33,186 +51,180 @@ class Hem
 
   compilers: compilers
 
-  options:
-    slug:         './slug.json'
-    paths:        ['./app']
-    
-    port:         process.env.PORT or argv.port or 9294
-    host:         argv.host or 'localhost'
-    useProxy:     argv.useProxy or false
-    apiHost:      argv.apiHost or 'localhost'
-    apiPort:      argv.apiPort or 8080
-    proxyPort:    argv.proxyPort or 8001
-    
-    public:       './public'
-    css:          './css'
-    cssPath:      '/application.css'
-    libs:         []
-    dependencies: []
-    jsPath:       '/application.js'
+  # TODO: include way to handle older slug.json files?? backwards compatible??
+  slug: argv.slug or './slug.json'
 
-    testPublic:   './test/public'
-    testPath:     '/test'
-    specs:        './test/specs'
-    specsPath:    '/specs.js'
+  options:
+    server:
+      port: 9294
+      host: 'localhost'
 
   constructor: (options = {}) ->
     @options[key] = value for key, value of options
     # quick check to make sure slug file exists
-    if fs.existsSync(@options.slug)
+    if fs.existsSync(@slug)
       @options[key] = value for key, value of @readSlug()
     else
-      throw new Error "Unable to find #{@options.slug} file."
+     console.log "ERROR: Unable to find #{@slug} file in current directory"
+     process.exit(1)
+    # setup packages from options/slug
+    @packages = (@createPackage(name, config) for name, config of @options.packages)
+    # allow overrides
+    @options.server.port = argv.port if argv.port
+    @options.server.host or= ""
 
   server: ->
-    # remove old compiled files are removed so its always dynamic (TODO: make this an option??)
-    @removeOldBuilds()
+    # create app
+    app = connect()
 
-    # setup strata instance
-    strata.use(strata.contentLength)
+    # setup dynamic targets first
+    for pkg in @packages when not argv.n
+      # determine url if its not already set
+      pkg.url or= @determinePackageUrl(pkg)
+      # exit if pkg.url isn't defined
+      if not pkg.url
+        console.log "ERROR: Unable to determine url mapping for package: #{pkg.name}"
+        process.exit(1)
+      # set route
+      console.log "Map package '#{pkg.name}' to #{pkg.url}" if argv.v
+      app.use(pkg.url, pkg.middleware(argv.debug))
 
-    # get dynamically compiled javascript/css files
-    if @options.css
-    	strata.get(@options.cssPath, @cssPackage().createServer())
-    strata.get(@options.jsPath, @hemPackage().createServer())
-
-    # get static public folder
-    if fs.existsSync(@options.public)
-      strata.use(strata.file, @options.public, ['index.html', 'index.htm'])
-
-    # handle test directory
-    if fs.existsSync(@options.testPublic)
-      strata.map @options.testPath, (app) =>
-        app.get(@options.specsPath, @specsPackage().createServer())
-        app.use(strata.file, @options.testPublic, ['index.html', 'index.htm'])
+    # setup static routes
+    @options.routes or= []
+    for route in @options.routes
+      url   = Object.keys(route)[0]
+      value = route[url]
+      if (typeof value is 'string')
+        # make sure path exists
+        if fs.existsSync(value)
+          console.log "Map directory '#{value}' to #{url}" if argv.v
+          app.use(url, connect.static(value))
+        else
+          console.log "ERROR: The folder #{value} does not exist."
+          process.exit(1)
+      else if value.host
+        # setup proxy
+        console.log "Proxy requests from #{url} to #{value.host}" if argv.v
+        app.use(url, @createRoutingProxy(value))
+        @patchServerResponseForRedirects(@options.server.port, value) if value.patchRedirect
+      else
+        throw new Error("Invalid route configuration for #{url}")
 
     # start server
-    strata.run(port: @options.port, host: @options.host)
-    # Optionally setup the proxyServer to conditionally route requests.
-    # The spine app and the api need to appear to the browser to be coming from
-    # the same host and port to avoid crossDomain ajax issues.
-    # Ultimately it may be a good idea to configure an api server to accept
-    # calls from other domains but sometimes not... 
-    if @options.useProxy
-      console.log "proxy server @ http://localhost:#{@options.proxyPort}"
-      startsWithSpinePath = new RegExp("^#{@options.baseSpinePath}")
-      
-      httpProxy.createServer (req, res, proxy) =>
-        if startsWithSpinePath.test(req.url)
-          req.url = req.url.replace(@options.baseSpinePath, '/')
-          #console.log 'spine url turned into : ', req.url
-          proxy.proxyRequest(req, res, {
-            host: @options.host
-            port: @options.port
-          })
-        else
-          #console.log 'off to api : ', req.url
-          proxy.proxyRequest(req, res, {
-            host: @options.apiHost
-            port: @options.apiPort
-          })
-      .listen(@options.proxyPort)
+    http.createServer(app).listen(@options.server.port, @options.server.host)
 
-  removeOldBuilds: ->
-    packages = [@hemPackage(), @cssPackage(), @specsPackage()]
-    pkg.unlink() for pkg in packages
+  clean: () ->
+    targets = argv.targets
+    cleanAll = targets.length is 0
+    pkg.unlink() for pkg in @packages when pkg.name in targets or cleanAll
 
-  build: (options = { hem: true, css: true, specs: true }) ->
-    ## TODO: make generic css/js packages that can be looped over
-    ## TODO: create build method on package to compile and write file
-    if options.hem
-      console.log "Building hem target: #{@hemPackage().target}"
-      source = @hemPackage().compile(not argv.debug)
-      fs.writeFileSync(@hemPackage().target, source)
+  build: ->
+    @clean()
+    @buildTargets(argv.targets)
 
-    if options.css
-      console.log "Building css target: #{@cssPackage().target}"
-      source = @cssPackage().compile()
-      fs.writeFileSync(@cssPackage().target, source)
-
-    if options.specs
-      console.log "Building specs target: #{@specsPackage().target}"
-      source = @specsPackage().compile()
-      fs.writeFileSync(@specsPackage().target, source)
-
-  watch: () ->
-    @build()
-    @executeTestacular() if argv.tests
-    # watch CSS?
-    #cssDir = if @options.css then [@options.css] else []
-    # extract the folders for each included lib
-    #libDir = []
-    #for lib in @options.libs
-      #libDir.push path.dirname(lib)
-    # start watching
-    #for dir in cssDir.concat @options.paths, libDir
-    for dir in (path.dirname(lib) for lib in @options.libs).concat @options.css, @options.paths, @options.specs
-      continue unless fs.existsSync(dir)
-      require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
-        if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-          console.log "#{file} changed.  Rebuilding."
-          # quick hack to only build the package that changed, will have a better
-          # fix in a later commit that redos the package structure
-          specsBuild = ("./" + file).indexOf(@options.specs) == 0
-          hemBuild = not specsBuild
-          @build({ specs: specsBuild, hem: hemBuild }) # TODO: pass in different build option based on file changed??
-
+  watch: ->
+    targets = argv.targets
+    @buildTargets(targets)
+    # also run testacular tests if -t is passed in the command line
+    @startTestacular(targets, false) if argv.test
+    # begin watching package targets
+    watchAll = targets.length is 0
+    pkg.watch() for pkg in @packages when pkg.name in targets or watchAll
 
   test: ->
-    @build()
-    @executeTestacular(true)
+    @buildTargets(argv.targets)
+    @startTestacular(argv.targets)
 
-  executeTestacular: (singleRun = false) ->
-    unless @testactular
-      @testacular = require('testacular').server
-      # create config file to pass into server
-      # TODO: eventually add files to test dynamically
-      # TODO: add browsers to test too
-      testConfig =
-        configFile: require.resolve("../assets/testacular.conf.js")
-        basePath: process.cwd()
-        singleRun: singleRun
-        browsers: ['PhantomJS']
-        logLevel: 2
-        reporters: ['progress']
-      # start testacular serveri
-      @testacular.start(testConfig)
-
-  exec: (command = argv._[0]) ->
+  exec: (command = argv.command) ->
     return help() unless @[command]
+    # TODO: make sure argv.targets exist before proceeding??
     switch command
       when 'build'  then console.log 'Build application'
       when 'watch'  then console.log 'Watching application'
       when 'test'   then console.log 'Test application'
+      when 'clean'  then console.log 'Clean application'
+      when 'server' then console.log "Starting Server at #{@options.server.host}:#{@options.server.port}"
     @[command]()
 
-  # Private
+  # ------- Private Functions
 
-  readSlug: (slug = @options.slug) ->
+  readSlug: (slug = @slug) ->
     return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
 
-  cssPackage: ->
-    css.createPackage(
-      path   : @options.css
-      target : path.join(@options.public, @options.cssPath)
-    )
+  createPackage: (name, config) ->
+    pkg = new Package(name, config, argv)
 
-  hemPackage: ->
-    Package.createPackage(
-      dependencies : @options.dependencies
-      paths        : @options.paths
-      libs         : @options.libs
-      target       : path.join(@options.public, @options.jsPath)
-    )
+  buildTargets: (targets = []) ->
+    buildAll = targets.length is 0
+    # TODO: preset a versionAddOn var if argv.setVersion 
+    #if argv.setVersion and argv.version is null
+      #version = new Date().getUTCMilliseconds()  #or something like this...
+    pkg.build(not argv.debug) for pkg in @packages when pkg.name in targets or buildAll
+    # TODO: add auto build of an application.cache file with relevant target files pre-filled
+    #cache = pkg.compileCache()
 
-  specsPackage: ->
-    Package.createPackage(
-      identifier : 'specs'
-      paths      : @options.specs
-      target     : path.join(@options.testPublic, @options.specsPath)
-      extraJS    : "require('lib/setup'); for (var key in specs.modules) specs(key);"
-      test       : true
-    )
+  createRoutingProxy: (options = {}) ->
+    proxy = new httpProxy.RoutingProxy()
+    # additional options
+    options.hostPath or= ""
+    # return function used by connect to access proxy
+    return (req, res, next) ->
+      req.url = "#{options.hostPath}#{req.url}"
+      proxy.proxyRequest(req, res, options)
+
+  patchServerResponseForRedirects: (port, config) ->
+      writeHead = http.ServerResponse.prototype.writeHead
+      http.ServerResponse.prototype.writeHead = ->
+        @.emit('header') if (!@._emittedHeader)
+        @._emittedHeader = true
+        [ status, head ] = arguments
+        if status in [301,302]
+          oldLocation = new RegExp(":\/\/#{config.host}:?[0-9]*")
+          newLocation = "://localhost:#{port}"
+          head.location = head.location.replace(oldLocation,newLocation)
+        return writeHead.apply(this, arguments)
+
+  startTestacular: (targets = [], singleRun = true) ->
+    # use custom testacular config file provided by user
+    testConfig = fs.existsSync(argv.test) and fs.realpathSync(argv.test)
+
+    # create config file to pass into server if user doesn't supply a file to use
+    testConfig or=
+      configFile : require.resolve("../assets/testacular.conf.js")
+      singleRun  : singleRun
+      basePath   : process.cwd()
+      logLevel   : 'error'
+      browsers   : argv.browser and argv.browser.split(/[ ,]+/) or ['PhantomJS']
+      files      : @createTestacularFileList()
+
+    # start testacular server
+    require('karma').server.start(testConfig)
+
+  createTestacularFileList: () ->
+    # look at at test type to see what assets we add
+    fileList = [require.resolve("../node_modules/karma/adapter/lib/jasmine.js"),
+                require.resolve("../node_modules/karma/adapter/jasmine.js")]
+    # TODO: would we ever need a way to specificy only certain files to test??
+    # Perhaps a special package type that just lists a group of packages to build/test??
+    # "testGroup" : [ "spine", "test" ], then check typeof array to use this group?? Would need a
+    # new function to create the targets array used by the build/watch/clean methods...
+    #
+    # loop over javascript packages and add their targets
+    fileList.push pkg.target for pkg in @packages when pkg.isJavascript()
+    return fileList
+
+  determinePackageUrl: (pkg) ->
+    # loop over server paths and see which one is the best match with the pkg.target
+    bestMatch = {}
+    for route in @options.routes
+      url   = Object.keys(route)
+      dir   = route[url]
+      # TODO: should convert to full path before attempting match
+      if pkg.target.indexOf(dir) == 0 and (!bestMatch.url or bestMatch.dir.length < dir.length)
+        bestMatch.url = url + pkg.target.slice(dir.length)
+        bestMatch.dir = dir
+    bestMatch.url
 
 module.exports = Hem
+
