@@ -1,6 +1,6 @@
 #Introduction
 
-Hem is a project for compiling CommonJS modules when building JavaScript web applications. You can think of Hem as [Bundler](http://gembundler.com/) for Node, or [Stitch](https://github.com/sstephenson/stitch) on steroids.
+Hem is a project for compiling CommonJS modules when building JavaScript web applications. You can think of Hem as [Bundler](http://gembundler.com/) for Node, or [Stitch](https://github.com/sstephenson/stitch) on steroids. Or it is kind of like [Yeoman](http://yeoman.io/), tailored specifically for spine.js
 
 This is rather awesome, as it means you don't need to faff around with coping around JavaScript files. jQuery can be a npm dependency, so can jQueryUI and all your custom components. Hem will resolve dependencies dynamically, bundling them together into one file to be served up. Upon deployment, you can serialize your application to disk and serve it statically.
 
@@ -186,7 +186,7 @@ Currently Hem supports three template options out of the box
       
 ###Testing
 
-[Testacular](https://github.com/aeischeid/hem/tree/testacular) is a neat little tool that we leverage with hem. 
+[Karma(formally Testacular)](http://karma-runner.github.io/0.8/index.html) is a neat little tool that we leverage with hem. 
 
     hem test
 
@@ -194,7 +194,7 @@ Will run tests in a spine projects test directory. Tests can be written in Coffe
 
     hem watch -t
 
-Will run tests as test files are updated. Testacular makes it smart. Only previously failing tests run. If there were no previously failing tests all will run. 
+Will run tests as test files are updated. Karma makes it smart. Only previously failing tests run. If there were no previously failing tests all will run. 
 Default is to run tests in a new Chrome window. Firefox, Phantom or some others can be used as well.
 
     hem server
@@ -203,11 +203,8 @@ will watch and compile jasmine tests, but you will have to go to localhost:9294/
 
 #TODO
 
-* Better document [Testacular](https://github.com/aeischeid/hem/tree/testacular) usage instructions.
+* Better document Karma usage instructions.
+* Make template and CSS pre-processor choices configurable  
 * This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
-* Make hem more generic to work with other types of frameworks like angular?? probably move more configuration to slug.json if we do this
-  * actually with more generic projects out there like [yeoman](http://yeoman.io/) maybe Hem should aim to be a dedicated spine dev tool.
 
-#History
 
-Originally developed by @maccman to compliment Spine.js. He started a replacement project which is a Ruby based project called Catapult. Some of us still love the node.js and Hem way of doing things. In the spirit of open source Hem advanced in a fork and a couple of us who use it at work plan to maintain for the near future at least.
