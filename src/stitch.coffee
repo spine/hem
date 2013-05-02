@@ -16,13 +16,11 @@ class Stitch
   resolveFiles: (parent) ->
     result= []
     for path in @paths
-      console.log("path", path);
+      console.log("building", path);
       if fs.existsSync(path + '.coffee')
         child =  path + '.coffee'
-        console.log("exists", child);
       else if fs.existsSync(path + '.eco')
         child =  path + '.eco'
-      console.log('building single module', child, parent)
       module = new Module(child, parent)
       result.push(module) if module.valid()
     result
@@ -40,7 +38,6 @@ class Stitch
         @walk(child, parent, result)
       else
         #hack
-        console.log('building module', child, parent)
         module = new Module(child, parent)
         result.push(module) if module.valid()
     result

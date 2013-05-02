@@ -64,7 +64,7 @@ class Package
 
   createIServer: (prefix) ->
     (env, callback) =>
-
+      console.log("hem server called with", env.pathInfo)
       if env.pathInfo.slice(-3) == '.js'
         path = env.pathInfo.slice(1, -3)
       else
