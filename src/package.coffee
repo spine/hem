@@ -1,4 +1,5 @@
 fs           = require('fs')
+file         = require('file')
 path         = require('path')
 uglify       = require('uglify-js')
 stitchFile   = require('../assets/stitch')
@@ -23,10 +24,15 @@ class Package
     # determine content type based on target file name
     @contentType = mime.lookup(@target)
     # set correct compiler based on mime type, set @compile = javascriptCompiler
+    # TODO: would it not be better to just have a @get_type() function and do a switch on it?
     if @isJavascript()
       @compile = @compileJavascript
-    else
+    else if @isCss()
       @compile = @compileCss
+    else if @isCacheManifest()
+      @compile = @compileCache
+    else
+      throw new Error "Package '#{@name}' does not have any compiler"
 
   compileModules: ->
     @depend or= new Dependency(@modules)
@@ -60,11 +66,15 @@ class Package
     catch ex
       @handleCompileError(ex)
 
-  compileCache: (packages, versionAddOn)->
-    #start with a date header
-    #define content...
-    #fs.writeFileSync('app.cache', content) if content
-  
+  compileCache: ->
+    # date header
+    content = ['#' + new Date()]
+    # define the content
+    file.walkSync @paths[0], (current, subdirs, filenames) ->
+      return unless filenames?
+      content.push filename for filename in filenames
+    content.join("\n")
+
   handleCompileError: (ex) ->
     console.error ex.message
     console.error ex.path if ex.path
@@ -77,6 +87,12 @@ class Package
 
   isJavascript: ->
     @contentType is "application/javascript"
+
+  isCss: ->
+    @contentType is "text/css"
+
+  isCacheManifest: ->
+    @contentType is "text/cache-manifest"
 
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
