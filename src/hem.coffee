@@ -5,6 +5,7 @@ connect   = require('connect')
 httpProxy = require('http-proxy')
 http      = require('http')
 compilers = require('./compilers')
+versions  = require('./versioning')
 Package   = require('./package')
 
 # ------- Commandline arguments
@@ -16,6 +17,7 @@ argv = optimist.usage([
   '    watch   :build & watch disk for changes'
   '    test    :build and run tests'
   '    clean   :clean compiled targets'
+  '    version :version the application files'
 ].join("\n"))
 .alias('p', 'port').describe('p',':hem server port')
 .alias('d', 'debug').describe('d',':all compilations use debug mode')
@@ -59,56 +61,61 @@ class Hem
       port: 9294
       host: 'localhost'
 
+  errorAndExit: (error) ->
+    console.log "ERROR: #{error}"
+    process.exit(1)
+
   constructor: (options = {}) ->
     @options[key] = value for key, value of options
     # quick check to make sure slug file exists
     if fs.existsSync(@slug)
       @options[key] = value for key, value of @readSlug()
     else
-     console.log "ERROR: Unable to find #{@slug} file in current directory"
-     process.exit(1)
-    # setup packages from options/slug
-    @packages = (@createPackage(name, config) for name, config of @options.packages)
-    # allow overrides
+      @errorAndExit "Unable to find #{@slug} file in current directory"
+    # if versioning turned on, pass in correct module to config
+    if @options.version
+      @options.version.type or= "package"
+    # allow overrides and set defaults
     @options.server.port = argv.port if argv.port
     @options.server.host or= ""
+    @options.routes or= []
+    # setup packages from options/slug
+    @packages = (@createPackage(name, config) for name, config of @options.packages)
 
+  # TODO: move server code to server.coffee file!
   server: ->
     # create app
     app = connect()
-
+    
     # setup dynamic targets first
     for pkg in @packages when not argv.n
       # determine url if its not already set
-      pkg.url or= @determinePackageUrl(pkg)
+      pkg.url or= @determineUrlFromRoutes(pkg)
       # exit if pkg.url isn't defined
       if not pkg.url
-        console.log "ERROR: Unable to determine url mapping for package: #{pkg.name}"
-        process.exit(1)
-      # set route
+        @errorAndExit "Unable to determine url mapping for package: #{pkg.name}"
       console.log "Map package '#{pkg.name}' to #{pkg.url}" if argv.v
-      app.use(pkg.url, pkg.middleware(argv.debug))
+    
+    # setup middleware to server packages
+    app.use(@middleware(argv.debug))
 
     # setup static routes
-    @options.routes or= []
     for route in @options.routes
       url   = Object.keys(route)[0]
       value = route[url]
       if (typeof value is 'string')
         # make sure path exists
-        if fs.existsSync(value)
-          console.log "Map directory '#{value}' to #{url}" if argv.v
-          app.use(url, connect.static(value))
-        else
-          console.log "ERROR: The folder #{value} does not exist."
-          process.exit(1)
+        if not fs.existsSync(value)
+          @errorAndExit "The folder #{value} does not exist."
+        console.log "Map directory '#{value}' to #{url}" if argv.v
+        app.use(url, connect.static(value))
       else if value.host
         # setup proxy
-        console.log "Proxy requests from #{url} to #{value.host}" if argv.v
+        console.log "Proxy '#{url}' to #{value.host}:#{value.port}#{value.hostPath}" if argv.v
         app.use(url, @createRoutingProxy(value))
         @patchServerResponseForRedirects(@options.server.port, value) if value.patchRedirect
       else
-        throw new Error("Invalid route configuration for #{url}")
+        @errorAndExit "Invalid route configuration for #{url}"
 
     # start server
     http.createServer(app).listen(@options.server.port, @options.server.host)
@@ -121,6 +128,17 @@ class Hem
   build: ->
     @clean()
     @buildTargets(argv.targets)
+
+  version: ->
+    # make sure version settings are present
+    if not @options.version
+      console.error "ERROR: Versioning not enabled in slug.json"
+      return
+    # find targets inside file and replace
+    type = versions[@options.version.type]
+    if not type
+        @errorAndExit "Incorrect type value for versioning (#{@options.version.type})"
+    type.updateFiles(@options.version.files, @packages)
 
   watch: ->
     targets = argv.targets
@@ -137,7 +155,6 @@ class Hem
 
   exec: (command = argv.command) ->
     return help() unless @[command]
-    # TODO: make sure argv.targets exist before proceeding??
     switch command
       when 'build'  then console.log 'Build application'
       when 'watch'  then console.log 'Watching application'
@@ -157,17 +174,13 @@ class Hem
 
   buildTargets: (targets = []) ->
     buildAll = targets.length is 0
-    # TODO: preset a versionAddOn var if argv.setVersion 
-    #if argv.setVersion and argv.version is null
-      #version = new Date().getUTCMilliseconds()  #or something like this...
     pkg.build(not argv.debug) for pkg in @packages when pkg.name in targets or buildAll
-    # TODO: add auto build of an application.cache file with relevant target files pre-filled
-    #cache = pkg.compileCache()
 
   createRoutingProxy: (options = {}) ->
     proxy = new httpProxy.RoutingProxy()
     # additional options
     options.hostPath or= ""
+    options.port or= 80
     # return function used by connect to access proxy
     return (req, res, next) ->
       req.url = "#{options.hostPath}#{req.url}"
@@ -214,17 +227,41 @@ class Hem
     fileList.push pkg.target for pkg in @packages when pkg.isJavascript()
     return fileList
 
-  determinePackageUrl: (pkg) ->
-    # loop over server paths and see which one is the best match with the pkg.target
+  middleware: (debug) =>
+    (req, res, next) =>
+      # only deal with js/css files
+      url = require("url").parse(req.url)?.pathname.toLowerCase() or ""
+      if not url.match(/\.js|\.css/)
+        next()
+        return
+      # strip out any potential versioning 
+      if versions
+        url = versions.trimVersionFromUrl(url)
+        console.log "hmmmm", url
+      # loop over pkgs and call compile
+      console.log url
+      for pkg in @packages
+        if url is pkg.url
+          # TODO: keep (and return) in memory build if there hasn't been any changes??
+          str = pkg.compile(not debug)
+          res.charset = 'utf-8'
+          res.setHeader('Content-Type', pkg.contentType)
+          res.setHeader('Content-Length', Buffer.byteLength(str))
+          res.end((req.method is 'HEAD' and null) or str)
+          return
+      # no matches, go to next middleware
+      next()
+
+  determineUrlFromRoutes: (pkg) ->
     bestMatch = {}
     for route in @options.routes
-      url   = Object.keys(route)
-      dir   = route[url]
-      # TODO: should convert to full path before attempting match
+      url = Object.keys(route)
+      dir = route[url]
+      # compare against package target
       if pkg.target.indexOf(dir) == 0 and (!bestMatch.url or bestMatch.dir.length < dir.length)
         bestMatch.url = url + pkg.target.slice(dir.length)
         bestMatch.dir = dir
-    bestMatch.url
+    bestMatch.url.toLowerCase()
 
 module.exports = Hem
 

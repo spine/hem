@@ -11,6 +11,7 @@ class Package
   constructor: (name, config = {}, argv = {}) ->
     @name        = name
     @argv        = argv
+
     # set config values
     @identifier  = config.identifier
     @target      = config.target
@@ -18,10 +19,12 @@ class Package
     @paths       = toArray(config.paths || [])
     @modules     = toArray(config.modules || [])
     @jsAfter     = config.jsAfter or ""
-    @url         = config.url or ""
+    @url         = config.url
     # TODO: sanity checkes on config values??
+
     # determine content type based on target file name
     @contentType = mime.lookup(@target)
+
     # set correct compiler based on mime type, set @compile = javascriptCompiler
     if @isJavascript()
       @compile = @compileJavascript
@@ -60,11 +63,6 @@ class Package
     catch ex
       @handleCompileError(ex)
 
-  compileCache: (packages, versionAddOn)->
-    #start with a date header
-    #define content...
-    #fs.writeFileSync('app.cache', content) if content
-  
   handleCompileError: (ex) ->
     console.error ex.message
     console.error ex.path if ex.path
@@ -81,10 +79,7 @@ class Package
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
-  build: (minify = false, versionAddOn) ->
-    # TODO: add an option to add timestamp or other string to the target js and css files
-    #if versionAddOn
-      #@target += "-#{versionAddOn}"
+  build: (minify = false) ->
     console.log "Building '#{@name}' target: #{@target}"
     source = @compile(minify)
     fs.writeFileSync(@target, source) if source
@@ -92,17 +87,8 @@ class Package
   watch: ->
     console.log "Watching '#{@name}'"
     for dir in (path.dirname(lib) for lib in @libs).concat @paths
-      # TODO: handle symlink files/directories here??
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
         @build() if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-
-  middleware: (debug) =>
-    (req, res, next) =>
-      str = @compile(not debug)
-      res.charset = 'utf-8'
-      res.setHeader('Content-Type', @contentType)
-      res.setHeader('Content-Length', Buffer.byteLength(str))
-      res.end((req.method is 'HEAD' and null) or str)
 
 module.exports = Package
