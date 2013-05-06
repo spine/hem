@@ -73,7 +73,8 @@ class Package
     root_path = @paths[0]
     file.walkSync root_path, (current, subdirs, filenames) ->
       return unless filenames?
-      for filename in filenames
+      # all non hidden files
+      for filename in filenames when filename[0] isnt '.'
         full_path = current + '/' + filename
         result = full_path. # TODO: we could use a regex here instead of this
           # replace "./www/blah/blah" with blah/blah
