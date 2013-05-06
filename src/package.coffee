@@ -68,7 +68,7 @@ class Package
 
   compileCache: ->
     # date header
-    content = ['# ' + new Date()]
+    content = ['CACHE MANIFEST', '# ' + new Date()]
     # define the content
     root_path = @paths[0]
     file.walkSync root_path, (current, subdirs, filenames) ->
