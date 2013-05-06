@@ -237,9 +237,7 @@ class Hem
       # strip out any potential versioning 
       if versions
         url = versions.trimVersionFromUrl(url)
-        console.log "hmmmm", url
       # loop over pkgs and call compile
-      console.log url
       for pkg in @packages
         if url is pkg.url
           # TODO: keep (and return) in memory build if there hasn't been any changes??
