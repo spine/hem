@@ -68,7 +68,7 @@ class Package
 
   compileCache: ->
     # date header
-    content = ['CACHE MANIFEST', '# ' + new Date()]
+    content = ['CACHE MANIFEST', '# ' + new Date(), 'CACHE:']
     # define the content
     root_path = @paths[0]
     file.walkSync root_path, (current, subdirs, filenames) ->
@@ -82,6 +82,8 @@ class Package
           # replace "www/blah/blah" with blah/blah
           replace root_path.replace('./','') + '/', ''
         content.push result
+    # all resources not listed in the above cache will be network accessible
+    content.push 'NETWORK:', '*'
     content.join "\n"
 
   handleCompileError: (ex) ->
