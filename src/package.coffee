@@ -75,7 +75,12 @@ class Package
       return unless filenames?
       for filename in filenames
         full_path = current + '/' + filename
-        content.push full_path.replace(root_path + '/', '')
+        result = full_path. # TODO: we could use a regex here instead of this
+          # replace "./www/blah/blah" with blah/blah
+          replace(root_path + '/', '').
+          # replace "www/blah/blah" with blah/blah
+          replace root_path.replace('./','') + '/', ''
+        content.push result
     content.join "\n"
 
   handleCompileError: (ex) ->
