@@ -68,12 +68,15 @@ class Package
 
   compileCache: ->
     # date header
-    content = ['#' + new Date()]
+    content = ['# ' + new Date()]
     # define the content
-    file.walkSync @paths[0], (current, subdirs, filenames) ->
+    root_path = @paths[0]
+    file.walkSync root_path, (current, subdirs, filenames) ->
       return unless filenames?
-      content.push filename for filename in filenames
-    content.join("\n")
+      for filename in filenames
+        full_path = current + '/' + filename
+        content.push full_path.replace(root_path + '/', '')
+    content.join "\n"
 
   handleCompileError: (ex) ->
     console.error ex.message
