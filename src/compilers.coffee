@@ -103,4 +103,23 @@ try
     module._compile "module.exports = #{source}", filename
 catch err
 
+# create a javascript module based off key values found in environment
+
+compilers.env = (path) ->
+  content  = fs.readFileSync(path, 'utf8')
+  envhash  = JSON.parse(content)
+  packjson = JSON.parse(fs.readFileSync('./package.json', 'utf8'))
+  # loop over values in file
+  for key of envhash
+    if process.env[key]
+      envhash[key] = process.env[key]
+      if compilers.VERBOSE 
+        console.log "- Set env #{key} to #{envhash[key]}"
+    if packjson[key]
+      envhash[key] = packjson[key]
+      if compilers.VERBOSE 
+        console.log "- Set env #{key} to #{envhash[key]}"
+  # return javascript module
+  return "module.exports = " + JSON.stringify(envhash)
+
 module.exports = compilers
