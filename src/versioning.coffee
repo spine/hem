@@ -25,7 +25,7 @@ replaceTargetInData = (data, version, pkg) ->
 types.package =
 
   getVersion: ->
-    JSON.parse(fs.readFileSync('package.json', 'utf8')).version
+    JSON.parse(fs.readFileSync('./package.json', 'utf8')).version
 
   updateFiles: (files, pkgs) ->
     replaceTargetsInFiles(files, @getVersion(), pkgs)
