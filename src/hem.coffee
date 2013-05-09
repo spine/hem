@@ -188,14 +188,12 @@ class Hem
 
   patchServerResponseForRedirects: (port, config) ->
       writeHead = http.ServerResponse.prototype.writeHead
-      http.ServerResponse.prototype.writeHead = ->
-        @.emit('header') if (!@._emittedHeader)
-        @._emittedHeader = true
-        [ status, head ] = arguments
+      http.ServerResponse.prototype.writeHead = (status) ->
         if status in [301,302]
+          headers =  @_headers
           oldLocation = new RegExp(":\/\/#{config.host}:?[0-9]*")
           newLocation = "://localhost:#{port}"
-          head.location = head.location.replace(oldLocation,newLocation)
+          headers.location = headers.location.replace(oldLocation,newLocation)
         return writeHead.apply(this, arguments)
 
   startTestacular: (targets = [], singleRun = true) ->
