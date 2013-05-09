@@ -30,13 +30,13 @@ types.package =
   updateFiles: (files, pkgs) ->
     replaceTargetsInFiles(files, @getVersion(), pkgs)
 
-# public methods
-
-types.trimVersionFromUrl = (url) ->
+  trimVersion: (url) ->
     url.replace(/^([^.]+).*(\.css|\.js)$/i, "$1$2")
 
 # TODO: other types that could be made
 # 1) based on git commits/tags
 # 2) backed on jenkinds builds
+# 3) Allow build/version to happen with one command
+# 4) allow command line options to version command
 
 module.exports = types

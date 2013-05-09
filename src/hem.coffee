@@ -75,6 +75,10 @@ class Hem
     # if versioning turned on, pass in correct module to config
     if @options.version
       @options.version.type or= "package"
+      @vertype = versions[@options.version.type]
+      # make sure version.type is valid
+      if not @vertype
+        @errorAndExit "Incorrect type value for versioning (#{@options.version.type})"
     # allow overrides and set defaults
     @options.server.port = argv.port if argv.port
     @options.server.host or= ""
@@ -130,15 +134,10 @@ class Hem
     @buildTargets(argv.targets)
 
   version: ->
-    # make sure version settings are present
-    if not @options.version
+    if not @vertype
       console.error "ERROR: Versioning not enabled in slug.json"
       return
-    # find targets inside file and replace
-    type = versions[@options.version.type]
-    if not type
-        @errorAndExit "Incorrect type value for versioning (#{@options.version.type})"
-    type.updateFiles(@options.version.files, @packages)
+    @vertype.updateFiles(@options.version.files, @packages)
 
   watch: ->
     targets = argv.targets
@@ -233,8 +232,8 @@ class Hem
         next()
         return
       # strip out any potential versioning 
-      if versions
-        url = versions.trimVersionFromUrl(url)
+      if @vertype
+        url = @vertype.trimVersion(url)
       # loop over pkgs and call compile
       for pkg in @packages
         if url is pkg.url
