@@ -71,10 +71,16 @@ class Package
     content = ['CACHE MANIFEST', '# ' + new Date(), 'CACHE:']
     # define the content
     root_path = @paths[0]
+
+    # filter for all non hidden files and non-manifest files
+    allowed_file = (filename) ->
+      hidden_file = filename[0] is '.'
+      cache_file =  mime.lookup(filename) is 'text/cache-manifest'
+      not hidden_file and not cache_file
+
     file.walkSync root_path, (current, subdirs, filenames) ->
       return unless filenames?
-      # all non hidden files
-      for filename in filenames when filename[0] isnt '.'
+      for filename in filenames when allowed_file(filename)
         full_path = current + '/' + filename
         result = full_path. # TODO: we could use a regex here instead of this
           # replace "./www/blah/blah" with blah/blah
@@ -82,6 +88,7 @@ class Package
           # replace "www/blah/blah" with blah/blah
           replace root_path.replace('./','') + '/', ''
         content.push result
+
     # all resources not listed in the above cache will be network accessible
     content.push 'NETWORK:', '*'
     content.join "\n"
