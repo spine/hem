@@ -39,6 +39,7 @@ compilers.VERBOSE = !!argv.v
 # ------- Global Functions
 
 help = ->
+  console.log "HEM Version: " + require('../package.json')?.version + "\n"
   optimist.showHelp()
   process.exit()
 
