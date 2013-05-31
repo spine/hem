@@ -118,7 +118,8 @@ class Hem
         # setup proxy
         console.log "Proxy '#{url}' to #{value.host}:#{value.port}#{value.hostPath}" if argv.v
         app.use(url, @createRoutingProxy(value))
-        @patchServerResponseForRedirects(@options.server.port, value) if value.patchRedirect
+        if value.patchRedirect is not false # default to true
+          @patchServerResponseForRedirects(@options.server.port, value) 
       else
         @errorAndExit "Invalid route configuration for #{url}"
 
