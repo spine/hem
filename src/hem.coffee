@@ -1,10 +1,8 @@
 path      = require('path')
 fs        = require('fs')
 optimist  = require('optimist')
-connect   = require('connect')
-httpProxy = require('http-proxy')
-http      = require('http')
 compilers = require('./compilers')
+server    = require('./server')
 versions  = require('./versioning')
 Package   = require('./package')
 
@@ -33,8 +31,8 @@ argv.command = argv._[0]
 argv.targets = argv._[1..]
 
 # set compilers debug mode
-compilers.DEBUG   = !!argv.debug
-compilers.VERBOSE = !!argv.v
+compilers.DEBUG   = server.DEBUG   = !!argv.debug
+compilers.VERBOSE = server.VERBOSE = !!argv.v
 
 # ------- Global Functions
 
@@ -46,87 +44,68 @@ help = ->
 # ------- Hem Class
 
 class Hem
+
   @exec: (command, options) ->
     (new @(options)).exec(command)
 
   @include: (props) ->
     @::[key] = value for key, value of props
 
+  @middleware: (slugFile) ->
+    hem = new Hem(slugFile)
+    server.middleware(hem.packages, hem.options.server)
+
   compilers: compilers
 
-  # TODO: include way to handle older slug.json files?? backwards compatible??
-  slug: argv.slug or './slug.json'
-
+  # TODO: have a default options for spine pulled in, make it part of spine.app integration.
+  # Create a framework interface to pull in, default to spine. This will in turn create the
+  # slug.json to load in. Make this a separate node_module to pull in?
   options:
+    framework: "spine"
     server:
       port: 9294
-      host: 'localhost'
+      host: "localhost"
 
   errorAndExit: (error) ->
     console.log "ERROR: #{error}"
     process.exit(1)
 
   constructor: (options = {}) ->
-    @options[key] = value for key, value of options
-    # quick check to make sure slug file exists
-    if fs.existsSync(@slug)
-      @options[key] = value for key, value of @readSlug()
+    # handle slug file
+    if options is "string"
+      slug = options
     else
-      @errorAndExit "Unable to find #{@slug} file in current directory"
+      slug = argv.slug or './slug.json'
+      @options[key] = value for key, value of options
+
+    # TODO: add argv to options
+
+    # quick check to make sure slug file exists
+    if fs.existsSync(slug)
+      @options[key] = value for key, value of @readSlug(slug)
+    else
+      @errorAndExit "Unable to find #{slug} file in current directory"
+
     # if versioning turned on, pass in correct module to config
     if @options.version
       @options.version.type or= "package"
-      @vertype = versions[@options.version.type]
-      # make sure version.type is valid
-      if not @vertype
+      if not (@options.version.module = versions[@options.version.type])
         @errorAndExit "Incorrect type value for versioning (#{@options.version.type})"
+
     # allow overrides and set defaults
     @options.server.port = argv.port if argv.port
     @options.server.host or= ""
-    @options.routes or= []
+    @options.server.routes or= []
+
     # setup packages from options/slug
     @packages = (@createPackage(name, config) for name, config of @options.packages)
 
-  # TODO: move server code to server.coffee file!
+  # ------- Command Functions
+
   server: ->
-    # create app
-    app = connect()
-    
-    # setup dynamic targets first
-    for pkg in @packages when not argv.n
-      # determine url if its not already set
-      pkg.url or= @determineUrlFromRoutes(pkg)
-      # exit if pkg.url isn't defined
-      if not pkg.url
-        @errorAndExit "Unable to determine url mapping for package: #{pkg.name}"
-      console.log "Map package '#{pkg.name}' to #{pkg.url}" if argv.v
-    
-    # setup middleware to server packages
-    app.use(@middleware(argv.debug))
+    server.start(@packages, @options.server)
 
-    # setup static routes
-    for route in @options.routes
-      url   = Object.keys(route)[0]
-      value = route[url]
-      if (typeof value is 'string')
-        # make sure path exists
-        if not fs.existsSync(value)
-          @errorAndExit "The folder #{value} does not exist."
-        console.log "Map directory '#{value}' to #{url}" if argv.v
-        app.use(url, connect.static(value))
-      else if value.host
-        # setup proxy
-        console.log "Proxy '#{url}' to #{value.host}:#{value.port}#{value.hostPath}" if argv.v
-        app.use(url, @createRoutingProxy(value))
-        if value.patchRedirect is not false # default to true
-          @patchServerResponseForRedirects(@options.server.port, value) 
-      else
-        @errorAndExit "Invalid route configuration for #{url}"
-
-    # start server
-    http.createServer(app).listen(@options.server.port, @options.server.host)
-
-  clean: () ->
+  clean: ->
     targets = argv.targets
     cleanAll = targets.length is 0
     pkg.unlink() for pkg in @packages when pkg.name in targets or cleanAll
@@ -136,10 +115,13 @@ class Hem
     @buildTargets(argv.targets)
 
   version: ->
-    if not @vertype
+    # TODO: this should be done at the package level, not globally
+    module = @options.version?.module
+    files  = @options.version?.files
+    if module and files
+      module.updateFiles(files, @packages)
+    else 
       console.error "ERROR: Versioning not enabled in slug.json"
-      return
-    @vertype.updateFiles(@options.version.files, @packages)
 
   watch: ->
     targets = argv.targets
@@ -166,7 +148,7 @@ class Hem
 
   # ------- Private Functions
 
-  readSlug: (slug = @slug) ->
+  readSlug: (slug) ->
     return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
 
@@ -176,26 +158,6 @@ class Hem
   buildTargets: (targets = []) ->
     buildAll = targets.length is 0
     pkg.build(not argv.debug) for pkg in @packages when pkg.name in targets or buildAll
-
-  createRoutingProxy: (options = {}) ->
-    proxy = new httpProxy.RoutingProxy()
-    # additional options
-    options.hostPath or= ""
-    options.port or= 80
-    # return function used by connect to access proxy
-    return (req, res, next) ->
-      req.url = "#{options.hostPath}#{req.url}"
-      proxy.proxyRequest(req, res, options)
-
-  patchServerResponseForRedirects: (port, config) ->
-      writeHead = http.ServerResponse.prototype.writeHead
-      http.ServerResponse.prototype.writeHead = (status) ->
-        if status in [301,302]
-          headers =  @_headers
-          oldLocation = new RegExp(":\/\/#{config.host}:?[0-9]*")
-          newLocation = "://localhost:#{port}"
-          headers.location = headers.location.replace(oldLocation,newLocation)
-        return writeHead.apply(this, arguments)
 
   startTestacular: (targets = [], singleRun = true) ->
     # use custom testacular config file provided by user
@@ -225,40 +187,6 @@ class Hem
     # loop over javascript packages and add their targets
     fileList.push pkg.target for pkg in @packages when pkg.isJavascript()
     return fileList
-
-  middleware: (debug) =>
-    (req, res, next) =>
-      # only deal with js/css files
-      url = require("url").parse(req.url)?.pathname.toLowerCase() or ""
-      if not url.match(/\.js|\.css/)
-        next()
-        return
-      # strip out any potential versioning 
-      if @vertype
-        url = @vertype.trimVersion(url)
-      # loop over pkgs and call compile
-      for pkg in @packages
-        if url is pkg.url
-          # TODO: keep (and return) in memory build if there hasn't been any changes??
-          str = pkg.compile(not debug)
-          res.charset = 'utf-8'
-          res.setHeader('Content-Type', pkg.contentType)
-          res.setHeader('Content-Length', Buffer.byteLength(str))
-          res.end((req.method is 'HEAD' and null) or str)
-          return
-      # no matches, go to next middleware
-      next()
-
-  determineUrlFromRoutes: (pkg) ->
-    bestMatch = {}
-    for route in @options.routes
-      url = Object.keys(route)
-      dir = route[url]
-      # compare against package target
-      if pkg.target.indexOf(dir) == 0 and (!bestMatch.url or bestMatch.dir.length < dir.length)
-        bestMatch.url = url + pkg.target.slice(dir.length)
-        bestMatch.dir = dir
-    bestMatch.url.toLowerCase()
 
 module.exports = Hem
 
