@@ -1,0 +1,27 @@
+{
+  "root": "./",
+  "route": "/",
+  "public": "public",
+  "js": {
+    "paths": ["app"],
+    "libs": ["lib"],
+    "identifier": "require",
+    "modules": [],
+    "target": "application.js",
+    "url": "/"
+  },
+  "css": {
+    "paths": ["css"],
+    "target": "application.css",
+    "url": "/"
+  },
+  "test": {
+    // autogenerate the index.html file (store in assets)
+    "paths": ["test/specs"],
+    "public": "test/public",
+    "target": "specs.js",
+    "after": "alert('!')",
+    "url": "/test"
+  }
+}
+

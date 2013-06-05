@@ -1,4 +1,5 @@
 connect   = require('connect')
+mime      = require('connect').static.mime
 httpProxy = require('http-proxy')
 http      = require('http')
 fs        = require('fs')
@@ -14,15 +15,12 @@ server.start = (packages, options) ->
 # eventually just pass in routes and server options
 server.middleware = (app, packages, options) ->
 
-  # TODO: flag to not make the files dynamically compiled, skip mapping
-  # setup dynamic targets first
+  # determine if there is any static routes to add
   for pkg in packages
-    # determine url if its not already set
-    pkg.url or= determineUrlFromRoutes(pkg, options.routes)
-    # exit if pkg.url isn't defined
-    if not pkg.url
-      throw new Error "Unable to determine url mapping for package: #{pkg.name}"
-    console.log "Map package '#{pkg.name}' to #{pkg.url}" if !!server.VERBOSE
+    if pkg.url and !!server.VERBOSE
+      console.log "Map package '#{pkg.name}' to #{pkg.url}"
+    if pkg.static
+      options.routes.push pkg.static
 
   # setup static and proxy middleware
   for route in options.routes
@@ -49,19 +47,15 @@ server.middleware = (app, packages, options) ->
     # get url path
     url = require("url").parse(req.url)?.pathname.toLowerCase() or ""
 
-    # strip out any potential versioning 
-    # if @vertype
-      # url = @vertype.trimVersion(url)
-
     # loop over pkgs and call compile when there is a match
     if url.match(/\.js|\.css/)
       for pkg in packages
         # TODO: get non versioned url here??
-        if url is pkg.url
+        if pkg.isMatchingUrl(url)
           # TODO: keep (and return) in memory build if there hasn't been any changes??
           str = pkg.compile(!!server.DEBUG)
           res.charset = 'utf-8'
-          res.setHeader('Content-Type', pkg.contentType)
+          res.setHeader('Content-Type', mime.lookup(pkg.target))
           res.setHeader('Content-Length', Buffer.byteLength(str))
           res.end((req.method is 'HEAD' and null) or str)
           return
@@ -79,6 +73,7 @@ createRoutingProxy = (options = {}) ->
   # handle redirects
   if options.patchRedirect 
     proxy.once "start", (req, res) ->
+      # get the requesting hostname and port
       returnHost = req.headers.host
       patchServerResponseForRedirects(options.host, returnHost)
   # return function used by connect to access proxy
@@ -96,16 +91,5 @@ patchServerResponseForRedirects = (fromHost, returnHost) ->
       headers.location = headers.location.replace(oldLocation,newLocation)
     return writeHead.apply(@, arguments)
 
-determineUrlFromRoutes = (pkg, routes) ->
-  bestMatch = {}
-  for route in routes
-    url = Object.keys(route)
-    dir = route[url]
-    # compare against package target
-    if pkg.target.indexOf(dir) == 0 and (!bestMatch.url or bestMatch.dir.length < dir.length)
-      bestMatch.url = url + pkg.target.slice(dir.length)
-      bestMatch.dir = dir
-  bestMatch.url.toLowerCase()
-
-# export the start function
+# export the public functions
 module.exports = server

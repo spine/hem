@@ -5,6 +5,7 @@ compilers = require('./compilers')
 server    = require('./server')
 versions  = require('./versioning')
 Package   = require('./package')
+testing   = require('./test')
 
 # ------- Commandline arguments
 
@@ -78,11 +79,12 @@ class Hem
       slug = argv.slug or './slug.json'
       @options[key] = value for key, value of options
 
-    # TODO: add argv to options
-
     # quick check to make sure slug file exists
     if fs.existsSync(slug)
       @options[key] = value for key, value of @readSlug(slug)
+      # make sure we are in same directory as slug
+      slugDir = path.dirname(path.resolve(process.cwd() + "/"  + slug))
+      process.chdir(slugDir)
     else
       @errorAndExit "Unable to find #{slug} file in current directory"
 
@@ -98,7 +100,7 @@ class Hem
     @options.server.routes or= []
 
     # setup packages from options/slug
-    @packages = (@createPackage(name, config) for name, config of @options.packages)
+    @packages = (Package.createPackage(name, config) for name, config of @options.packages)
 
   # ------- Command Functions
 
@@ -125,16 +127,16 @@ class Hem
 
   watch: ->
     targets = argv.targets
-    @buildTargets(targets)
+    @buildPackages(targets)
     # also run testacular tests if -t is passed in the command line
-    @startTestacular(targets, false) if argv.test
+    @testTargets(targets, singleRun: false) if argv.test
     # begin watching package targets
     watchAll = targets.length is 0
     pkg.watch() for pkg in @packages when pkg.name in targets or watchAll
 
   test: ->
     @buildTargets(argv.targets)
-    @startTestacular(argv.targets)
+    @testTargets(argv.targets)
 
   exec: (command = argv.command) ->
     return help() unless @[command]
@@ -152,41 +154,17 @@ class Hem
     return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
 
-  createPackage: (name, config) ->
-    pkg = new Package(name, config, argv)
+  getTargetPackages: (targets = []) ->
+    targetAll = targets.length is 0
+    (pkg for pkg in @packages when pkg.name in targets or targetAll)
+
+  testTargets: (targets = [], options = {}) ->
+    testPackages = (pkg for pkg in @getTargetPackages(targets) when pkg.target.canTest()
+    testing.run(testPackages, singlRun)
 
   buildTargets: (targets = []) ->
-    buildAll = targets.length is 0
-    pkg.build(not argv.debug) for pkg in @packages when pkg.name in targets or buildAll
+    pkg.build(not argv.debug) for pkg in @getTargetPackages(targets)
 
-  startTestacular: (targets = [], singleRun = true) ->
-    # use custom testacular config file provided by user
-    testConfig = fs.existsSync(argv.test) and fs.realpathSync(argv.test)
-
-    # create config file to pass into server if user doesn't supply a file to use
-    testConfig or=
-      configFile : require.resolve("../assets/testacular.conf.js")
-      singleRun  : singleRun
-      basePath   : process.cwd()
-      logLevel   : 'error'
-      browsers   : argv.browser and argv.browser.split(/[ ,]+/) or ['PhantomJS']
-      files      : @createTestacularFileList()
-
-    # start testacular server
-    require('karma').server.start(testConfig)
-
-  createTestacularFileList: () ->
-    # look at at test type to see what assets we add
-    fileList = [require.resolve("../node_modules/karma/adapter/lib/jasmine.js"),
-                require.resolve("../node_modules/karma/adapter/jasmine.js")]
-    # TODO: would we ever need a way to specificy only certain files to test??
-    # Perhaps a special package type that just lists a group of packages to build/test??
-    # "testGroup" : [ "spine", "test" ], then check typeof array to use this group?? Would need a
-    # new function to create the targets array used by the build/watch/clean methods...
-    #
-    # loop over javascript packages and add their targets
-    fileList.push pkg.target for pkg in @packages when pkg.isJavascript()
-    return fileList
 
 module.exports = Hem
 
