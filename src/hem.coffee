@@ -159,7 +159,7 @@ class Hem
     (pkg for pkg in @packages when pkg.name in targets or targetAll)
 
   testTargets: (targets = [], options = {}) ->
-    testPackages = (pkg for pkg in @getTargetPackages(targets) when pkg.target.canTest()
+    testPackages = (pkg for pkg in @getTargetPackages(targets) when pkg.target.canTest())
     testing.run(testPackages, singlRun)
 
   buildTargets: (targets = []) ->
