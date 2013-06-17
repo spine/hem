@@ -37,8 +37,7 @@ class Package
     @url    = config.url or "/" + target
 
     # determine static folder
-    @static = config.static or 
-      "/" : "#{root}/public"
+    @static = config.static or "/" : "#{root}/public"
 
     # handle versioning
     @version = config.version
@@ -50,10 +49,10 @@ class Package
     # - call framework options by name of framework, hem spine new healthlink
 
     # javascript only configurations
-    @identifier  = config.identifier or 'require'
-    @libs        = toArray(config.libs or [])
-    @modules     = toArray(config.modules or [])
-    @after       = config.after or ""
+    @identifier = config.identifier or 'require'
+    @libs       = toArray(config.libs or [])
+    @modules    = toArray(config.modules or [])
+    @after      = config.after or ""
 
   handleCompileError: (ex) ->
     console.error ex.message
@@ -61,8 +60,7 @@ class Package
     console.error ex.location if ex.location
     # only return when in server/watch mode, otherwise exit
     switch @argv.command
-      when "server" then return "console.log(\"#{ex}\");"
-      when "watch"  then return ""
+      when "server" or "watch" then return "console.log(\"#{ex}\");"
       else process.exit(1)
 
   unlink: ->
@@ -78,15 +76,15 @@ class Package
     for dir in (path.dirname(lib) for lib in @libs).concat @paths
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
-        @build() if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+        if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
+          @build()
 
   canTest: ->
     # eventually see if there is /test folder
     return jsFile.test target
 
   isMatchingUrl: (url) ->
-    # TODO: strp out any versioning
-
+    # TODO: strip out any versioning
 
 # ------- Child Classes
 
@@ -104,9 +102,9 @@ class JsPackage extends Package
       @handleCompileError(ex)
 
   compileModules: ->
+    # TODO use detective....??
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@paths)
-    # TODO use detective....??
     _modules  = @depend.resolve().concat(_stitch.resolve())
     stitchFile(identifier: @identifier, modules: _modules)
 
@@ -123,8 +121,9 @@ class CssPackage extends Package
     try 
       result = []
       for _path in @paths
-        # TODO: currently this only works with index files, perhaps someday loop over the directory
-        # contents and pickup the other files?? though with stylus can always get other content by mixins
+        # TODO: currently this only works with index files, perhaps someday loop 
+        # over the directory contents and pickup the other files?? though with 
+        # stylus can always get other content by mixins
         _path  = require.resolve(path.resolve(_path))
         delete require.cache[_path]
         result.push require(_path)

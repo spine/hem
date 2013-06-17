@@ -56,20 +56,20 @@ class Hem
     hem = new Hem(slugFile)
     server.middleware(hem.packages, hem.options.server)
 
+  # ------- instance variables
+
   compilers: compilers
 
-  # TODO: have a default options for spine pulled in, make it part of spine.app integration.
-  # Create a framework interface to pull in, default to spine. This will in turn create the
-  # slug.json to load in. Make this a separate node_module to pull in?
+  # default values for server
   options:
-    framework: "spine"
     server:
       port: 9294
       host: "localhost"
 
-  errorAndExit: (error) ->
-    console.log "ERROR: #{error}"
-    process.exit(1)
+  # emtpy packages list
+  packages: []
+
+  # ------- Constructor
 
   constructor: (options = {}) ->
     # handle slug file
@@ -100,7 +100,9 @@ class Hem
     @options.server.routes or= []
 
     # setup packages from options/slug
-    @packages = (Package.createPackage(name, config) for name, config of @options.packages)
+    for name, config of @options.packages
+      continue if name is "server"
+      @packages.push Package.createPackage(name, config)
 
   # ------- Command Functions
 
@@ -141,11 +143,12 @@ class Hem
   exec: (command = argv.command) ->
     return help() unless @[command]
     switch command
-      when 'build'  then console.log 'Build application'
-      when 'watch'  then console.log 'Watching application'
-      when 'test'   then console.log 'Test application'
-      when 'clean'  then console.log 'Clean application'
-      when 'server' then console.log "Starting Server at #{@options.server.host}:#{@options.server.port}"
+      when 'build'   then console.log 'Build application'
+      when 'watch'   then console.log 'Watching application'
+      when 'test'    then console.log 'Test application'
+      when 'clean'   then console.log 'Clean application'
+      when 'version' then console.log 'Version application'
+      when 'server'  then console.log "Starting Server at #{@options.server.host}:#{@options.server.port}"
     @[command]()
 
   # ------- Private Functions
@@ -153,6 +156,10 @@ class Hem
   readSlug: (slug) ->
     return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
+
+  errorAndExit: (error) ->
+    console.log "ERROR: #{error}"
+    process.exit(1)
 
   getTargetPackages: (targets = []) ->
     targetAll = targets.length is 0

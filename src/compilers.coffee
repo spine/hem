@@ -23,6 +23,7 @@ try
       throw err
 catch err
 
+# TODO: make eco conditional with try/catch
 eco = require 'eco'
 
 compilers.eco = (path) ->

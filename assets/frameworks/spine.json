@@ -1,19 +1,23 @@
 {
   "root": "./",
   "route": "/",
-  "public": "public",
+  "framework": "spine",
+  "static": {
+    "public": "",
+    "test/public": "test"
+  },
   "js": {
     "paths": ["app"],
     "libs": ["lib"],
     "identifier": "require",
     "modules": [],
     "target": "application.js",
-    "url": "/"
+    "url": ""
   },
   "css": {
     "paths": ["css"],
     "target": "application.css",
-    "url": "/"
+    "url": ""
   },
   "test": {
     // autogenerate the index.html file (store in assets)
@@ -21,7 +25,7 @@
     "public": "test/public",
     "target": "specs.js",
     "after": "alert('!')",
-    "url": "/test"
+    "url": ""
   }
 }
 

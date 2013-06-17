@@ -15,7 +15,7 @@ server.start = (packages, options) ->
 # eventually just pass in routes and server options
 server.middleware = (app, packages, options) ->
 
-  # determine if there is any static routes to add
+  # determine if there is any dynamic or static routes to add
   for pkg in packages
     if pkg.url and !!server.VERBOSE
       console.log "Map package '#{pkg.name}' to #{pkg.url}"
