@@ -5,6 +5,7 @@ stitchFile = require('../assets/stitch')
 Dependency = require('./dependency')
 Stitch     = require('./stitch')
 utils      = require('./utils')
+versions   = require('./versioning')
 
 # ------- Parent Classes
 
@@ -45,11 +46,24 @@ class Application
       @test = new JsPackage(@,config.test)
       @packages.push @test
 
+    # configure versioning
+    @versioning = config.version or undefined
+    if @versioning
+      @versioning.type or= "package"
+      @versioning.module = versions[@versioning.type]
+      if not (@versioning.module)
+        utils.errorAndExit "Incorrect type value for versioning (#{@versioning.type})"
+
+
   isMatchingRoute: (route) ->
-    # TODO: strip out any versioning here first
+    # strip out any versioning applied to file
+    if @versioning
+      route = @versioning.module.trimVersion(route)
+    # compare against package route values
     for pkg in @packages
       return pkg if route is pkg.route
-    return undefined
+    # return nothing
+    return
 
   unlink: ->
     pkg.unlink() for pkg in @packages
@@ -59,8 +73,15 @@ class Application
     pkg.build() for pkg in @packages
 
   watch: ->
-    utils.log("Watching application: '#{@name}'")
+    utils.log("Watching application: <green>#{@name}</green>")
     pkg.watch() for pkg in @packages
+
+  version: ->
+    utils.log("Versioning application: <green>#{@name}</green>")
+    if @versioning
+      @versioning.module.updateVersion(@)
+    else 
+      utils.errorAndExit "ERROR: Versioning not enabled in slug.json"
 
 class Package
   constructor: (parent, config = {}) ->

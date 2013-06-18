@@ -4,7 +4,6 @@ utils       = require('./utils')
 fs          = require('fs')
 compilers   = require('./compilers')
 server      = require('./server')
-versions    = require('./versioning')
 application = require('./package')
 testing     = require('./test')
 
@@ -96,12 +95,6 @@ class Hem
     else
       utils.errorAndExit "Unable to find #{slug} file in current directory"
 
-    # if versioning turned on, pass in correct module to config
-    if @options.version
-      @options.version.type or= "package"
-      if not (@options.version.module = versions[@options.version.type])
-        utils.errorAndExit "Incorrect type value for versioning (#{@options.version.type})"
-
     # allow overrides and set defaults
     @options.server.port = argv.port if argv.port
     @options.server.host or= ""
@@ -115,6 +108,7 @@ class Hem
   # ------- Command Functions
 
   server: ->
+    utils.log "Starting Server at <blue>http://#{@options.server.host or "localhost"}:#{@options.server.port}</blue>"
     server.start(@, @options.server)
 
   clean: ->
@@ -127,17 +121,11 @@ class Hem
     @buildTargets(argv.targets)
 
   version: ->
-    # TODO: this should be done at the application level, not globally
-    module = @options.version?.module
-    files  = @options.version?.files
-    if module and files
-      module.updateFiles(files, @apps)
-    else 
-      console.error "ERROR: Versioning not enabled in slug.json"
+    @versionTargets(argv.targets)
 
   watch: ->
     targets = argv.targets
-    @buildApps(targets)
+    @buildTargets(targets)
     # also run testacular tests if -t is passed in the command line
     @testTargets(targets, singleRun: false) if argv.test
     # begin watching application targets
@@ -151,11 +139,8 @@ class Hem
   exec: (command = argv.command) ->
     return help() unless @[command]
     switch command
-      when 'watch'   then utils.log 'Watching application'
       when 'test'    then utils.log 'Test application'
       when 'clean'   then utils.log 'Clean application'
-      when 'version' then utils.log 'Version application'
-      when 'server'  then utils.log "Starting Server at <blue>http://#{@options.server.host or "localhost"}:#{@options.server.port}</blue>"
     @[command]()
 
   # ------- Private Functions
@@ -174,6 +159,10 @@ class Hem
 
   buildTargets: (targets = []) ->
     app.build(true) for app in @getTargetApps(targets)
+
+  versionTargets: (targets = []) ->
+    app.version() for app in @getTargetApps(targets)
+
 
 
 module.exports = Hem
