@@ -164,7 +164,7 @@ class Hem
     testing.run(@, testApps, options)
 
   buildTargets: (targets = []) ->
-    app.build(true) for app in @getTargetApps(targets)
+    app.build() for app in @getTargetApps(targets)
 
   versionTargets: (targets = []) ->
     app.version() for app in @getTargetApps(targets)

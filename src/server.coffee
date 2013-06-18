@@ -49,7 +49,7 @@ server.middleware = (hem, options) ->
       for hemapp in hem.apps
         if pkg = hemapp.isMatchingRoute(url)
           # TODO: keep (and return) in memory build if there hasn't been any changes??
-          str = pkg.build()
+          str = pkg.build(false)
           res.charset = 'utf-8'
           res.setHeader('Content-Type', mime.lookup(pkg.target))
           res.setHeader('Content-Length', Buffer.byteLength(str))

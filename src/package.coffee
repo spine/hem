@@ -126,7 +126,7 @@ class Package
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
-  build: (write = false)  ->
+  build: (write = true)  ->
     extra = (utils.COMPRESS and " <b>--using compression</b>") or ""
     utils.log("- Building target: <yellow>#{@target}</yellow>#{extra}")
     source = @compile()
@@ -138,7 +138,7 @@ class Package
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-          @build(true)
+          @build()
 
   getWatchedDirs: ->
     return @paths
