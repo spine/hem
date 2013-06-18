@@ -39,7 +39,7 @@
     },
 
     "test": {
-        "after": "alert('!')", 
+        "after": "test/after", 
         "identifier": "specs", 
         "modules": [], 
         "paths": [

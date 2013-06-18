@@ -134,11 +134,14 @@ class Package
     source
     
   watch: ->
-    for dir in (path.dirname(lib) for lib in @libs).concat @paths
+    for dir in @getWatchedDirs()
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           @build()
+
+  getWatchedDirs: ->
+    return @paths
 
 # ------- Child Classes
 
@@ -156,7 +159,7 @@ class JsPackage extends Package
 
     # for testing types
     # TODO: or have test libs to pull test files from? woulnd't need after stuff if we did that??
-    # testLibs = ['jasmine'] or ['test/public/lib']
+    # TODO: testLibs = ['jasmine'] or ['test/public/lib']
     @testType   = config.test or undefined
 
   compile: ->
@@ -190,6 +193,9 @@ class JsPackage extends Package
         else if (stats.isFile())
           results.push fs.readFileSync(file, 'utf8')
     results.join("\n")
+
+  getWatchedDirs: ->
+    @paths.concat @libs.concat @after
 
 class CssPackage extends Package
 
