@@ -50,10 +50,7 @@ clean = (values, sep) ->
 utils.log = (message) ->
   console.log sty.parse(message)
 
-utils.debug = (message) ->
-  console.log sty.parse(message) if @DEBUG
-
-utils.verbose = (message) ->
+utils.info = (message) ->
   console.log sty.parse(message) if @VERBOSE
 
 utils.error = (message) ->

@@ -16,10 +16,9 @@ server.start = (hem, options) ->
 server.middleware = (hem, options) ->
   # determine if there is any dynamic or static routes to add
   for hemapp in hem.apps
-    if utils.VERBOSE
-      utils.log "> Apply route mappings for application: <green>#{hemapp.name}</green>"
-      for pkg in hemapp.packages
-        utils.log "- Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
+    utils.info "> Apply route mappings for application: <green>#{hemapp.name}</green>"
+    for pkg in hemapp.packages
+      utils.info "- Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
     if hemapp.static
       options.routes = utils.extend(hemapp.static, options.routes)
 
@@ -29,13 +28,13 @@ server.middleware = (hem, options) ->
     # setup static route
     if (typeof value is 'string')
       if fs.existsSync(value)
-        utils.verbose "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
+        utils.info "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
         statics.use(route, connect.static(value))
       else
         utils.errorAndExit "The folder #{value} does not exist."
     # setup proxy route
     else if value.host
-      utils.verbose "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{value.host}:#{value.port or 80}#{value.hostPath}</yellow>" 
+      utils.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{value.host}:#{value.port or 80}#{value.hostPath}</yellow>" 
       statics.use(route, createRoutingProxy(value))
     else
       utils.errorAndExit("Invalid route configuration for <yellow>#{route}</yellow>")

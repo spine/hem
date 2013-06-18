@@ -1,5 +1,6 @@
 fs        = require('fs')
 path      = require('path')
+utils     = require('./utils')
 compilers = {}
 
 compilers.js = compilers.css = (path) ->
@@ -72,7 +73,7 @@ try
     try
       template = jade.compile content,
         filename: path
-        compileDebug: compilers.DEBUG
+        # compileDebug: compilers.DEBUG
         client: true
       source = template.toString()
       "module.exports = #{source};"
@@ -91,8 +92,9 @@ try
     result = ''
     stylus(content)
       .include(path.dirname(_path))
+      # TODO: are there other settings we should be looking at??
       .set('include css', ('--includeCss' in process.argv))
-      .set('compress', not compilers.DEBUG)
+      .set('compress', utils.COMPRESS)
       .render((err, css) -> 
         throw err if err
         result = css
@@ -114,12 +116,10 @@ compilers.env = (path) ->
   for key of envhash
     if process.env[key]
       envhash[key] = process.env[key]
-      if compilers.VERBOSE 
-        console.log "- Set env #{key} to #{envhash[key]}"
+      utils.info "- Set env <yellow>#{key}</yellow> to <red>#{envhash[key]}</red>"
     if packjson[key]
       envhash[key] = packjson[key]
-      if compilers.VERBOSE 
-        console.log "- Set env #{key} to #{envhash[key]}"
+      utils.info "  - Set env <yellow>#{key}</yellow> to <red>#{envhash[key]}</red>"
   # return javascript module
   return "module.exports = " + JSON.stringify(envhash)
 

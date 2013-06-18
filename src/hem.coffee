@@ -19,11 +19,10 @@ argv = optimist.usage([
   '    version :version the application files'
 ].join("\n"))
 .alias('p', 'port').describe('p',':hem server port')
-.alias('d', 'debug').describe('d',':all compilations use debug mode')
-.alias('t', 'test').describe('t',':run testacular while using watch')
+.alias('c', 'compress').describe('c',':all complications are compressed/minified')
+.alias('w', 'watch').describe('w',':watch files when running tests')
 .alias('s', 'slug').describe('s',':run hem using a specified slug file')
-.alias('b', 'browser').describe('b',':run testacular using the supplied browser[s]')
-.alias('n', 'noBuild').describe('n',':turn off dynamic builds during server mode')
+.alias('n', 'nocolors').describe('n',':disable color in console output')
 .describe('v',':make hem more talkative(verbose)')
 .argv
 
@@ -31,13 +30,16 @@ argv = optimist.usage([
 argv.command = argv._[0]
 argv.targets = argv._[1..]
 
+# disable colors
+require("sty").disable() if !!argv.nocolors
+
 # expose argv 
 utils.ARGV = argv
 
 # always have a value for these argv options
-utils.DEBUG   = argv.debug = !!argv.debug
-utils.VERBOSE = argv.v     = !!argv.v
-utils.COMMAND = argv.command
+utils.COMPRESS = argv.compress = !!argv.compress
+utils.VERBOSE  = argv.v        = !!argv.v
+utils.COMMAND  = argv.command
 
 # ------- Global Functions
 
@@ -126,15 +128,19 @@ class Hem
   watch: ->
     targets = argv.targets
     @buildTargets(targets)
-    # also run testacular tests if -t is passed in the command line
-    @testTargets(targets, singleRun: false) if argv.test
-    # begin watching application targets
     watchAll = targets.length is 0
     app.watch() for app in @apps when app.name in targets or watchAll
 
   test: ->
-    @buildTargets(argv.targets)
-    @testTargets(argv.targets)
+    targets = argv.targets
+    testOptions = {}
+    if argv.watch
+      @watch()
+      testOptions.singleRun = false
+    else
+      @buildTargets(targets)
+      testOptions.singleRun = true
+    @testTargets(targets, testOptions)
 
   exec: (command = argv.command) ->
     return help() unless @[command]
