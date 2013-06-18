@@ -1,11 +1,12 @@
-path      = require('path')
-fs        = require('fs')
-optimist  = require('optimist')
-compilers = require('./compilers')
-server    = require('./server')
-versions  = require('./versioning')
-Package   = require('./package')
-testing   = require('./test')
+path        = require('path')
+fs          = require('fs')
+optimist    = require('optimist')
+compilers   = require('./compilers')
+server      = require('./server')
+versions    = require('./versioning')
+application = require('./package')
+testing     = require('./test')
+utils       = require('./utils')
 
 # ------- Commandline arguments
 
@@ -31,14 +32,18 @@ argv = optimist.usage([
 argv.command = argv._[0]
 argv.targets = argv._[1..]
 
-# set compilers debug mode
-compilers.DEBUG   = server.DEBUG   = !!argv.debug
-compilers.VERBOSE = server.VERBOSE = !!argv.v
+# expose argv 
+utils.ARGV = argv
+
+# always have a value for these argv options
+utils.DEBUG   = argv.debug = !!argv.debug
+utils.VERBOSE = argv.v     = !!argv.v
+utils.COMMAND = argv.command
 
 # ------- Global Functions
 
 help = ->
-  console.log "HEM Version: " + require('../package.json')?.version + "\n"
+  utils.log "<b>HEM</b> Version: <green>" + require('../package.json')?.version + "</green>\n"
   optimist.showHelp()
   process.exit()
 
@@ -54,11 +59,14 @@ class Hem
 
   @middleware: (slugFile) ->
     hem = new Hem(slugFile)
-    server.middleware(hem.packages, hem.options.server)
+    server.middleware(hem.apps, hem.options.server)
 
   # ------- instance variables
 
   compilers: compilers
+
+  # the slug directory
+  homeDir: '' 
 
   # default values for server
   options:
@@ -66,8 +74,8 @@ class Hem
       port: 9294
       host: "localhost"
 
-  # emtpy packages list
-  packages: []
+  # emtpy applications list
+  apps: []
 
   # ------- Constructor
 
@@ -83,58 +91,58 @@ class Hem
     if fs.existsSync(slug)
       @options[key] = value for key, value of @readSlug(slug)
       # make sure we are in same directory as slug
-      slugDir = path.dirname(path.resolve(process.cwd() + "/"  + slug))
-      process.chdir(slugDir)
+      @homeDir = path.dirname(path.resolve(process.cwd() + "/"  + slug))
+      process.chdir(@homeDir)
     else
-      @errorAndExit "Unable to find #{slug} file in current directory"
+      utils.errorAndExit "Unable to find #{slug} file in current directory"
 
     # if versioning turned on, pass in correct module to config
     if @options.version
       @options.version.type or= "package"
       if not (@options.version.module = versions[@options.version.type])
-        @errorAndExit "Incorrect type value for versioning (#{@options.version.type})"
+        utils.errorAndExit "Incorrect type value for versioning (#{@options.version.type})"
 
     # allow overrides and set defaults
     @options.server.port = argv.port if argv.port
     @options.server.host or= ""
     @options.server.routes or= []
 
-    # setup packages from options/slug
-    for name, config of @options.packages
+    # setup applications from options/slug
+    for name, config of @options
       continue if name is "server"
-      @packages.push Package.createPackage(name, config)
+      @apps.push application.createApplication(name, config)
 
   # ------- Command Functions
 
   server: ->
-    server.start(@packages, @options.server)
+    server.start(@apps, @options.server)
 
   clean: ->
     targets = argv.targets
     cleanAll = targets.length is 0
-    pkg.unlink() for pkg in @packages when pkg.name in targets or cleanAll
+    app.unlink() for app in @apps when app.name in targets or cleanAll
 
   build: ->
     @clean()
     @buildTargets(argv.targets)
 
   version: ->
-    # TODO: this should be done at the package level, not globally
+    # TODO: this should be done at the application level, not globally
     module = @options.version?.module
     files  = @options.version?.files
     if module and files
-      module.updateFiles(files, @packages)
+      module.updateFiles(files, @apps)
     else 
       console.error "ERROR: Versioning not enabled in slug.json"
 
   watch: ->
     targets = argv.targets
-    @buildPackages(targets)
+    @buildApps(targets)
     # also run testacular tests if -t is passed in the command line
     @testTargets(targets, singleRun: false) if argv.test
-    # begin watching package targets
+    # begin watching application targets
     watchAll = targets.length is 0
-    pkg.watch() for pkg in @packages when pkg.name in targets or watchAll
+    app.watch() for app in @apps when app.name in targets or watchAll
 
   test: ->
     @buildTargets(argv.targets)
@@ -143,12 +151,11 @@ class Hem
   exec: (command = argv.command) ->
     return help() unless @[command]
     switch command
-      when 'build'   then console.log 'Build application'
-      when 'watch'   then console.log 'Watching application'
-      when 'test'    then console.log 'Test application'
-      when 'clean'   then console.log 'Clean application'
-      when 'version' then console.log 'Version application'
-      when 'server'  then console.log "Starting Server at #{@options.server.host}:#{@options.server.port}"
+      when 'watch'   then utils.log 'Watching application'
+      when 'test'    then utils.log 'Test application'
+      when 'clean'   then utils.log 'Clean application'
+      when 'version' then utils.log 'Version application'
+      when 'server'  then utils.log "Starting Server at #{@options.server.host}:#{@options.server.port}"
     @[command]()
 
   # ------- Private Functions
@@ -157,20 +164,16 @@ class Hem
     return {} unless slug and fs.existsSync(slug)
     JSON.parse(fs.readFileSync(slug, 'utf-8'))
 
-  errorAndExit: (error) ->
-    console.log "ERROR: #{error}"
-    process.exit(1)
-
-  getTargetPackages: (targets = []) ->
+  getTargetApps: (targets = []) ->
     targetAll = targets.length is 0
-    (pkg for pkg in @packages when pkg.name in targets or targetAll)
+    (app for app in @apps when app.name in targets or targetAll)
 
   testTargets: (targets = [], options = {}) ->
-    testPackages = (pkg for pkg in @getTargetPackages(targets) when pkg.target.canTest())
-    testing.run(testPackages, singlRun)
+    testApps = (app for app in @getTargetApps(targets) when app.test)
+    testing.run(@, testApps, options)
 
   buildTargets: (targets = []) ->
-    pkg.build(not argv.debug) for pkg in @getTargetPackages(targets)
+    app.build(not argv.debug) for app in @getTargetApps(targets)
 
 
 module.exports = Hem

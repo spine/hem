@@ -1,0 +1,52 @@
+{
+    "root": "", 
+    "route": "/",
+
+    "css": {
+        "paths": [
+            "css"
+        ], 
+        "target": "application.css"
+    },
+
+    "js": {
+        "identifier": "require", 
+        "libs": [
+            "lib"
+        ], 
+        "after": [
+          "after"
+        ],
+        "modules": [
+            "jqueryify", 
+            "spine", 
+            "spine/lib/local", 
+            "spine/lib/list", 
+            "spine/lib/ajax", 
+            "spine/lib/route", 
+            "spine/lib/manager", 
+            "spine/lib/relation"
+        ], 
+        "paths": [
+            "app"
+        ], 
+        "target": "public/application.js"
+    },
+
+    "static": {
+        "/": "public", 
+        "/test": "test/public"
+    },
+
+    "test": {
+        "after": "alert('!')", 
+        "identifier": "specs", 
+        "modules": [], 
+        "paths": [
+            "test/specs"
+        ], 
+        "target": "test/public/specs.js", 
+        "type": "jasmine"
+    }
+}
+

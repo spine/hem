@@ -46,7 +46,6 @@
     "connect": "~2.7.0",
     "http-proxy": "~0.10",
     "karma": "~0.8.0",
-    "jade": "~0.30",
-    "node.extend": "~1.0.7"
+    "jade": "~0.30"
   }
 }

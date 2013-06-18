@@ -1,42 +1,41 @@
-connect   = require('connect')
-mime      = require('connect').static.mime
-httpProxy = require('http-proxy')
-http      = require('http')
-fs        = require('fs')
-server    = {}
+connect = require('connect')
+mime    = require('connect').static.mime
+http    = require('http')
+fs      = require('fs')
+utils   = require('./utils')
+server  = {}
 
 # ------- Public Functions
 
-server.start = (packages, options) ->
+server.start = (hemapps, options) ->
     app = connect()
-    app.use(server.middleware(app, packages, options))
+    app.use(server.middleware(app, hemapps, options))
     http.createServer(app).listen(options.port, options.host)
 
-# eventually just pass in routes and server options
-server.middleware = (app, packages, options) ->
+server.middleware = (app, hemapps, options) ->
 
   # determine if there is any dynamic or static routes to add
-  for pkg in packages
-    if pkg.url and !!server.VERBOSE
-      console.log "Map package '#{pkg.name}' to #{pkg.url}"
-    if pkg.static
-      options.routes.push pkg.static
+  for hemapp in hemapps
+    if hemapp.url and utils.VERBOSE
+      for pkg in hemapp.packages
+        utils.log "Map application target '#{pkg.target}' to #{pkg.route}"
+    if hemapp.static
+      options.routes = utils.extend(options.routes, hemapp.static)
 
-  # setup static and proxy middleware
+  # setup static routes and proxy middleware
   for route in options.routes
     url   = Object.keys(route)[0]
     value = route[url]
     # setup static route
     if (typeof value is 'string')
       if fs.existsSync(value)
-        console.log "Map directory '#{value}' to #{url}" if !!server.VERBOSE
+        utils.verbose "Map directory '#{value}' to #{url}" 
         app.use(url, connect.static(value))
       else
-        console.log "ERROR: The folder #{value} does not exist."
-        process.exit(1)
+        utils.errorAndExit "The folder #{value} does not exist."
     # setup proxy route
     else if value.host
-      console.log "Proxy requests from #{url} to #{value.host}" if !!server.VERBOSE
+      utils.verbose "Proxy requests from #{url} to #{value.host}" 
       app.use(url, createRoutingProxy(value))
     else
       throw new Error("Invalid route configuration for #{url}")
@@ -47,13 +46,12 @@ server.middleware = (app, packages, options) ->
     # get url path
     url = require("url").parse(req.url)?.pathname.toLowerCase() or ""
 
-    # loop over pkgs and call compile when there is a match
+    # loop over hem applications and call compile when there is a match
     if url.match(/\.js|\.css/)
-      for pkg in packages
-        # TODO: get non versioned url here??
-        if pkg.isMatchingUrl(url)
+      for hemapp in hemapps
+        if pkg = hemapp.isMatchingRoute(url)
           # TODO: keep (and return) in memory build if there hasn't been any changes??
-          str = pkg.compile(!!server.DEBUG)
+          str = pkg.compile(not debug)
           res.charset = 'utf-8'
           res.setHeader('Content-Type', mime.lookup(pkg.target))
           res.setHeader('Content-Length', Buffer.byteLength(str))
@@ -65,7 +63,7 @@ server.middleware = (app, packages, options) ->
 # ------- Private Functions
 
 createRoutingProxy = (options = {}) ->
-  proxy = new httpProxy.RoutingProxy()
+  proxy = new require('http-proxy').RoutingProxy()
   # additional options
   options.hostPath or= ""
   options.port or= 80

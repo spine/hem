@@ -4,98 +4,129 @@ uglify     = require('uglify-js')
 stitchFile = require('../assets/stitch')
 Dependency = require('./dependency')
 Stitch     = require('./stitch')
-{toArray}  = require('./utils')
+utils      = require('./utils')
 
-# ------- Public Functions
+# ------- Parent Classes
 
-jsFile  = /\.js$/i
-cssFile = /\.css$/i
+class Application
+  constructor: (name, config = {}) ->
+    @name  = name
 
-createPackage = (name, config) ->
-  if jsFile.test config.target
-    # TODO: at some point merge in framework defaults (ex. spine)
-    return new JsPackage(name,config)
-  else if cssFile.test config.target
-    # TODO: framework defaults for css
-    return new CssPackage(name, config)
-    # TODO: setup target for package that contains other packages?
-  else
-    throw new Error("Unsupported package type.")
+    # apply defaults
+    if (config.defaults)
+      try
+        defaults = require('../assets/defaults/' + config.defaults)
+      catch err
+        console.error "ERROR: Invalid 'defaults' value provided: " + config.defaults
+        process.exit 1
+      utils.log("Applying '" + config.defaults + "' defaults to configuration..." if global.ARGV?.v)
+      config = utils.extend(defaults, config)
 
-# ------- Classes
+    # set variables
+    @root  = config.root or ""
+    @route = config.route or  "/"
+
+    # create packages
+    @packages = []
+    @static = config.static or undefined
+    if config.js
+      @js   = new JsPackage(@,config.js)
+      @packages.push @js
+    if config.css
+      @css  = new CssPackage(@,config.css)
+      @packages.push @css
+    if config.test
+      @test = new JsPackage(@,config.test)
+      @packages.push @test
+
+  isMatchingRoute: (route) ->
+    # TODO: strip out any versioning here first
+    for pkg in @packages
+      return pkg if route is pkg.url
+    return undefined
+
+  unlink: ->
+    pkg.unlink() for pkg in @packages
+
+  build: (minify = false) ->
+    utils.log("Building application: <green>#{@name}</green>")
+    pkg.build(minify) for pkg in @packages
+
+  watch: ->
+    utils.log("Watching application: '#{@name}'")
+    pkg.watch() for pkg in @packages
 
 class Package
-  constructor: (name, config = {}) ->
-    @name   = name
-    @target = config.target or throw new Error("Missing target for #{name}")
-    @root   = "./"
-    @public = "public"
-    @paths  = toArray(config.paths or [])
-    @test   = config.test
+  constructor: (parent, config = {}) ->
+    @parent = parent
+    @paths  = utils.toArray(config.paths or [])
+
+    # determine target filename
+    slash = if utils.endsWith(parent.root, path.sep) then "" else path.sep
+    if @parent.root.length > 0
+      @target = parent.root + slash + config.target
+    else
+      @target = config.target
 
     # determine url
-    @url    = config.url or "/" + target
-
-    # determine static folder
-    @static = config.static or "/" : "#{root}/public"
-
-    # handle versioning
-    @version = config.version
-
-    # TODO: provide framework file to that will supply defaults
-    # - merge that with options provided? put merge in utils.coffee copy from connect
-    # - if folder starts with ./ then start from slug otherwise use defaults
-    # - provide root/context value to set starting point
-    # - call framework options by name of framework, hem spine new healthlink
-
-    # javascript only configurations
-    @identifier = config.identifier or 'require'
-    @libs       = toArray(config.libs or [])
-    @modules    = toArray(config.modules or [])
-    @after      = config.after or ""
+    slash = if utils.startsWith(parent.route,"/") then "" else "/"
+    if config.route
+      if utils.startsWith(@target,"/")
+        @route = config.route
+      else
+        @route = parent.route + slash + config.route
+    else
+      @route = parent.route + slash + @target
 
   handleCompileError: (ex) ->
-    console.error ex.message
+    if ex.stack
+      utils.log(ex.stack)
+    else
+      utils.error(ex.message)
     console.error ex.path if ex.path
     console.error ex.location if ex.location
     # only return when in server/watch mode, otherwise exit
-    switch @argv.command
-      when "server" or "watch" then return "console.log(\"#{ex}\");"
+    switch global.ARGV?.command
+      when "server" or "watch" then return "console.log(\"HEM compile ERROR: #{ex}\");"
       else process.exit(1)
 
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
   build: (minify = false) ->
-    console.log "Building '#{@name}' target: #{@target}"
+    utils.log(" - Building target: <yellow>#{@target}</yellow>")
     source = @compile(minify)
     fs.writeFileSync(@target, source) if source
     
   watch: ->
-    console.log "Watching '#{@name}'"
     for dir in (path.dirname(lib) for lib in @libs).concat @paths
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           @build()
 
-  canTest: ->
-    # eventually see if there is /test folder
-    return jsFile.test target
-
-  isMatchingUrl: (url) ->
-    # TODO: strip out any versioning
-
 # ------- Child Classes
 
 class JsPackage extends Package
 
-  constructor: (name, config = {}) ->
-    super(name, config)
+  constructor: (parent, config = {}) ->
+    config.target or= parent.name + ".js"
+    super(parent, config)
+    
+    # javascript only configurations
+    @identifier = config.identifier or 'require'
+    @libs       = utils.toArray(config.libs or [])
+    @modules    = utils.toArray(config.modules or [])
+    @after      = utils.toArray(config.after or [])
+
+    # for testing types
+    # TODO: or have test libs to pull test files from? woulnd't need after stuff if we did that??
+    # testLibs = ['jasmine'] or ['test/public/lib']
+    @testType   = config.test or undefined
 
   compile: (minify = false) ->
     try
-      result = [@compileLibs(), @compileModules(), @after].join("\n")
+      result = [@compileLibs(), @compileModules(), @compileLibs(@after)].join("\n")
       result = uglify(result) if minify
       result
     catch ex
@@ -108,14 +139,27 @@ class JsPackage extends Package
     _modules  = @depend.resolve().concat(_stitch.resolve())
     stitchFile(identifier: @identifier, modules: _modules)
 
-  compileLibs: ->
-    # TODO: check if lib is a folder, then pull in everything
-    (fs.readFileSync(lib, 'utf8') for lib in @libs).join("\n")
+  compileLibs: (files = @libs, parentDir = "") ->
+    # check if folder or file 
+    results = []
+    for file in files
+      slash = if parentDir is "" then "" else path.sep
+      file  = parentDir + slash + file
+      if fs.existsSync(file)
+        stats = fs.lstatSync(file)
+        if (stats.isDirectory())
+          # get directory contents
+          dir = fs.readdirSync(file)
+          results.push @compileLibs(dir, file)
+        else if (stats.isFile())
+          results.push fs.readFileSync(file, 'utf8')
+    results.join("\n")
 
 class CssPackage extends Package
 
-  constructor: (name, config = {}) ->
-    super(name, config)
+  constructor: (parent, config = {}) ->
+    config.target or= parent.name + ".css"
+    super(parent, config)
 
   compile: (minify = false) ->
     try 
@@ -132,6 +176,11 @@ class CssPackage extends Package
     catch ex
       @handleCompileError(ex)
 
-module.exports.createPackage = createPackage
+# ------- Public Functions
+
+createApplication = (name, config) ->
+  return new Application(name, config)
+
+module.exports.createApplication = createApplication
 
   
