@@ -127,7 +127,8 @@ class Package
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
   build: (save = false)  ->
-    utils.log("- Building target: <yellow>#{@target}</yellow>")
+    extra = (utils.COMPRESS and " <b>--using compression</b>") or ""
+    utils.log("- Building target: <yellow>#{@target}</yellow>#{extra}")
     source = @compile()
     fs.writeFileSync(@target, source) if source and save
     source
@@ -161,7 +162,7 @@ class JsPackage extends Package
   compile: ->
     try
       result = [@compileLibs(), @compileModules(), @compileLibs(@after)].join("\n")
-      result = uglify(result) if utils.DEBUG is false
+      result = uglify(result) if utils.COMPRESS
       result
     catch ex
       @handleCompileError(ex)
