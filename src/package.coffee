@@ -28,7 +28,13 @@ class Application
 
     # create packages
     @packages = []
-    @static = config.static or undefined
+    @static   = {}
+    
+    # configure static routes
+    for route, value of config.static
+      @static[utils.cleanRoute(@route, route)] = value
+
+    # configure js/css/test packages
     if config.js
       @js   = new JsPackage(@,config.js)
       @packages.push @js
@@ -42,15 +48,15 @@ class Application
   isMatchingRoute: (route) ->
     # TODO: strip out any versioning here first
     for pkg in @packages
-      return pkg if route is pkg.url
+      return pkg if route is pkg.route
     return undefined
 
   unlink: ->
     pkg.unlink() for pkg in @packages
 
-  build: (minify = false) ->
+  build: ->
     utils.log("Building application: <green>#{@name}</green>")
-    pkg.build(minify) for pkg in @packages
+    pkg.build() for pkg in @packages
 
   watch: ->
     utils.log("Watching application: '#{@name}'")
@@ -62,21 +68,27 @@ class Package
     @paths  = utils.toArray(config.paths or [])
 
     # determine target filename
-    slash = if utils.endsWith(parent.root, path.sep) then "" else path.sep
     if @parent.root.length > 0
-      @target = parent.root + slash + config.target
+      @target = utils.cleanPath(parent.root, config.target)
     else
       @target = config.target
 
     # determine url
-    slash = if utils.startsWith(parent.route,"/") then "" else "/"
     if config.route
       if utils.startsWith(@target,"/")
         @route = config.route
       else
-        @route = parent.route + slash + config.route
+        @route = utils.cleanRoute(parent.route, config.route)
     else
-      @route = parent.route + slash + @target
+      # use the static urls to determine the package @route
+      for route, value of @parent.static when not @route
+        if utils.startsWith(@target, value)
+          regexp = new RegExp("^#{value}")
+          targetUrl = @target.replace(regexp,"")
+          @route = utils.cleanRoute(route, targetUrl)
+    # make sure we have a route to use 
+    if utils.COMMAND is "server"
+      utils.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>") unless @route
 
   handleCompileError: (ex) ->
     if ex.stack
@@ -86,17 +98,18 @@ class Package
     console.error ex.path if ex.path
     console.error ex.location if ex.location
     # only return when in server/watch mode, otherwise exit
-    switch global.ARGV?.command
+    switch utils.COMMAND
       when "server" or "watch" then return "console.log(\"HEM compile ERROR: #{ex}\");"
       else process.exit(1)
 
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
-  build: (minify = false) ->
-    utils.log(" - Building target: <yellow>#{@target}</yellow>")
-    source = @compile(minify)
-    fs.writeFileSync(@target, source) if source
+  build: (save = false)  ->
+    utils.log("- Building target: <yellow>#{@target}</yellow>")
+    source = @compile()
+    fs.writeFileSync(@target, source) if source and save
+    source
     
   watch: ->
     for dir in (path.dirname(lib) for lib in @libs).concat @paths
@@ -124,16 +137,17 @@ class JsPackage extends Package
     # testLibs = ['jasmine'] or ['test/public/lib']
     @testType   = config.test or undefined
 
-  compile: (minify = false) ->
+  compile: ->
     try
       result = [@compileLibs(), @compileModules(), @compileLibs(@after)].join("\n")
-      result = uglify(result) if minify
+      result = uglify(result) if utils.DEBUG is false
       result
     catch ex
       @handleCompileError(ex)
 
   compileModules: ->
     # TODO use detective....??
+    # TODO cache results since this shouldn't change too much??
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@paths)
     _modules  = @depend.resolve().concat(_stitch.resolve())
@@ -161,7 +175,7 @@ class CssPackage extends Package
     config.target or= parent.name + ".css"
     super(parent, config)
 
-  compile: (minify = false) ->
+  compile: () ->
     try 
       result = []
       for _path in @paths

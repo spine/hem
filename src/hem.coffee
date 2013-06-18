@@ -1,12 +1,12 @@
 path        = require('path')
-fs          = require('fs')
 optimist    = require('optimist')
+utils       = require('./utils')
+fs          = require('fs')
 compilers   = require('./compilers')
 server      = require('./server')
 versions    = require('./versioning')
 application = require('./package')
 testing     = require('./test')
-utils       = require('./utils')
 
 # ------- Commandline arguments
 
@@ -59,7 +59,7 @@ class Hem
 
   @middleware: (slugFile) ->
     hem = new Hem(slugFile)
-    server.middleware(hem.apps, hem.options.server)
+    server.middleware(hem, hem.options.server)
 
   # ------- instance variables
 
@@ -115,7 +115,7 @@ class Hem
   # ------- Command Functions
 
   server: ->
-    server.start(@apps, @options.server)
+    server.start(@, @options.server)
 
   clean: ->
     targets = argv.targets
@@ -155,7 +155,7 @@ class Hem
       when 'test'    then utils.log 'Test application'
       when 'clean'   then utils.log 'Clean application'
       when 'version' then utils.log 'Version application'
-      when 'server'  then utils.log "Starting Server at #{@options.server.host}:#{@options.server.port}"
+      when 'server'  then utils.log "Starting Server at <blue>http://#{@options.server.host or "localhost"}:#{@options.server.port}</blue>"
     @[command]()
 
   # ------- Private Functions
@@ -173,7 +173,7 @@ class Hem
     testing.run(@, testApps, options)
 
   buildTargets: (targets = []) ->
-    app.build(not argv.debug) for app in @getTargetApps(targets)
+    app.build(true) for app in @getTargetApps(targets)
 
 
 module.exports = Hem

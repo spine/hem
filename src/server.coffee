@@ -1,69 +1,71 @@
-connect = require('connect')
-mime    = require('connect').static.mime
-http    = require('http')
-fs      = require('fs')
-utils   = require('./utils')
-server  = {}
+connect   = require('connect')
+mime      = require('connect').static.mime
+http      = require('http')
+fs        = require('fs')
+utils     = require('./utils')
+httpProxy = require('http-proxy')
+server    = {}
 
 # ------- Public Functions
 
-server.start = (hemapps, options) ->
+server.start = (hem, options) ->
     app = connect()
-    app.use(server.middleware(app, hemapps, options))
+    app.use(server.middleware(hem, options))
+    server.setupStaticRoutes(app, hem, options)
     http.createServer(app).listen(options.port, options.host)
 
-server.middleware = (app, hemapps, options) ->
-
-  # determine if there is any dynamic or static routes to add
-  for hemapp in hemapps
-    if hemapp.url and utils.VERBOSE
-      for pkg in hemapp.packages
-        utils.log "Map application target '#{pkg.target}' to #{pkg.route}"
-    if hemapp.static
-      options.routes = utils.extend(options.routes, hemapp.static)
-
-  # setup static routes and proxy middleware
-  for route in options.routes
-    url   = Object.keys(route)[0]
-    value = route[url]
-    # setup static route
-    if (typeof value is 'string')
-      if fs.existsSync(value)
-        utils.verbose "Map directory '#{value}' to #{url}" 
-        app.use(url, connect.static(value))
-      else
-        utils.errorAndExit "The folder #{value} does not exist."
-    # setup proxy route
-    else if value.host
-      utils.verbose "Proxy requests from #{url} to #{value.host}" 
-      app.use(url, createRoutingProxy(value))
-    else
-      throw new Error("Invalid route configuration for #{url}")
-
+server.middleware = (hem, options) ->
   # return the custom middleware for connect to use
   return (req, res, next) ->
-
     # get url path
     url = require("url").parse(req.url)?.pathname.toLowerCase() or ""
-
     # loop over hem applications and call compile when there is a match
     if url.match(/\.js|\.css/)
-      for hemapp in hemapps
+      for hemapp in hem.apps
         if pkg = hemapp.isMatchingRoute(url)
           # TODO: keep (and return) in memory build if there hasn't been any changes??
-          str = pkg.compile(not debug)
+          str = pkg.build()
           res.charset = 'utf-8'
           res.setHeader('Content-Type', mime.lookup(pkg.target))
           res.setHeader('Content-Length', Buffer.byteLength(str))
           res.end((req.method is 'HEAD' and null) or str)
           return
+    
+    # TODO: check static content??
+
     # continue to next middleware
     next()
+
+server.setupStaticRoutes = (app, hem, options) ->
+  # determine if there is any dynamic or static routes to add
+  for hemapp in hem.apps
+    if utils.VERBOSE
+      utils.log "> Apply route mappings for application: <green>#{hemapp.name}</green>"
+      for pkg in hemapp.packages
+        utils.log "- Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
+    if hemapp.static
+      options.routes = utils.extend(hemapp.static, options.routes)
+
+  # setup static routes and proxy middleware
+  for route, value of options.routes
+    # setup static route
+    if (typeof value is 'string')
+      if fs.existsSync(value)
+        utils.verbose "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
+        app.use(route, connect.static(value))
+      else
+        utils.errorAndExit "The folder #{value} does not exist."
+    # setup proxy route
+    else if value.host
+      utils.verbose "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{value.host}:#{value.port or 80}#{value.hostPath}</yellow>" 
+      app.use(route, createRoutingProxy(value))
+    else
+      utils.errorAndExit("Invalid route configuration for <yellow>#{route}</yellow>")
 
 # ------- Private Functions
 
 createRoutingProxy = (options = {}) ->
-  proxy = new require('http-proxy').RoutingProxy()
+  proxy = new httpProxy.RoutingProxy()
   # additional options
   options.hostPath or= ""
   options.port or= 80
