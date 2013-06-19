@@ -133,13 +133,17 @@ class Hem
 
   test: ->
     targets = argv.targets
-    testOptions = {}
+    # set test options
+    testOptions = 
+      basePath: @homeDir
+    # check for watch mode
     if argv.watch
       @watch()
       testOptions.singleRun = false
     else
       @buildTargets(targets)
       testOptions.singleRun = true
+    # run tests
     @testTargets(targets, testOptions)
 
   exec: (command = argv.command) ->
@@ -161,7 +165,7 @@ class Hem
 
   testTargets: (targets = [], options = {}) ->
     testApps = (app for app in @getTargetApps(targets) when app.test)
-    testing.run(@, testApps, options)
+    testing.run(testApps, options)
 
   buildTargets: (targets = []) ->
     app.build() for app in @getTargetApps(targets)

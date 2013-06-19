@@ -39,14 +39,14 @@
     },
 
     "test": {
-        "after": "test/after", 
-        "identifier": "specs", 
+        "identifier": "specs",
         "modules": [], 
         "paths": [
             "test/specs"
         ], 
-        "target": "test/public/specs.js", 
-        "type": "jasmine"
+        "target": "test/public/specs.js",
+        "test-type": "jasmine",
+        "test-runner": "karma"
     }
 }
 
