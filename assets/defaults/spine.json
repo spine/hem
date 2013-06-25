@@ -1,12 +1,16 @@
 {
     "root": "", 
     "route": "/",
+    "version": { 
+      "type": "package",
+      "files": [ "public/index.html" ]
+    },
 
     "css": {
         "paths": [
             "css"
         ], 
-        "target": "public/application.css"
+        "target": "public/appliation.css"
     },
 
     "js": {
@@ -14,9 +18,6 @@
         "libs": [
             "lib"
         ], 
-        "after": [
-          "after"
-        ],
         "modules": [
             "jqueryify", 
             "spine", 
@@ -40,13 +41,12 @@
 
     "test": {
         "identifier": "specs",
-        "modules": [], 
         "paths": [
             "test/specs"
         ], 
         "target": "test/public/specs.js",
-        "test-type": "jasmine",
-        "test-runner": "karma"
+        "type": "jasmine",
+        "runner": "karma"
     }
 }
 

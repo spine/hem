@@ -8,36 +8,33 @@ server    = {}
 
 # ------- Public Functions
 
-server.start = (hem, options) ->
+server.start = (applications, options) ->
     app = connect()
-    app.use(server.middleware(hem, options))
+    app.use(server.middleware(applications, options))
     http.createServer(app).listen(options.port, options.host)
 
-server.middleware = (hem, options) ->
+server.middleware = (applications, options) ->
   # determine if there is any dynamic or static routes to add
-  for hemapp in hem.apps
+  for hemapp in applications
     utils.info "> Apply route mappings for application: <green>#{hemapp.name}</green>"
     for pkg in hemapp.packages
       utils.info "- Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
     if hemapp.static
       options.routes = utils.extend(hemapp.static, options.routes)
 
-  # setup static routes and proxy middleware
+  # setup separate connect app for static routes and proxy middleware
   statics = connect()
   for route, value of options.routes
-    # setup static route
-    if (typeof value is 'string')
-      if fs.existsSync(value)
-        utils.info "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
-        statics.use(route, connect.static(value))
-      else
-        utils.errorAndExit "The folder #{value} does not exist."
-    # setup proxy route
-    else if value.host
-      utils.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{value.host}:#{value.port or 80}#{value.hostPath}</yellow>" 
-      statics.use(route, createRoutingProxy(value))
+    if fs.existsSync(value)
+      utils.info "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
+      statics.use(route, connect.static(value))
     else
-      utils.errorAndExit("Invalid route configuration for <yellow>#{route}</yellow>")
+      utils.errorAndExit "The folder #{value} does not exist."
+
+  # setup proxy route
+  for route, value of options.proxy
+    utils.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
+    statics.use(route, createRoutingProxy(value))
 
   # return the custom middleware for connect to use
   return (req, res, next) ->
@@ -45,8 +42,8 @@ server.middleware = (hem, options) ->
     url = require("url").parse(req.url)?.pathname.toLowerCase() or ""
     
     # loop over hem applications and call compile when there is a match
-    if url.match(/\.js|\.css/)
-      for hemapp in hem.apps
+    if url.match(/(\.js|\.css)$/)
+      for hemapp in applications
         if pkg = hemapp.isMatchingRoute(url)
           # TODO: keep (and return) in memory build if there hasn't been any changes??
           str = pkg.build(false)

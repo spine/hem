@@ -17,6 +17,7 @@ argv = optimist.usage([
   '    test    :build and run tests'
   '    clean   :clean compiled targets'
   '    version :version the application files'
+  '    check   :check slug file values'
 ].join("\n"))
 .alias('p', 'port').describe('p',':hem server port')
 .alias('c', 'compress').describe('c',':all complications are compressed/minified')
@@ -60,7 +61,7 @@ class Hem
 
   @middleware: (slugFile) ->
     hem = new Hem(slugFile)
-    server.middleware(hem, hem.options.server)
+    server.middleware(hem.apps, hem.options.server)
 
   # ------- instance variables
 
@@ -71,7 +72,7 @@ class Hem
 
   # default values for server
   options:
-    server:
+    hem:
       port: 9294
       host: "localhost"
 
@@ -98,22 +99,25 @@ class Hem
       utils.errorAndExit "Unable to find #{slug} file in current directory"
 
     # allow overrides and set defaults
-    @options.server.port = argv.port if argv.port
-    @options.server.host or= ""
-    @options.server.routes or= []
+    @options.hem.port = argv.port if argv.port
+    @options.hem.host or= ""
+    @options.hem.routes or= []
 
     # setup applications from options/slug
     for name, config of @options
-      continue if name is "server"
+      continue if name is "hem"
+      config.hem = @options.hem
       @apps.push application.createApplication(name, config)
 
   # ------- Command Functions
 
   server: ->
-    utils.log "Starting Server at <blue>http://#{@options.server.host or "localhost"}:#{@options.server.port}</blue>"
-    server.start(@, @options.server)
+    value = "http://#{@options.hem.host or "localhost"}:#{@options.hem.port}"
+    utils.log "Starting Server at <blue>#{value}</blue>"
+    server.start(@apps, @options.hem)
 
   clean: ->
+    utils.log "Clean applications..."
     targets = argv.targets
     cleanAll = targets.length is 0
     app.unlink() for app in @apps when app.name in targets or cleanAll
@@ -146,11 +150,17 @@ class Hem
     # run tests
     @testTargets(targets, testOptions)
 
+  check: ->
+    targets   = argv.targets
+    targetAll = targets.length is 0
+    for app in @apps when app.name in targets or targetAll
+      utils.log "> Configuration values for <green>#{app.name}</green>"
+      printOptions = showHidden: false, colors: !argv.nocolors, depth: null 
+      console.log(require('util').inspect(app, printOptions))
+      utils.log ""
+
   exec: (command = argv.command) ->
     return help() unless @[command]
-    switch command
-      when 'test'    then utils.log 'Test application'
-      when 'clean'   then utils.log 'Clean application'
     @[command]()
 
   # ------- Private Functions
@@ -172,8 +182,6 @@ class Hem
 
   versionTargets: (targets = []) ->
     app.version() for app in @getTargetApps(targets)
-
-
 
 module.exports = Hem
 

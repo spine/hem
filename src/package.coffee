@@ -1,7 +1,6 @@
 fs         = require('fs')
 path       = require('path')
 uglify     = require('uglify-js')
-stitchFile = require('../assets/stitch')
 Dependency = require('./dependency')
 Stitch     = require('./stitch')
 utils      = require('./utils')
@@ -12,48 +11,72 @@ versions   = require('./versioning')
 class Application
   constructor: (name, config = {}) ->
     @name  = name
+    @route = config.route
+    @root  = config.root
 
     # apply defaults
     if (config.defaults)
       try
-        defaults = require('../assets/defaults/' + config.defaults)
+        defaults = utils.loadAsset('defaults/' + config.defaults)
       catch err
         console.error "ERROR: Invalid 'defaults' value provided: " + config.defaults
         process.exit 1
       utils.log("Applying '" + config.defaults + "' defaults to configuration..." if global.ARGV?.v)
       config = utils.extend(defaults, config)
 
-    # set variables
-    @root  = config.root or ""
-    @route = config.route or  "/"
+    # set root variable
+    unless @root
+      # if name is also directory assume that is root
+      if utils.isDirectory(@name)
+        @root    = @name
+        @route or= @applyBaseRoute("/#{@name}")
+      # otherwise just work from top level directory
+      else
+        @root = ""
 
-    # create packages
-    @packages = []
+    # make sure route has a value
+    @route  or= @applyBaseRoute("/")
+    @route    = @applyBaseRoute(config.hem?.baseAppRoute, @route)
     @static   = {}
-    
+    @packages = {}
+
     # configure static routes
     for route, value of config.static
-      @static[utils.cleanRoute(@route, route)] = value
+      @static[@applyBaseRoute(@route, route)] = @applyRootDir(value)[0]
 
     # configure js/css/test packages
-    if config.js
-      @js   = new JsPackage(@,config.js)
-      @packages.push @js
-    if config.css
-      @css  = new CssPackage(@,config.css)
-      @packages.push @css
+    for key, value of config
+      packager = undefined
+      # determine package type
+      if key is 'js' or utils.endsWith(key,'.js')
+        packager = JsPackage
+        value.name = key
+      else if key is 'css' or utils.endsWith(key,'.css')
+        packager = CssPackage
+        value.name = key
+      # add to @packages array
+      if packager
+        pkg = new packager(@, value)
+        @packages[pkg.name] = pkg
+
+    # configure test structure
     if config.test
-      @test = new JsPackage(@,config.test)
-      @packages.push @test
+      config.test.name = "test"
+      @packages.test = new TestPackage(@, config.test)
 
     # configure versioning
     @versioning = config.version or undefined
     if @versioning
+      # TODO: move to a consturctor!! <<<<, need to make this an instance of a class!!! <<
       @versioning.type or= "package"
       @versioning.module = versions[@versioning.type]
+      # update file paths
+      files = utils.toArray(@versioning.files)
+      files = files.map (file) =>
+        @applyRootDir(file)[0]
+      @versioning.files = files
       if not (@versioning.module)
         utils.errorAndExit "Incorrect type value for versioning (#{@versioning.type})"
-
 
   isMatchingRoute: (route) ->
     # strip out any versioning applied to file
@@ -83,31 +106,53 @@ class Application
     else 
       utils.errorAndExit "ERROR: Versioning not enabled in slug.json"
 
+  applyRootDir: (values...) ->
+    if @root isnt ""
+      values = values.map (value) =>
+        utils.cleanPath(@root, value)
+    values
+
+  applyBaseRoute: (values...) ->
+    utils.cleanRoute.apply(utils, values)
+
 class Package
-  constructor: (parent, config = {}) ->
+
+  constructor: (parent, config) ->
     @parent = parent
-    @paths  = utils.toArray(config.paths or [])
+    @name   = config.name
+    @paths  = @parent.applyRootDir(config.paths)
+    @target = @parent.applyRootDir(config.target or "")[0]
+
+    # TODO: something fishy here <<<<<<<
 
     # determine target filename
-    if @parent.root.length > 0
-      @target = utils.cleanPath(parent.root, config.target)
-    else
-      @target = config.target
+    if utils.isDirectory(@target)
+      # determine actual file name
+      if @name is @ext
+        targetFile = parent.name
+      else
+        targetFile = @name
+      @target = utils.cleanPath(@target, targetFile)
+
+    # make sure correct extension is present
+    unless utils.endsWith(@target, ".#{@ext}")
+      @target = "#{@target}.#{@ext}"
 
     # determine url
     if config.route
       if utils.startsWith(@target,"/")
         @route = config.route
       else
-        @route = utils.cleanRoute(parent.route, config.route)
+        @route = @parent.applyBaseRoute(parent.route, config.route)
     else
       # use the static urls to determine the package @route
       for route, value of @parent.static when not @route
         if utils.startsWith(@target, value)
           regexp = new RegExp("^#{value}")
           targetUrl = @target.replace(regexp,"")
-          @route = utils.cleanRoute(route, targetUrl)
-    # make sure we have a route to use 
+          @route = @parent.applyBaseRoute(route, targetUrl)
+
+    # make sure we have a route to use when using server command
     if utils.COMMAND is "server"
       utils.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>") unless @route
 
@@ -132,7 +177,7 @@ class Package
     source = @compile()
     fs.writeFileSync(@target, source) if source and write
     source
-    
+
   watch: ->
     for dir in @getWatchedDirs()
       continue unless fs.existsSync(dir)
@@ -143,28 +188,25 @@ class Package
   getWatchedDirs: ->
     return @paths
 
+  ext: ""
+
 # ------- Child Classes
 
 class JsPackage extends Package
 
-  constructor: (parent, config = {}) ->
-    config.target or= parent.name + ".js"
+  constructor: (parent, config)  ->
+    # call parent
     super(parent, config)
     
     # javascript only configurations
     @identifier = config.identifier or 'require'
-    @libs       = utils.toArray(config.libs or [])
+    @libs       = @parent.applyRootDir(config.libs)
+    @after      = config.after or ""
     @modules    = utils.toArray(config.modules or [])
-    @after      = utils.toArray(config.after or [])
-
-    # for testing types
-    # TODO: or have test libs to pull test files from? woulnd't need after stuff if we did that??
-    # TODO: testLibs = ['jasmine'] or ['test/public/lib']
-    @testType   = config.test or undefined
 
   compile: ->
     try
-      result = [@compileLibs(), @compileModules(), @compileLibs(@after)].join("\n")
+      result = [@compileLibs(), @compileModules(), @after].join("\n")
       result = uglify(result) if utils.COMPRESS
       result
     catch ex
@@ -176,7 +218,8 @@ class JsPackage extends Package
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@paths)
     _modules  = @depend.resolve().concat(_stitch.resolve())
-    stitchFile(identifier: @identifier, modules: _modules)
+    _template = utils.loadAsset('stitch')
+    _template(identifier: @identifier, modules: _modules)
 
   compileLibs: (files = @libs, parentDir = "") ->
     # check if folder or file 
@@ -195,12 +238,22 @@ class JsPackage extends Package
     results.join("\n")
 
   getWatchedDirs: ->
-    @paths.concat @libs.concat @after
+    @paths.concat @libs
+
+  ext: "js"
+
+class TestPackage extends JsPackage
+
+    constructor: (parent, config)  ->
+      super(parent, config)
+      # TODO: use after in default spine json to setup specs...
+      # TODO: testLibs = ['jasmine'] or ['test/public/lib']
+      @type   = config.type
+      @runner = config.runner
 
 class CssPackage extends Package
 
-  constructor: (parent, config = {}) ->
-    config.target or= parent.name + ".css"
+  constructor: (parent, config) ->
     super(parent, config)
 
   compile: () ->
@@ -217,6 +270,8 @@ class CssPackage extends Package
       result.join("\n")
     catch ex
       @handleCompileError(ex)
+
+  ext: "css"
 
 # ------- Public Functions
 
