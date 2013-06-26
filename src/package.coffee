@@ -21,7 +21,6 @@ class Application
       catch err
         console.error "ERROR: Invalid 'defaults' value provided: " + config.defaults
         process.exit 1
-      utils.log("Applying '" + config.defaults + "' defaults to configuration..." if global.ARGV?.v)
       config = utils.extend(defaults, config)
 
     # set root variable
@@ -83,21 +82,22 @@ class Application
     if @versioning
       route = @versioning.module.trimVersion(route)
     # compare against package route values
-    for pkg in @packages
+    for name, pkg of @packages
       return pkg if route is pkg.route
     # return nothing
     return
 
   unlink: ->
-    pkg.unlink() for pkg in @packages
+    utils.log("Removing application targets: <green>#{@name}</green>")
+    pkg.unlink() for key, pkg of @packages
 
   build: ->
-    utils.log("Building application: <green>#{@name}</green>")
-    pkg.build() for pkg in @packages
+    utils.log("Building application targets: <green>#{@name}</green>")
+    pkg.build() for key, pkg of @packages
 
   watch: ->
     utils.log("Watching application: <green>#{@name}</green>")
-    pkg.watch() for pkg in @packages
+    pkg.watch() for key, pkg of @packages
 
   version: ->
     utils.log("Versioning application: <green>#{@name}</green>")
@@ -106,9 +106,9 @@ class Application
     else 
       utils.errorAndExit "ERROR: Versioning not enabled in slug.json"
 
-  applyRootDir: (values...) ->
-    if @root isnt ""
-      values = values.map (value) =>
+  applyRootDir: (value) ->
+    values = utils.toArray(value)
+    values = values.map (value) =>
         utils.cleanPath(@root, value)
     values
 
@@ -120,10 +120,8 @@ class Package
   constructor: (parent, config) ->
     @parent = parent
     @name   = config.name
-    @paths  = @parent.applyRootDir(config.paths)
+    @paths  = @parent.applyRootDir(config.paths or "")
     @target = @parent.applyRootDir(config.target or "")[0]
-
-    # TODO: something fishy here <<<<<<<
 
     # determine target filename
     if utils.isDirectory(@target)
@@ -169,9 +167,11 @@ class Package
       else process.exit(1)
 
   unlink: ->
-    fs.unlinkSync(@target) if fs.existsSync(@target)
+    if fs.existsSync(@target)
+      utils.info "- removing <yellow>#{@target}</yellow>"
+      fs.unlinkSync(@target) 
 
-  build: (write = true)  ->
+  build: (write = true) ->
     extra = (utils.COMPRESS and " <b>--using compression</b>") or ""
     utils.log("- Building target: <yellow>#{@target}</yellow>#{extra}")
     source = @compile()
@@ -200,7 +200,7 @@ class JsPackage extends Package
     
     # javascript only configurations
     @identifier = config.identifier or 'require'
-    @libs       = @parent.applyRootDir(config.libs)
+    @libs       = @parent.applyRootDir(config.libs or [])
     @after      = config.after or ""
     @modules    = utils.toArray(config.modules or [])
 
@@ -218,8 +218,11 @@ class JsPackage extends Package
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@paths)
     _modules  = @depend.resolve().concat(_stitch.resolve())
-    _template = utils.loadAsset('stitch')
-    _template(identifier: @identifier, modules: _modules)
+    if _modules
+      _template = utils.loadAsset('stitch')
+      _template(identifier: @identifier, modules: _modules)
+    else
+      ""
 
   compileLibs: (files = @libs, parentDir = "") ->
     # check if folder or file 

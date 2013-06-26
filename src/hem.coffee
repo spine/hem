@@ -87,11 +87,12 @@ class Hem
       slug = options
     else
       slug = argv.slug or './slug.json'
-      @options[key] = value for key, value of options
+      @options = utils.extend(options, @options) if options
 
     # quick check to make sure slug file exists
     if fs.existsSync(slug)
-      @options[key] = value for key, value of @readSlug(slug)
+      options = @readSlug(slug)
+      @options = utils.extend(options, @options)
       # make sure we are in same directory as slug
       @homeDir = path.dirname(path.resolve(process.cwd() + "/"  + slug))
       process.chdir(@homeDir)
@@ -101,7 +102,7 @@ class Hem
     # allow overrides and set defaults
     @options.hem.port = argv.port if argv.port
     @options.hem.host or= ""
-    @options.hem.routes or= []
+    @options.hem.routes or= {}
 
     # setup applications from options/slug
     for name, config of @options
@@ -117,7 +118,6 @@ class Hem
     server.start(@apps, @options.hem)
 
   clean: ->
-    utils.log "Clean applications..."
     targets = argv.targets
     cleanAll = targets.length is 0
     app.unlink() for app in @apps when app.name in targets or cleanAll
@@ -151,12 +151,18 @@ class Hem
     @testTargets(targets, testOptions)
 
   check: ->
+    printOptions = showHidden: false, colors: !argv.nocolors, depth: null
+    inspect = require('util').inspect
+    # print hem configuration
+    utils.log "> Configuration for <green>hem</green>:"
+    console.log(inspect(@options.hem, printOptions))
+    utils.log ""
+    # print app configurations
     targets   = argv.targets
     targetAll = targets.length is 0
     for app in @apps when app.name in targets or targetAll
-      utils.log "> Configuration values for <green>#{app.name}</green>"
-      printOptions = showHidden: false, colors: !argv.nocolors, depth: null 
-      console.log(require('util').inspect(app, printOptions))
+      utils.log "> Configuration values for <green>#{app.name}</green>:"
+      console.log(inspect(app, printOptions))
       utils.log ""
 
   exec: (command = argv.command) ->

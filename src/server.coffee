@@ -33,7 +33,8 @@ server.middleware = (applications, options) ->
 
   # setup proxy route
   for route, value of options.proxy
-    utils.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
+    display = "#{value.host}:#{value.port or 80}#{value.path}"
+    utils.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{display}</yellow>" 
     statics.use(route, createRoutingProxy(value))
 
   # return the custom middleware for connect to use
@@ -52,28 +53,28 @@ server.middleware = (applications, options) ->
           res.setHeader('Content-Length', Buffer.byteLength(str))
           res.end((req.method is 'HEAD' and null) or str)
           return
-    
+
     # check static content
     statics.handle(req, res, next)
 
 
 # ------- Private Functions
 
-createRoutingProxy = (options = {}) ->
+createRoutingProxy = (options) ->
   proxy = new httpProxy.RoutingProxy()
-  # additional options
-  options.hostPath or= ""
-  options.port or= 80
+  # set options
+  options.path or= ""
+  options.port or= url.port or 80
   options.patchRedirect or= true
   # handle redirects
-  if options.patchRedirect 
+  if options.patchRedirect
     proxy.once "start", (req, res) ->
       # get the requesting hostname and port
       returnHost = req.headers.host
       patchServerResponseForRedirects(options.host, returnHost)
   # return function used by connect to access proxy
   return (req, res, next) ->
-    req.url = "#{options.hostPath}#{req.url}"
+    req.url = "#{options.path}#{req.url}"
     proxy.proxyRequest(req, res, options)
 
 patchServerResponseForRedirects = (fromHost, returnHost) ->
