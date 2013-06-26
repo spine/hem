@@ -11,6 +11,15 @@ utils.flatten = flatten = (array, results = []) ->
       results.push(item)
   results
 
+utils.arrayToString = (value = "") ->
+  if Array.isArray(value)
+    result = ""
+    for line in value
+      result += line + "\n"
+    result
+  else
+    value
+
 utils.toArray = (value = []) ->
   if Array.isArray(value) then value else [value]
 

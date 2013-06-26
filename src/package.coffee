@@ -201,7 +201,7 @@ class JsPackage extends Package
     # javascript only configurations
     @identifier = config.identifier or 'require'
     @libs       = @parent.applyRootDir(config.libs or [])
-    @after      = config.after or ""
+    @after      = utils.arrayToString(config.after or "")
     @modules    = utils.toArray(config.modules or [])
 
   compile: ->
@@ -214,7 +214,6 @@ class JsPackage extends Package
 
   compileModules: ->
     # TODO use detective....??
-    # TODO cache results since this shouldn't change too much??
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@paths)
     _modules  = @depend.resolve().concat(_stitch.resolve())

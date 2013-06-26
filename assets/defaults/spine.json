@@ -46,7 +46,15 @@
             "test/specs"
         ], 
         "target": "test/public/specs.js",
-        "type": "jasmine",
+        "after": [
+          "require('lib/setup');",
+          "for (var key in specs.modules) specs(key);"
+        ],
+        "depends": [
+          "#jasmine",
+          "common.js",
+          "js"
+        ],
         "runner": "karma"
     }
 }
