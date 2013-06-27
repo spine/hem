@@ -5,7 +5,7 @@ This branch of hem is an experimental refactoring of the current hem code base. 
 to work with multiple frontend apps that shared a common code base but at the same time were sepearate web apps. 
 
 Initially we had used multiple
-hem projects for each frontend and git sub-tree to share the common code, but even that seems tedius. The goal going forward is to be able to
+hem/spine projects for each frontend and git sub-tree to share the common code, but even that seems tedius. The goal going forward is to be able to
 have multiple applications definied with the slug.json and have the ability to be able to build/server/test them all together or on a per app basis. 
 This allows us to generate a common.js file that contains the main spine/jquery javascript which then can be included in each project's html file.
 
@@ -22,27 +22,36 @@ spineapp
   - css          // css and stylus files to compile
 ```
 
-By using the above structure, everything should be hooked up and ready to go from hem's point of view. But I do also want to allow the ability to 
-override this struture, perhaps for cases when somebody is creating a non-spine web app and just wants to make use of the compiler/server.
+By using the above structure, everything should be hooked up and ready to go from hem's point of view. But I also want to allow the ability to 
+easily override this struture, perhaps for cases when somebody is creating a non-spine web app and just wants to make use of the compiler/server.
 
 Other goals and features...
 ----
 
-In addition to the above, hoping to get some of the other features below integrated into hem...
+In addition to the above ideas, I want to try to get some of the features below integrated into hem...
 
 - [ ] Easier to setup proxy
 - [ ] livereload abilities for css and possibly js
 - [ ] easier testing setup and execution (karma/phantomjs)
 - [ ] integrate spine.app commands into hem
-- [ ] easier ways to add your own compilers/extensions
 - [ ] update examples/documention
 - [ ] ability to act as middleware for connect/express apps
 - [ ] versioning abilities
 - [ ] manifest creation
+- [ ] really do need to write some tests for hem
 
 Will look into but not 100% sure
 ---
 
+These would be nice to have things, will have to research it more in the future...
+
+- [ ] easier ways to add your own compilers/extensions
 - [ ] source mapping
 - [ ] possibly look at AMD vs commonjs???
 - [ ] jshint/lint checks??
+
+When will it be done??
+---
+
+Thats a good question :) I think its possible to have the main features done, tested, and ready to go by the end of august or early september.
+
