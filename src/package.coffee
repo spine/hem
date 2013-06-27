@@ -224,6 +224,10 @@ class JsPackage extends Package
       ""
 
   compileLibs: (files = @libs, parentDir = "") ->
+
+    # TODO: need to perform similar operation as stitch in that only
+    # compilable code is used...
+
     # check if folder or file 
     results = []
     for file in files
@@ -235,7 +239,7 @@ class JsPackage extends Package
           # get directory contents
           dir = fs.readdirSync(file)
           results.push @compileLibs(dir, file)
-        else if (stats.isFile())
+        else if stats.isFile() and path.extname(file) in ['.js','.coffee']
           results.push fs.readFileSync(file, 'utf8')
     results.join("\n")
 
@@ -250,8 +254,8 @@ class TestPackage extends JsPackage
       super(parent, config)
       # TODO: use after in default spine json to setup specs...
       # TODO: testLibs = ['jasmine'] or ['test/public/lib']
-      @type   = config.type
-      @runner = config.runner
+      @depends = utils.toArray(config.depends)
+      @runner  = config.runner
 
 class CssPackage extends Package
 
