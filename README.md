@@ -14,12 +14,12 @@ conventions and folder structures the amount of configuration should be minimal.
 
 ```
 spineapp
-  - app    // js/coffee files that are stitched together using commonjs
-  - public // static files and final app js/css build destination
-  - lib    // plain old js/coffee files appended to js file.
-  - node_modules
-  - test   // test/spec files 
-  - css    // css and stylus files to compile
+  - app          // js/coffee files that are stitched together using commonjs
+  - public       // static files and final app js/css build destination
+  - lib          // plain old js/coffee files appended to js file.
+  - node_modules // node modules to include
+  - test         // test/spec files 
+  - css          // css and stylus files to compile
 ```
 
 By using the above structure, everything should be hooked up and ready to go from hem's point of view. But I do also want to allow the ability to 
@@ -30,12 +30,14 @@ Other goals and features...
 
 In addition to the above, hoping to get some of the other features below integrated into hem...
 
-- [ ] Easier to setup proxy
-- [ ] source mapping
+- [] Easier to setup proxy
+- [] source mapping
 - [ ] easier testing setup and execution (karma/phantomjs)
 - [ ] integrate spine.app commands into hem
 - [ ] easier ways to add your own compilers/extensions
 - [ ] update examples/documention
 - [ ] livereload abilities for css and possibly js
 - [ ] ability to act as middleware for connect/express apps
-- [ ] versioning/deploying abilities
+- [ ] versioning abilities
+- [] manifest creation
+- [] possibly look at AMD vs commonjs???
