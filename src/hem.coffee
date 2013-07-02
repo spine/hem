@@ -1,7 +1,7 @@
 path        = require('path')
 optimist    = require('optimist')
-utils       = require('./utils')
 fs          = require('fs')
+utils       = require('./utils')
 compilers   = require('./compilers')
 server      = require('./server')
 application = require('./package')

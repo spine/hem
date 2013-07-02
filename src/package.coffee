@@ -4,7 +4,7 @@ uglify     = require('uglify-js')
 Dependency = require('./dependency')
 Stitch     = require('./stitch')
 utils      = require('./utils')
-versions   = require('./versioning')
+versioning = require('./versioning')
 
 # ------- Parent Classes
 
@@ -17,9 +17,11 @@ class Application
     # apply defaults
     if (config.defaults)
       try
-        defaults = utils.loadAsset('defaults/' + config.defaults)
+        loadedDefaults = utils.loadAsset('defaults/' + config.defaults)
+        # make sure we don't modify the original assets (which is cached by require)
+        defaults = utils.extend({}, loadedDefaults)
       catch err
-        console.error "ERROR: Invalid 'defaults' value provided: " + config.defaults
+        utils.error "ERROR: Invalid 'defaults' value provided: " + config.defaults
         process.exit 1
       config = utils.extend(defaults, config)
 
@@ -64,23 +66,16 @@ class Application
       @packages.test = new TestPackage(@, config.test)
 
     # configure versioning
-    @versioning = config.version or undefined
-    if @versioning
-      # TODO: move to a consturctor!! <<<<, need to make this an instance of a class!!! <<
-      @versioning.type or= "package"
-      @versioning.module = versions[@versioning.type]
-      # update file paths
-      files = utils.toArray(@versioning.files)
-      files = files.map (file) =>
-        @applyRootDir(file)[0]
-      @versioning.files = files
-      if not (@versioning.module)
-        utils.errorAndExit "Incorrect type value for versioning (#{@versioning.type})"
+    if config.version
+      verType = versioning[config.version.type]
+      unless verType
+        utils.errorAndExit "Incorrect type value for version configuration: (#{config.version.type})"
+      @versioning = new verType(@, config.version)
 
   isMatchingRoute: (route) ->
     # strip out any versioning applied to file
     if @versioning
-      route = @versioning.module.trimVersion(route)
+      route = @versioning.trim(route)
     # compare against package route values
     for name, pkg of @packages
       return pkg if route is pkg.route
@@ -102,13 +97,16 @@ class Application
   version: ->
     utils.log("Versioning application: <green>#{@name}</green>")
     if @versioning
-      @versioning.module.updateVersion(@)
+      @versioning.update()
     else 
       utils.errorAndExit "ERROR: Versioning not enabled in slug.json"
 
   applyRootDir: (value) ->
     values = utils.toArray(value)
     values = values.map (value) =>
+      if utils.startsWith(value, "./")
+        value
+      else
         utils.cleanPath(@root, value)
     values
 
@@ -159,8 +157,8 @@ class Package
       utils.log(ex.stack)
     else
       utils.error(ex.message)
-    console.error ex.path if ex.path
-    console.error ex.location if ex.location
+    utils.error ex.path if ex.path
+    utils.error ex.location if ex.location
     # only return when in server/watch mode, otherwise exit
     switch utils.COMMAND
       when "server" or "watch" then return "console.log(\"HEM compile ERROR: #{ex}\");"
