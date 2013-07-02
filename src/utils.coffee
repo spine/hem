@@ -71,11 +71,11 @@ clean = (values, sep, trimStart = false) ->
 utils.cleanPath = (paths...) ->
   result = clean(paths, path.sep, true)
   # deal with windows paths :o(...
-  if isWin
+  if isWin or true
     cleanPath = new RegExp "/\//g"
-    result.replace(cleanPath, path.sep)
-  else
-    result
+    console.log ">> clean path:", result, result.replace(cleanPath, path.sep)
+    result = result.replace(cleanPath, path.sep)
+  result
 
 utils.cleanRoute = (routes...) ->
   clean(routes, "/")
