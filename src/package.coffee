@@ -147,6 +147,7 @@ class Package
           regexp = new RegExp("^#{value.replace(/\\/g,"\\\\")}")
           targetUrl = @target.replace(regexp,"")
           @route = @parent.applyBaseRoute(route, targetUrl)
+          console.log regexp, @target, targetUrl, @route
 
     # make sure we have a route to use when using server command
     if utils.COMMAND is "server"
