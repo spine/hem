@@ -144,7 +144,7 @@ class Package
       # use the static urls to determine the package @route
       for route, value of @parent.static when not @route
         if utils.startsWith(@target, value)
-          regexp = new RegExp("^#{value}")
+          regexp = new RegExp("^#{value.replace(/\\/g,"\\\\")}")
           targetUrl = @target.replace(regexp,"")
           @route = @parent.applyBaseRoute(route, targetUrl)
 

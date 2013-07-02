@@ -73,7 +73,6 @@ utils.cleanPath = (paths...) ->
   # deal with windows paths :o(...
   if isWin or true
     cleanPath = new RegExp /\//g
-    console.log ">> clean path:", result, result.replace(cleanPath, path.sep)
     result = result.replace(cleanPath, path.sep)
   result
 
