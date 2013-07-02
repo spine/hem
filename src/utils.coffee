@@ -4,7 +4,7 @@ fs    = require('fs')
 utils = {}
 
 # check for windows :o(...
-isWin = !!require('os').platform.match(/^win/)
+isWin = !!require('os').platform().match(/^win/)
 
 utils.flatten = flatten = (array, results = []) ->
   for item in array
