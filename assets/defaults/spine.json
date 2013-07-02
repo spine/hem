@@ -1,6 +1,7 @@
 {
     "root": "", 
     "route": "/",
+
     "version": { 
       "type": "package",
       "files": [ "public/index.html" ]

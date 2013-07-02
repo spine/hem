@@ -3,6 +3,9 @@ path  = require('path')
 fs    = require('fs')
 utils = {}
 
+# check for windows :o(...
+isWin = !!require('os').platform.match(/^win/)
+
 utils.flatten = flatten = (array, results = []) ->
   for item in array
     if Array.isArray(item)
@@ -39,7 +42,7 @@ utils.extend = extend = (a, b) ->
   return a
 
 utils.loadAsset = (asset) ->
-  return require("../assets/" + asset)
+  require("../assets/" + asset)
 
 utils.isDirectory = (dir) ->
   try
@@ -66,7 +69,13 @@ clean = (values, sep, trimStart = false) ->
   result
 
 utils.cleanPath = (paths...) ->
-  clean(paths, path.sep, true)
+  result = clean(paths, path.sep, true)
+  # deal with windows paths :o(...
+  if isWin
+    cleanPath = new RegExp "/\//g"
+    result.replace(cleanPath, path.sep)
+  else
+    result
 
 utils.cleanRoute = (routes...) ->
   clean(routes, "/")
