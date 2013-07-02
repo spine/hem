@@ -104,7 +104,7 @@ class Application
   applyRootDir: (value) ->
     values = utils.toArray(value)
     values = values.map (value) =>
-      if utils.startsWith(value, "./")
+      if utils.startsWith(value, "." + path.sep)
         value
       else
         utils.cleanPath(@root, value)

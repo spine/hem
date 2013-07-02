@@ -17,8 +17,8 @@ updateVersionInAppFiles = (files, packages, value) ->
 updateVersionInData = (data, value, pkg) ->
   ext     = path.extname(pkg.target)
   name    = path.basename(pkg.target, ext)
-  match   = new RegExp("=(\"|')#{name}[^\"']?#{ext}(\"|')")
-  replace = "=$1#{name}.#{value}#{ext}$2"
+  match   = new RegExp("=(\"|')(.*/?)#{name}[^\"']?#{ext}(\"|')")
+  replace = "=$1$2#{name}.#{value}#{ext}$3"
   # perform replace
   if data.match(match)
     utils.log "> found target: #{pkg.target}"
