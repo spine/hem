@@ -27,7 +27,8 @@ server.middleware = (applications, options) ->
   for route, value of options.routes
     if fs.existsSync(value)
       utils.info "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
-      statics.use(route, connect.static(value))
+      statics.use(route, checkForRedirect())
+      statics.use(route, connect.static(value) )
     else
       utils.errorAndExit "The folder #{value} does not exist."
 
@@ -59,6 +60,17 @@ server.middleware = (applications, options) ->
 
 
 # ------- Private Functions
+
+checkForRedirect = () ->
+  return (req, res, next) ->
+    pathname = require("url").parse(req.originalUrl).pathname
+    if (req.url is "/" and not utils.endsWith(pathname,"/"))
+      pathname += '/'
+      res.statusCode = 301
+      res.setHeader('Location', pathname)
+      res.end('Redirecting to ' + pathname)
+    else
+      next()
 
 createRoutingProxy = (options) ->
   proxy = new httpProxy.RoutingProxy()

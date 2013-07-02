@@ -211,7 +211,13 @@ class JsPackage extends Package
       @handleCompileError(ex)
 
   compileModules: ->
+
     # TODO use detective....??
+    # another approach is to just load everything placed in node_modules??
+    # and then look for it locally require(Module._findPath("spine", [process.cwd() + '/node_modules']))
+    #
+    # or should hem should just be installed along with project??
+
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@paths)
     _modules  = @depend.resolve().concat(_stitch.resolve())
@@ -229,16 +235,20 @@ class JsPackage extends Package
     # check if folder or file 
     results = []
     for file in files
-      slash = if parentDir is "" then "" else path.sep
-      file  = parentDir + slash + file
-      if fs.existsSync(file)
-        stats = fs.lstatSync(file)
-        if (stats.isDirectory())
-          # get directory contents
-          dir = fs.readdirSync(file)
-          results.push @compileLibs(dir, file)
-        else if stats.isFile() and path.extname(file) in ['.js','.coffee']
-          results.push fs.readFileSync(file, 'utf8')
+      # treat as normal javascript
+      if utils.endsWith(file,";")
+        results.join(file)
+      # else load as file/dir
+      else
+        slash = if parentDir is "" then "" else path.sep
+        file  = parentDir + slash + file
+        if fs.existsSync(file)
+          stats = fs.lstatSync(file)
+          if (stats.isDirectory())
+            dir = fs.readdirSync(file)
+            results.push @compileLibs(dir, file)
+          else if stats.isFile() and path.extname(file) in ['.js','.coffee']
+            results.push fs.readFileSync(file, 'utf8')
     results.join("\n")
 
   getWatchedDirs: ->
