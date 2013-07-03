@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "stiches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": [
     "spine",
@@ -47,6 +47,7 @@
     "jade": "~0.30",
     "stylus": "~0.32.0",
     "eco": "1.1.0-rc-3",
-    "karma": "~0.8.6"
+    "karma": "~0.8.6",
+    "mkdirp": "~0.3.5"
   }
 }

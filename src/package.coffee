@@ -173,7 +173,11 @@ class Package
     extra = (utils.COMPRESS and " <b>--using compression</b>") or ""
     utils.log("- Building target: <yellow>#{@target}</yellow>#{extra}")
     source = @compile()
-    fs.writeFileSync(@target, source) if source and write
+    if source and write
+      dirname = path.dirname(@target)
+      unless fs.existsSync(dirname)
+        require('mkdirp').sync(dirname)
+      fs.writeFileSync(@target, source) 
     source
 
   watch: ->
@@ -212,11 +216,11 @@ class JsPackage extends Package
 
   compileModules: ->
 
-    # TODO use detective....??
-    # another approach is to just load everything placed in node_modules??
-    # and then look for it locally require(Module._findPath("spine", [process.cwd() + '/node_modules']))
-    #
-    # or should hem should just be installed along with project??
+    # TODO use detective to load only those modules that are required ("required")?
+    # or use the modules [] to specifiy which modules if any to load? or
+    # set to false to never load any node_modules even if they are required in 
+    # javascript files. Would have to determine files needed from the stitched 
+    # files first...
 
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@paths)

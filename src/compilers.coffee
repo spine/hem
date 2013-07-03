@@ -3,6 +3,11 @@ path      = require('path')
 utils     = require('./utils')
 compilers = {}
 
+# TODO: wondering if we should make it so that the additional compilers are checked at runtim
+# if the are present. One approach is to install hem inside the project using it. Or another is
+# to require from the process.cwd() node_modules folder, assuming what is needed is installed there.
+# TODO: look for it locally require(Module._findPath("spine", [process.cwd() + '/node_modules']))
+
 compilers.js = compilers.css = (path) ->
   fs.readFileSync path, 'utf8'
 
@@ -29,10 +34,6 @@ eco = require 'eco'
 
 compilers.eco = (path) ->
   content = eco.precompile fs.readFileSync path, 'utf8'
-  # TODO: wrap this in a function to be able to call jQuery
-  # and store the module.id and values in the data attribute,
-  # then have some way of calling replace with the same view
-  # and function call with livereload
   """
   var content = #{content};
   module.exports = content;
