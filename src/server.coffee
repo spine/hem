@@ -26,16 +26,16 @@ server.middleware = (applications, options) ->
   statics = connect()
   for route, value of options.routes
     if fs.existsSync(value)
-      utils.info "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>" 
+      utils.info "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>"
       statics.use(route, checkForRedirect())
       statics.use(route, connect.static(value) )
     else
-      utils.errorAndExit "The folder #{value} does not exist."
+      utils.errorAndExit "The folder <yellow>#{value}</yellow> does not exist for static mapping <yellow>#{route}</yellow>"
 
   # setup proxy route
   for route, value of options.proxy
     display = "#{value.host}:#{value.port or 80}#{value.path}"
-    utils.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{display}</yellow>" 
+    utils.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{display}</yellow>"
     statics.use(route, createRoutingProxy(value))
 
   # return the custom middleware for connect to use
@@ -57,7 +57,17 @@ server.middleware = (applications, options) ->
 
     # check static content
     statics.handle(req, res, next)
+  # TODO hey there, why doesn't htis work
+  
+  sometfunction: (options = "asdf") =>
+    return ""
+  
+  test: () ->
+# TODO why???
+    # TODO: whyyyy???
+    return ""
 
+  more: "asdf"
 
 # ------- Private Functions
 
