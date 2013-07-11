@@ -82,19 +82,16 @@ class Package
     fs.unlinkSync(@target) if fs.existsSync(@target)
 
   build: (minify = false, versionAddOn) ->
-    # TODO: add an option to add timestamp or other string to the target js and css files
-    #if versionAddOn
-      #@target += "-#{versionAddOn}"
     console.log "Building '#{@name}' target: #{@target}"
     source = @compile(minify)
     fs.writeFileSync(@target, source) if source
     
   watch: ->
     console.log "Watching '#{@name}'"
+    watchOptions = { persistent: true, interval: 1000, ignoreDotFiles: true }
     for dir in (path.dirname(lib) for lib in @libs).concat @paths
-      # TODO: handle symlink files/directories here??
       continue unless fs.existsSync(dir)
-      require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
+      require('watch').watchTree dir, watchOptions, (file, curr, prev) =>
         @build() if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
 
   middleware: (debug) =>
