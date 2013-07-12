@@ -97,8 +97,23 @@ class Hem
       if (typeof value is 'string')
         # make sure path exists
         if fs.existsSync(value)
-          console.log "Map directory '#{value}' to #{url}" if argv.v
-          app.use(url, connect.static(value))
+          # test if file is directory or file....
+          if fs.lstatSync(value).isDirectory()
+            console.log "Map directory '#{value}' to #{url}" if argv.v
+            app.use(url, connect.static(value))
+          else
+            console.log "Fallback resource '#{value}' for #{url}" if argv.v
+            app.use(url, do (value) ->
+              (req, res) ->
+                fs.readFile(value, (err, data) ->
+                  if err
+                    res.writeHead(404)
+                    res.end(JSON.stringify(err))
+                    return
+                  res.writeHead(200)
+                  res.end(data)
+                )
+            )
         else
           console.log "ERROR: The folder #{value} does not exist."
           process.exit(1)
