@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "stiches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": ["spine", "commonsJS", "coffeescript", "stylus", "jade", "eco", "testacular", "jasmine"],
   "contributors": ["maccman", "aeischeid", "cengebretson"],
