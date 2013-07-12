@@ -1,4 +1,5 @@
 fs           = require('fs')
+file         = require('file')
 path         = require('path')
 uglify       = require('uglify-js')
 stitchFile   = require('../assets/stitch')
@@ -23,10 +24,15 @@ class Package
     # determine content type based on target file name
     @contentType = mime.lookup(@target)
     # set correct compiler based on mime type, set @compile = javascriptCompiler
+    # TODO: would it not be better to just have a @get_type() function and do a switch on it?
     if @isJavascript()
       @compile = @compileJavascript
-    else
+    else if @isCss()
       @compile = @compileCss
+    else if @isCacheManifest()
+      @compile = @compileCache
+    else
+      throw new Error "Package '#{@name}' does not have any compiler"
 
   compileModules: ->
     @depend or= new Dependency(@modules)
@@ -60,11 +66,33 @@ class Package
     catch ex
       @handleCompileError(ex)
 
-  compileCache: (packages, versionAddOn)->
-    #start with a date header
-    #define content...
-    #fs.writeFileSync('app.cache', content) if content
-  
+  compileCache: ->
+    # date header
+    content = ['CACHE MANIFEST', '# ' + new Date(), 'CACHE:']
+    # define the content
+    root_path = @paths[0]
+
+    # filter for all non hidden files and non-manifest files
+    allowed_file = (filename) ->
+      hidden_file = filename[0] is '.'
+      cache_file =  mime.lookup(filename) is 'text/cache-manifest'
+      not hidden_file and not cache_file
+
+    file.walkSync root_path, (current, subdirs, filenames) ->
+      return unless filenames?
+      for filename in filenames when allowed_file(filename)
+        full_path = current + '/' + filename
+        result = full_path. # TODO: we could use a regex here instead of this
+          # replace "./www/blah/blah" with blah/blah
+          replace(root_path + '/', '').
+          # replace "www/blah/blah" with blah/blah
+          replace root_path.replace('./','') + '/', ''
+        content.push result
+
+    # all resources not listed in the above cache will be network accessible
+    content.push 'NETWORK:', '*'
+    content.join "\n"
+
   handleCompileError: (ex) ->
     console.error ex.message
     console.error ex.path if ex.path
@@ -77,6 +105,12 @@ class Package
 
   isJavascript: ->
     @contentType is "application/javascript"
+
+  isCss: ->
+    @contentType is "text/css"
+
+  isCacheManifest: ->
+    @contentType is "text/cache-manifest"
 
   unlink: ->
     fs.unlinkSync(@target) if fs.existsSync(@target)
