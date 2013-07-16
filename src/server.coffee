@@ -26,9 +26,23 @@ server.middleware = (applications, options) ->
   statics = connect()
   for route, value of options.routes
     if fs.existsSync(value)
-      utils.info "- Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>"
-      statics.use(route, checkForRedirect())
-      statics.use(route, connect.static(value) )
+      # test if file is directory or file....
+      if fs.lstatSync(value).isDirectory()
+        utils.info "- Mapping static <yellow>#{route}</yellow> to dir <yellow>#{value}</yellow>"
+        statics.use(route, checkForRedirect())
+        statics.use(route, connect.static(value) )
+      else
+        utils.info "- Mapping static <yellow>#{route}</yellow> to resource <yellow>#{value}</yellow>"
+        statics.use route, do (value) ->
+          (req, res) ->
+            fs.readFile value, (err, data) ->
+              if err
+                res.writeHead(404)
+                res.end(JSON.stringify(err))
+                return
+              res.writeHead(200)
+              res.end(data)
+            
     else
       utils.errorAndExit "The folder <yellow>#{value}</yellow> does not exist for static mapping <yellow>#{route}</yellow>"
 

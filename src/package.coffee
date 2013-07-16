@@ -181,9 +181,10 @@ class Package
     source
 
   watch: ->
+    watchOptions = { persistent: true, interval: 1000, ignoreDotFiles: true }
     for dir in @getWatchedDirs()
       continue unless fs.existsSync(dir)
-      require('watch').watchTree dir, { persistent: true, interval: 1000 },  (file, curr, prev) =>
+      require('watch').watchTree dir, watchOptions,  (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           @build()
 
