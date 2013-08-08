@@ -71,17 +71,6 @@ server.middleware = (applications, options) ->
 
     # check static content
     statics.handle(req, res, next)
-  # TODO hey there, why doesn't htis work
-  
-  sometfunction: (options = "asdf") =>
-    return ""
-  
-  test: () ->
-# TODO why???
-    # TODO: whyyyy???
-    return ""
-
-  more: "asdf"
 
 # ------- Private Functions
 
