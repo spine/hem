@@ -92,7 +92,9 @@ class Hem
     # quick check to make sure slug file exists
     if fs.existsSync(slug)
       options = @readSlug(slug)
-      @options = utils.extend(options, @options)
+      options.hem?.port or= @options.hem.port
+      options.hem?.host or= @options.hem.host
+      @options = options
       # make sure we are in same directory as slug
       @homeDir = path.dirname(path.resolve(process.cwd() + "/"  + slug))
       process.chdir(@homeDir)
