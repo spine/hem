@@ -74,7 +74,6 @@ class Hem
   options:
     hem:
       port: 9294
-      host: "localhost"
 
   # emtpy applications list
   apps: []
@@ -115,7 +114,7 @@ class Hem
   # ------- Command Functions
 
   server: ->
-    value = "http://#{@options.hem.host or "localhost"}:#{@options.hem.port}"
+    value = "http://#{@options.hem.host or "*"}:#{@options.hem.port}"
     utils.log "Starting Server at <blue>#{value}</blue>"
     server.start(@apps, @options.hem)
 
