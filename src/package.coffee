@@ -153,15 +153,13 @@ class Package
       utils.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>") unless @route
 
   handleCompileError: (ex) ->
-    if ex.stack
-      utils.log(ex.stack)
-    else
-      utils.error(ex.message)
-    utils.error ex.path if ex.path
-    utils.error ex.location if ex.location
+    # TODO: construct better error message...
+    # TOTO: having some problems with sty here, hmmm....
+    utils.error(ex.message)
+    utils.error(ex.path) if ex.path
     # only return when in server/watch mode, otherwise exit
     switch utils.COMMAND
-      when "server" or "watch" then return "console.log(\"HEM compile ERROR: #{ex}\");"
+      when "server" or "watch" then return "console.log(\"HEM compile ERROR: #{ex}\n#{ex.path}\");"
       else process.exit(1)
 
   unlink: ->
