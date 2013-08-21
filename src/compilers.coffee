@@ -131,10 +131,8 @@ compilers.env = (path) ->
   for key of envhash
     if process.env[key]
       envhash[key] = process.env[key]
-      utils.info "- Set env <yellow>#{key}</yellow> to <red>#{envhash[key]}</red>"
     if packjson[key]
       envhash[key] = packjson[key]
-      utils.info "  - Set env <yellow>#{key}</yellow> to <red>#{envhash[key]}</red>"
   # return javascript module
   return "module.exports = " + JSON.stringify(envhash)
 

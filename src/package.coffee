@@ -93,7 +93,13 @@ class Application
 
   watch: ->
     utils.log("Watching application: <green>#{@name}</green>")
-    pkg.watch() for key, pkg of @packages
+    dirs = (pkg.watch() for key, pkg of @packages)
+    # make sure dirs has valid values
+    if dirs.length 
+      utils.info("- Watching directories: <yellow>#{dirs}</yellow>")
+    else
+      utils.info("- No directories to watch...")
+
 
   version: ->
     utils.log("Versioning application: <green>#{@name}</green>")
@@ -195,6 +201,7 @@ class Package
       require('watch').watchTree dir, watchOptions,  (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           @build()
+    dirs
 
   getWatchedDirs: ->
     return @paths
