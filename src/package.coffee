@@ -1,6 +1,7 @@
 fs         = require('fs')
 path       = require('path')
-uglify     = require('uglify-js')
+uglifyjs   = require('uglify-js')
+uglifycss  = require('uglifycss')
 Dependency = require('./dependency')
 Stitch     = require('./stitch')
 utils      = require('./utils')
@@ -216,7 +217,7 @@ class JsPackage extends Package
   compile: ->
     try
       result = [@compileLibs(), @compileModules(), @after].join("\n")
-      result = uglify(result) if utils.COMPRESS
+      result = uglifyjs(result) if utils.COMPRESS
       result
     catch ex
       @handleCompileError(ex)
@@ -291,8 +292,9 @@ class CssPackage extends Package
         _path  = require.resolve(path.resolve(_path))
         delete require.cache[_path]
         result.push require(_path)
-      # TODO: do we want a minify option for css or is that built into the compilers??
       result.join("\n")
+      # minify 
+      uglifycss(result) if utils.COMPRESS
     catch ex
       @handleCompileError(ex)
 

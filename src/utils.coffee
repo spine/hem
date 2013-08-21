@@ -23,6 +23,13 @@ utils.arrayToString = (value = "") ->
   else
     value
 
+utils.removeDuplicateValues = (array) ->
+  newArray = []
+  for value in array 
+    if value not in array
+      newArray.push(value)
+  newArray
+
 utils.toArray = (value = []) ->
   if Array.isArray(value) then value else [value]
 
@@ -89,8 +96,8 @@ utils.log = (message) ->
 utils.info = (message) ->
   console.log sty.parse(message) if @VERBOSE
 
-utils.error = (message) ->
-  console.log "#{sty.red 'ERROR:'} #{sty.parse(message)}"
+utils.error = (message, parse = true) ->
+  console.log "#{sty.red 'ERROR:'} #{parse and sty.parse(message) or message}"
 
 utils.errorAndExit = (error) ->
   utils.error(error)
