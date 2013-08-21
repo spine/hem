@@ -294,7 +294,7 @@ class CssPackage extends Package
         result.push require(_path)
       result.join("\n")
       # minify 
-      uglifycss(result) if utils.COMPRESS
+      uglifycss.processString(result) if utils.COMPRESS
     catch ex
       @handleCompileError(ex)
 
