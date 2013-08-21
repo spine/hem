@@ -3,7 +3,7 @@ path      = require('path')
 utils     = require('./utils')
 compilers = {}
 
-# TODO: wondering if we should make it so that the additional compilers are checked at runtim
+# TODO: wondering if we should make it so that the additional compilers are checked at runtime
 # if the are present. One approach is to install hem inside the project using it. Or another is
 # to require from the process.cwd() node_modules folder, assuming what is needed is installed there.
 # TODO: look for it locally require(Module._findPath("spine", [process.cwd() + '/node_modules']))
@@ -25,7 +25,7 @@ try
     catch err
       err.message = "Coffeescript Error: " + err.message
       err.path    = "Coffeescript Path:  " + path
-      err.path = err.path + ":" + (err.location.first_line + 1) if err.location
+      err.path    = err.path + ":" + (err.location.first_line + 1) if err.location
       throw err
 catch err
 
@@ -56,8 +56,8 @@ compilers.jeco = (path) ->
   };
   """
 
-require.extensions['.jeco'] = require.extensions['.eco']
 # require.extensions['.eco'] in eco package contains the function
+require.extensions['.jeco'] = require.extensions['.eco']
 
 compilers.html = (path) ->
   content = fs.readFileSync(path, 'utf8')
@@ -94,8 +94,6 @@ try
     stylus(content)
       .include(path.dirname(_path))
       # TODO: are there other settings we should be looking at??
-      .set('include css', ('--includeCss' in process.argv))
-      .set('compress', utils.COMPRESS)
       .render((err, css) -> 
         throw err if err
         result = css
