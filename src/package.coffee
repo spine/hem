@@ -182,7 +182,15 @@ class Package
 
   watch: ->
     watchOptions = { persistent: true, interval: 1000, ignoreDotFiles: true }
-    for dir in @getWatchedDirs()
+    # get dirs to watch
+    for fileOrDir in @getWatchedDirs()
+      if utils.isDirectory(fileOrDir)
+        dirs.push fileOrDir
+      else
+        dirs.push path.direname(fileOrDir)
+    dirs = Utils.removeDuplicateValues(dir)
+    # start watch process
+    for dir in dirs
       continue unless fs.existsSync(dir)
       require('watch').watchTree dir, watchOptions,  (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
