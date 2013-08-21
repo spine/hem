@@ -296,7 +296,7 @@ class CssPackage extends Package
       for fileOrDir in @paths
         # if directory loop over all top level files only
         if utils.isDirectory(fileOrDir)
-          for file in fs.readdirSync(fileOrDir)
+          for file in fs.readdirSync(fileOrDir) when require.extensions[path.extname(file)]
             file = path.resolve(fileOrDir, file)
             output.push requireCss(file) unless utils.isDirectory(file)
         else
