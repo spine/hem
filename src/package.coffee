@@ -284,17 +284,28 @@ class CssPackage extends Package
 
   compile: () ->
     try 
-      result = []
-      for _path in @paths
-        # TODO: currently this only works with index files, perhaps someday loop 
-        # over the directory contents and pickup the other files?? though with 
-        # stylus can always get other content by mixins
-        _path  = require.resolve(path.resolve(_path))
-        delete require.cache[_path]
-        result.push require(_path)
-      result.join("\n")
-      # minify 
-      uglifycss.processString(result) if utils.COMPRESS
+      output = []
+
+      # helper function to perform compiles
+      requireCss = (filepath) ->
+        filepath = require.resolve(path.resolve(filepath))
+        delete require.cache[filepath]
+        require(filepath)
+
+      # loop over path values
+      for fileOrDir in @paths
+        # if directory loop over all top level files only
+        if utils.isDirectory(fileOrDir)
+          for file in fs.readdirSync(fileOrDir)
+            file = path.resolve(fileOrDir, file)
+            output.push requireCss(file) unless utils.isDirectory(file)
+        else
+          output.push requireCss(fileOrDir)
+
+      # join and minify 
+      result = output.join("\n")
+      result = uglifycss.processString(result) if utils.COMPRESS
+      result
     catch ex
       @handleCompileError(ex)
 
