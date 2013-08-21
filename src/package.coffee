@@ -298,7 +298,7 @@ class CssPackage extends Package
         if utils.isDirectory(fileOrDir)
           for file in fs.readdirSync(fileOrDir) when require.extensions[path.extname(file)]
             file = path.resolve(fileOrDir, file)
-            output.push requireCss(file) unless utils.isDirectory(file)
+            output.push requireCss(file)
         else
           output.push requireCss(fileOrDir)
 
