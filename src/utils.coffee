@@ -25,8 +25,8 @@ utils.arrayToString = (value = "") ->
 
 utils.removeDuplicateValues = (array) ->
   newArray = []
-  for value in array 
-    if value not in array
+  for value in array
+    if value not in newArray
       newArray.push(value)
   newArray
 
