@@ -12,14 +12,16 @@ lmCache   = {}
 # setup project path
 projectPath = path.resolve process.cwd()
 
+# TODO: test to make sure the project path contains a node_modules folder??
+
 # helper fuction to perform load/caching of modules
 requireLocalModule = (localModule) ->
-  modulePath  = "#{projectPath}/node_modules/#{localModule}"
+  modulePath = "#{projectPath}/node_modules/#{localModule}"
   try 
     lmCache[localModule] or= require modulePath
   catch error
     utils.error("Unable to load <green>#{localModule}</green> module. Try to use 'npm install #{localModule}' in your project directory.")
-    console.log error if utils.VERBOSE
+    console.log(error) if utils.VERBOSE
     process.exit()
 
 ##
