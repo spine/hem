@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "0.4.11",
+  "version": "0.4.12",
   "description": "stiches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": [
     "spine",
@@ -39,7 +39,6 @@
     "fast-detective": "~0.0.2",
     "http-proxy": "~0.10.3",
     "sty": "~0.6.1",
-    "eco": "1.1.0-rc-3",
     "uglifycss": "0.0.5",
     "karma-script-launcher": "~0.1.0",
     "karma-firefox-launcher": "~0.1.0",

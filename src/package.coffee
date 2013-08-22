@@ -245,8 +245,7 @@ class JsPackage extends Package
     _stitch   = new Stitch(@paths)
     _modules  = @depend.resolve().concat(_stitch.resolve())
     if _modules
-      _template = utils.loadAsset('stitch')
-      _template(identifier: @identifier, modules: _modules)
+      _stitch.template(@identifier, _modules)
     else
       ""
 

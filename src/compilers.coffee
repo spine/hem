@@ -64,8 +64,8 @@ compileCoffeescript = (_path, literate = false) ->
 ## Eco and Jeco Compiler
 ##
 
-eco = require 'eco'
 compilers.eco = (_path) ->
+  eco = requireLocalModule('eco')
   content = eco.precompile fs.readFileSync _path, 'utf8'
   """
   var content = #{content};
@@ -73,6 +73,7 @@ compilers.eco = (_path) ->
   """
 
 compilers.jeco = (_path) -> 
+  eco = requireLocalModule('eco')
   content = eco.precompile fs.readFileSync _path, 'utf8'
   """
   module.exports = function(values, data){ 
