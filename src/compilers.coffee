@@ -2,45 +2,78 @@ fs        = require('fs')
 path      = require('path')
 utils     = require('./utils')
 compilers = {}
+lmCache   = {}
 
-# TODO: wondering if we should make it so that the additional compilers are checked at runtime
-# if the are present. One approach is to install hem inside the project using it. Or another is
-# to require from the process.cwd() node_modules folder, assuming what is needed is installed there.
-# TODO: look for it locally require(Module._findPath("spine", [process.cwd() + '/node_modules']))
+# Load the modules from the project directory (instead of from the hem 
+# node_modules). This allows a lot of the different javascript/css pre
+# compilers to be installed in the project vs having to be included with
+# the hem package.
 
-compilers.js = compilers.css = (path) ->
-  fs.readFileSync path, 'utf8'
+# setup project path
+projectPath = path.resolve process.cwd()
+
+# helper fuction to perform load/caching of modules
+requireLocalModule = (localModule) ->
+  modulePath  = "#{projectPath}/node_modules/#{localModule}"
+  try 
+    lmCache[localModule] or= require modulePath
+  catch error
+    utils.error("Unable to load <green>#{localModule}</green> module. Try to use 'npm install #{localModule}' in your project directory.")
+    console.log error if utils.VERBOSE
+    process.exit()
+
+##
+## Basic javascript/css files 
+##
+
+compilers.js = compilers.css = (_path) ->
+  fs.readFileSync _path, 'utf8'
 
 require.extensions['.css'] = (module, filename) ->
   source = JSON.stringify(compilers.css(filename))
   module._compile "module.exports = #{source}", filename
 
-try
-  cs = require 'coffee-script'
-  compilers.coffee    = (path) -> compileCoffeescript(path)
-  compilers.litcoffee = (path) -> compileCoffeescript(path, true)
-  compileCoffeescript = (path, literate = false) ->
-    try
-      cs.compile(fs.readFileSync(path, 'utf8'), filename: path, literate: literate)
-    catch err
-      err.message = "Coffeescript Error: " + err.message
-      err.path    = "Coffeescript Path:  " + path
-      err.path    = err.path + ":" + (err.location.first_line + 1) if err.location
-      throw err
-catch err
+##
+## HTML files
+##
 
-# TODO: make eco conditional with try/catch
-eco = require 'eco'
+compilers.html = (_path) ->
+  content = fs.readFileSync(_path, 'utf8')
+  "module.exports = #{JSON.stringify(content)};\n"
 
-compilers.eco = (path) ->
-  content = eco.precompile fs.readFileSync path, 'utf8'
+require.extensions['.html'] = (module, filename) ->
+  module._compile compilers.html(filename), filename
+
+##
+## Compile Coffeescript
+##
+
+cs = require 'coffee-script'
+compilers.coffee    = (_path) -> compileCoffeescript(_path)
+compilers.litcoffee = (_path) -> compileCoffeescript(_path, true)
+compileCoffeescript = (_path, literate = false) ->
+  try
+    cs.compile(fs.readFileSync(_path, 'utf8'), filename: _path, literate: literate)
+  catch err
+    err.message = "Coffeescript Error: " + err.message
+    err.path    = "Coffeescript Path:  " + _path
+    err.path    = err.path + ":" + (err.location.first_line + 1) if err.location
+    throw err
+
+##
+## Eco and Jeco Compiler
+##
+
+compilers.eco = (_path) ->
+  eco = requireLocalModule('eco')
+  content = eco.precompile fs.readFileSync _path, 'utf8'
   """
   var content = #{content};
   module.exports = content;
   """
 
-compilers.jeco = (path) -> 
-  content = eco.precompile fs.readFileSync path, 'utf8'
+compilers.jeco = (_path) -> 
+  content = eco.precompile fs.readFileSync _path, 'utf8'
   """
   module.exports = function(values, data){ 
     var $  = jQuery, result = $();
@@ -59,80 +92,81 @@ compilers.jeco = (path) ->
 # require.extensions['.eco'] in eco package contains the function
 require.extensions['.jeco'] = require.extensions['.eco']
 
-compilers.html = (path) ->
-  content = fs.readFileSync(path, 'utf8')
-  "module.exports = #{JSON.stringify(content)};\n"
+##
+## Jade Compiler
+##
 
-require.extensions['.html'] = (module, filename) ->
-  module._compile compilers.html(filename), filename
+compilers.jade = (_path) ->
+  jade    = requireLocalModule('jade')
+  content = fs.readFileSync(_path, 'utf8')
+  try
+    template = jade.compile content,
+      filename: _path
+      # compileDebug: compilers.DEBUG
+      client: true
+    source = template.toString()
+    "module.exports = #{source};"
+  catch ex
+    throw new Error("#{ex} in #{_path}")
 
-try
-  jade = require('jade')
-  
-  compilers.jade = (path) ->
-    content = fs.readFileSync(path, 'utf8')
-    try
-      template = jade.compile content,
-        filename: path
-        # compileDebug: compilers.DEBUG
-        client: true
-      source = template.toString()
-      "module.exports = #{source};"
-    catch ex
-      throw new Error("#{ex} in #{path}")
+require.extensions['.jade'] = (module, filename) ->
+  module._compile compilers.jade(filename), filename
 
-  require.extensions['.jade'] = (module, filename) ->
-    module._compile compilers.jade(filename), filename
-catch err
+##
+## Stylus Compiler
+##
 
-try
-  stylus = require('stylus')
-  
-  compilers.styl = (_path) ->
-    content = fs.readFileSync(_path, 'utf8')
-    result = ''
-    stylus(content)
-      .include(path.dirname(_path))
-      # TODO: are there other settings we should be looking at??
-      .render((err, css) -> 
-        throw err if err
-        result = css
-      )
-    result
-    
-  require.extensions['.styl'] = (module, filename) -> 
-    source = JSON.stringify(compilers.styl(filename))
-    module._compile "module.exports = #{source}", filename
-catch err
-
-try
-  less = require('less')
-
-  compilers.less = (_path) ->
-    content = fs.readFileSync(_path, 'utf8')
-    result = ''
-    less.render content, (err, css) ->
+compilers.stylus = (_path) ->
+  stylus  = requireLocalModule('stylus')
+  content = fs.readFileSync(_path, 'utf8')
+  result  = ''
+  stylus(content)
+    .include(path.dirname(_path))
+    .render((err, css) -> 
       throw err if err
       result = css
-    result
+    )
+  result
+  
+require.extensions['.styl'] = (module, filename) -> 
+  source = JSON.stringify(compilers.stylus(filename))
+  module._compile "module.exports = #{source}", filename
 
-  require.extensions['.less'] = (module, filename) -> 
-    source = JSON.stringify(compilers.less(filename))
-    module._compile "module.exports = #{source}", filename
-catch err
+##
+## Less Compiler
+##
 
-# create a javascript module based off key values found in environment
+compilers.less = (_path) ->
+  less    = requireLocalModule('less')
+  content = fs.readFileSync(_path, 'utf8')
+  result  = ''
+  less.render content, (err, css) ->
+    throw err if err
+    result = css
+  result
 
-compilers.env = (path) ->
-  content  = fs.readFileSync(path, 'utf8')
+require.extensions['.less'] = (module, filename) -> 
+  source = JSON.stringify(compilers.less(filename))
+  module._compile "module.exports = #{source}", filename
+
+##
+## Environment Compiler
+## 
+
+# This creates a javascript module based off key values found in environment
+# variables or in the package.json file. Usefule for inserting build info
+# that would come frome a CI server (like jenkins)
+
+compilers.env = (_path) ->
+  content  = fs.readFileSync(_path, 'utf8')
   envhash  = JSON.parse(content)
-  packjson = JSON.parse(fs.readFileSync('./package.json', 'utf8'))
+  packjson = JSON.parse(fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8'))
   # loop over values in file
   for key of envhash
-    if process.env[key]
-      envhash[key] = process.env[key]
     if packjson[key]
       envhash[key] = packjson[key]
+    if process.env[key]
+      envhash[key] = process.env[key]
   # return javascript module
   return "module.exports = " + JSON.stringify(envhash)
 
