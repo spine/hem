@@ -13,6 +13,7 @@ lmCache   = {}
 projectPath = path.resolve process.cwd()
 
 # TODO: test to make sure the project path contains a node_modules folder??
+# TODO: provide compiler options in slug file!
 
 # helper fuction to perform load/caching of modules
 requireLocalModule = (localModule) ->
@@ -105,7 +106,7 @@ compilers.jade = (_path) ->
   try
     template = jade.compile content,
       filename: _path
-      # compileDebug: compilers.DEBUG
+      compileDebug: utils.COMMAND is "server"
       client: true
     source = template.toString()
     "module.exports = #{source};"
