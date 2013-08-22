@@ -64,7 +64,7 @@ compileCoffeescript = (_path, literate = false) ->
 ## Eco and Jeco Compiler
 ##
 
-eco = require('eco')
+eco = require 'eco'
 compilers.eco = (_path) ->
   content = eco.precompile fs.readFileSync _path, 'utf8'
   """

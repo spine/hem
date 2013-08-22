@@ -160,14 +160,17 @@ class Package
       utils.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>") unless @route
 
   handleCompileError: (ex) ->
-    # TODO: construct better error message...
-    # TOTO: having some problems with sty here, hmmm....
+    # TODO: construct better error message, one that works for all precompilers,
+    # having some problems with sty here, hmmm....
     utils.error(ex.message)
     utils.error(ex.path) if ex.path
     # only return when in server/watch mode, otherwise exit
     switch utils.COMMAND
-      when "server" or "watch" then return "console.log(\"HEM compile ERROR: #{ex}\n#{ex.path}\");"
-      else process.exit(1)
+      when "server" or "watch"
+        # TODO: only return this for javascript
+        return "console.log(\"HEM compile ERROR: #{ex}\n#{ex.path}\");"
+      else
+        process.exit(1)
 
   unlink: ->
     if fs.existsSync(@target)
