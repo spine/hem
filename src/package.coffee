@@ -228,7 +228,7 @@ class JsPackage extends Package
   compile: ->
     try
       result = [@compileLibs(), @compileModules(), @after].join("\n")
-      result = uglifyjs.minify(result, {fromString: true}) if utils.COMPRESS
+      result = uglifyjs.minify(result, {fromString: true}).code if utils.COMPRESS
       result
     catch ex
       @handleCompileError(ex)
