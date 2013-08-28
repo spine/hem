@@ -16,12 +16,14 @@ projectPath = path.resolve process.cwd()
 # TODO: provide compiler options in slug file!
 
 # helper fuction to perform load/caching of modules
-requireLocalModule = (localModule) ->
+requireLocalModule = (localModule, _path) ->
   modulePath = "#{projectPath}/node_modules/#{localModule}"
   try 
     lmCache[localModule] or= require modulePath
   catch error
-    utils.error("Unable to load <green>#{localModule}</green> module. Try to use 'npm install #{localModule}' in your project directory.")
+    relativePath = path.relative(projectPath, _path)
+    utils.error("Unable to load <green>#{localModule}</green> module to compile <yellow>#{relativePath}</yellow>")
+    utils.error("Try to use 'npm install #{localModule}' in your project directory.")
     console.log(error) if utils.VERBOSE
     process.exit()
 
@@ -68,7 +70,7 @@ compileCoffeescript = (_path, literate = false) ->
 ##
 
 compilers.eco = (_path) ->
-  eco = requireLocalModule('eco')
+  eco = requireLocalModule('eco', _path)
   content = eco.precompile fs.readFileSync _path, 'utf8'
   """
   var content = #{content};
@@ -76,7 +78,7 @@ compilers.eco = (_path) ->
   """
 
 compilers.jeco = (_path) -> 
-  eco = requireLocalModule('eco')
+  eco = requireLocalModule('eco', _path)
   content = eco.precompile fs.readFileSync _path, 'utf8'
   """
   module.exports = function(values, data){ 
@@ -101,7 +103,7 @@ require.extensions['.jeco'] = require.extensions['.eco']
 ##
 
 compilers.jade = (_path) ->
-  jade    = requireLocalModule('jade')
+  jade    = requireLocalModule('jade', _path)
   content = fs.readFileSync(_path, 'utf8')
   try
     template = jade.compile content,
@@ -121,7 +123,7 @@ require.extensions['.jade'] = (module, filename) ->
 ##
 
 compilers.stylus = (_path) ->
-  stylus  = requireLocalModule('stylus')
+  stylus  = requireLocalModule('stylus', _path)
   content = fs.readFileSync(_path, 'utf8')
   result  = ''
   stylus(content)
@@ -141,7 +143,7 @@ require.extensions['.styl'] = (module, filename) ->
 ##
 
 compilers.less = (_path) ->
-  less    = requireLocalModule('less')
+  less    = requireLocalModule('less', _path)
   content = fs.readFileSync(_path, 'utf8')
   result  = ''
   less.render content, (err, css) ->

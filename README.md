@@ -30,12 +30,12 @@ Other goals and features...
 
 In addition to the above ideas, I want to try to get some of the features below integrated into hem...
 
-- [ ] Easier to setup proxy
+- [*] Easier to setup proxy
 - [ ] livereload abilities for css and possibly js
 - [ ] easier testing setup and execution (karma/phantomjs)
 - [ ] integrate spine.app commands into hem
 - [ ] update examples/documention
-- [ ] ability to act as middleware for connect/express apps
+- [*] ability to act as middleware for connect/express apps
 - [ ] versioning abilities
 - [ ] manifest creation
 - [ ] really do need to write some tests for hem
@@ -45,7 +45,7 @@ Will look into but not 100% sure
 
 These would be nice to have things, will have to research it more in the future...
 
-- [ ] easier ways to add your own compilers/extensions
+- [*] easier ways to add your own compilers/extensions
 - [ ] source mapping
 - [ ] possibly look at AMD vs commonjs???
 - [ ] jshint/lint checks??
