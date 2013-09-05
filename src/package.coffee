@@ -47,7 +47,7 @@ class Package
   compileJavascript: (minify = false) ->
     try
       result = [@compileLibs(), @compileModules(), @jsAfter].join("\n")
-      result = uglify(result) if minify
+      result = uglify.minify(result, fromString: true).code if minify
       result
     catch ex
       @handleCompileError(ex)
