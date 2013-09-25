@@ -26,18 +26,26 @@ catch err
 eco = require 'eco'
 
 compilers.eco = (path) ->
-  content = eco.precompile fs.readFileSync path, 'utf8'
-  # TODO: wrap this in a function to be able to call jQuery
-  # and store the module.id and values in the data attribute,
-  # then have some way of calling replace with the same view
-  # and function call with livereload
+  try
+    content = eco.precompile fs.readFileSync path, 'utf8'
+  catch err
+    err = new Error(err)
+    err.message = "eco Error: " + err.message
+    err.path    = "eco Path:  " + path
+    throw err
   """
   var content = #{content};
   module.exports = content;
   """
 
 compilers.jeco = (path) -> 
-  content = eco.precompile fs.readFileSync path, 'utf8'
+  try
+    content = eco.precompile fs.readFileSync path, 'utf8'
+  catch err
+    err = new Error(err)
+    err.message = "jeco Error: " + err.message
+    err.path    = "jeco Path:  " + path
+    throw err
   """
   module.exports = function(values, data){ 
     var $  = jQuery, result = $();
