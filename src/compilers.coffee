@@ -71,7 +71,13 @@ compileCoffeescript = (_path, literate = false) ->
 
 compilers.eco = (_path) ->
   eco = requireLocalModule('eco', _path)
-  content = eco.precompile fs.readFileSync _path, 'utf8'
+  try
+    content = eco.precompile fs.readFileSync _path, 'utf8'
+  catch err
+    err = new Error(err)
+    err.message = "eco Error: " + err.message
+    err.path    = "eco Path:  " + _path
+    throw err
   """
   var content = #{content};
   module.exports = content;
@@ -79,7 +85,13 @@ compilers.eco = (_path) ->
 
 compilers.jeco = (_path) -> 
   eco = requireLocalModule('eco', _path)
-  content = eco.precompile fs.readFileSync _path, 'utf8'
+  try
+    content = eco.precompile fs.readFileSync _path, 'utf8'
+  catch err
+    err = new Error(err)
+    err.message = "jeco Error: " + err.message
+    err.path    = "jeco Path:  " + _path
+    throw err
   """
   module.exports = function(values, data){ 
     var $  = jQuery, result = $();
