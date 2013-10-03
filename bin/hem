@@ -1,9 +1,15 @@
 #!/usr/bin/env node
-var Module = require('module'),
-    fs     = require('fs');
-    
-if (fs.existsSync('./slug.js')) {
-  Module._load('./slug.js');
+
+var path = require('path');
+var fs   = require('fs');
+
+// Try to find a local install
+var hem = path.resolve(process.cwd(), 'node_modules', 'hem', 'lib', 'hem');
+
+// Check if the local install exists else we use the install we are in
+if (!fs.existsSync(hem)) {
+  hem = path.join('..', 'lib', 'hem');
 }
 
-require('../lib/hem').exec();
+// execute hem
+require(hem).exec();
