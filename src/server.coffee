@@ -3,11 +3,13 @@ mime      = require('connect').static.mime
 http      = require('http')
 fs        = require('fs')
 utils     = require('./utils')
+log       = require('./log')
 httpProxy = require('http-proxy')
 server    = {}
 
 # ------- Public Functions
 
+# TODO: pass in hem class instead???
 server.start = (applications, options) ->
     app = connect()
     app.use(server.middleware(applications, options))
@@ -16,9 +18,9 @@ server.start = (applications, options) ->
 server.middleware = (applications, options) ->
   # determine if there is any dynamic or static routes to add
   for hemapp in applications
-    utils.info "> Apply route mappings for application: <green>#{hemapp.name}</green>"
+    log.info "> Apply route mappings for application: <green>#{hemapp.name}</green>"
     for pkg in hemapp.packages
-      utils.info "- Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
+      log.info "- Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
     if hemapp.static
       options.routes = utils.extend(hemapp.static, options.routes)
 
@@ -28,11 +30,11 @@ server.middleware = (applications, options) ->
     if fs.existsSync(value)
       # test if file is directory or file....
       if fs.lstatSync(value).isDirectory()
-        utils.info "- Mapping static <yellow>#{route}</yellow> to dir <yellow>#{value}</yellow>"
+        log.info "- Mapping static <yellow>#{route}</yellow> to dir <yellow>#{value}</yellow>"
         statics.use(route, checkForRedirect())
         statics.use(route, connect.static(value) )
       else
-        utils.info "- Mapping static <yellow>#{route}</yellow> to resource <yellow>#{value}</yellow>"
+        log.info "- Mapping static <yellow>#{route}</yellow> to resource <yellow>#{value}</yellow>"
         statics.use route, do (value) ->
           (req, res) ->
             fs.readFile value, (err, data) ->
@@ -42,14 +44,13 @@ server.middleware = (applications, options) ->
                 return
               res.writeHead(200)
               res.end(data)
-            
     else
-      utils.errorAndExit "The folder <yellow>#{value}</yellow> does not exist for static mapping <yellow>#{route}</yellow>"
+      log.errorAndExit "The folder <yellow>#{value}</yellow> does not exist for static mapping <yellow>#{route}</yellow>"
 
   # setup proxy route
   for route, value of options.proxy
     display = "#{value.host}:#{value.port or 80}#{value.path}"
-    utils.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{display}</yellow>"
+    log.info "- Proxy requests <yellow>#{route}</yellow> to <yellow>#{display}</yellow>"
     statics.use(route, createRoutingProxy(value))
 
   # return the custom middleware for connect to use
