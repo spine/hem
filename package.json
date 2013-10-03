@@ -37,23 +37,15 @@
   "preferGlobal": true,
   "dependencies": {
     "fast-detective": "~0.0.2",
-    "http-proxy": "~0.10.3",
-    "sty": "~0.6.1",
     "uglifycss": "0.0.5",
-    "karma-script-launcher": "~0.1.0",
-    "karma-firefox-launcher": "~0.1.0",
-    "karma-chrome-launcher": "~0.1.0",
-    "karma-html2js-preprocessor": "~0.1.0",
-    "karma-coffee-preprocessor": "~0.1.0",
-    "karma-jasmine": "~0.1.0",
-    "karma-requirejs": "~0.1.0",
-    "karma-phantomjs-launcher": "~0.1.0",
-    "karma": "~0.10.1",
     "mkdirp": "~0.3.5",
-    "watch": "~0.8.0",
-    "connect": "~2.8.5",
-    "optimist": "~0.6.0",
     "coffee-script": "~1.6.3",
-    "uglify-js": "~2.3.6"
+    "connect": "~2.9.0",
+    "http-proxy": "~0.10.3",
+    "uglify-js": "~2.4.0",
+    "karma": "~0.10.2",
+    "sty": "~0.6.1",
+    "optimist": "~0.6.0",
+    "watch": "~0.8.0"
   }
 }
