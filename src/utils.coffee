@@ -1,4 +1,3 @@
-sty   = require('sty')
 path  = require('path')
 fs    = require('fs')
 utils = {}
@@ -85,25 +84,5 @@ utils.cleanPath = (paths...) ->
 
 utils.cleanRoute = (routes...) ->
   clean(routes, "/")
-
-
-
-# ------ Logging Helpers
-
-utils.log = (message) ->
-  console.log sty.parse(message)
-
-utils.info = (message) ->
-  console.log sty.parse(message) if @VERBOSE
-
-utils.error = (message, parse = true) ->
-  console.log "#{sty.red 'ERROR:'} #{parse and sty.parse(message) or message}"
-
-utils.errorAndExit = (error) ->
-  utils.error(error)
-  process.exit(1)
-
-utils.parse = (message) -> 
-  sty.parse(message)
 
 module.exports = utils
