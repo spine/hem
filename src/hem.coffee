@@ -20,7 +20,7 @@ argv = optimist.usage([
   '    check   :check slug file values'
 ].join("\n"))
 .alias('p', 'port').describe('p',':hem server port')
-.alias('c', 'compress').describe('c',':all complications are compressed/minified')
+.alias('c', 'compress').describe('c',':all compilations are compressed/minified')
 .alias('w', 'watch').describe('w',':watch files when running tests')
 .alias('s', 'slug').describe('s',':run hem using a specified slug file')
 .alias('n', 'nocolors').describe('n',':disable color in console output')
