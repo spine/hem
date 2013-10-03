@@ -5,6 +5,8 @@ uglifycss  = require('uglifycss')
 Dependency = require('./dependency')
 Stitch     = require('./stitch')
 utils      = require('./utils')
+log        = require('./log')
+hem        = require('./hem')
 versioning = require('./versioning')
 
 # ------- Parent Classes
@@ -22,7 +24,7 @@ class Application
         # make sure we don't modify the original assets (which is cached by require)
         defaults = utils.extend({}, loadedDefaults)
       catch err
-        utils.error "ERROR: Invalid 'defaults' value provided: " + config.defaults
+        log.error "ERROR: Invalid 'defaults' value provided: " + config.defaults
         process.exit 1
       config = utils.extend(defaults, config)
 
@@ -35,6 +37,8 @@ class Application
       # otherwise just work from top level directory
       else
         @root = ""
+
+    # TODO: do we need to set the resolve the root to a full path?
 
     # make sure route has a value
     @route  or= @applyBaseRoute("/")
@@ -70,7 +74,7 @@ class Application
     if config.version
       verType = versioning[config.version.type]
       unless verType
-        utils.errorAndExit "Incorrect type value for version configuration: (#{config.version.type})"
+        log.errorAndExit "Incorrect type value for version configuration: (#{config.version.type})"
       @versioning = new verType(@, config.version)
 
   isMatchingRoute: (route) ->
@@ -84,29 +88,29 @@ class Application
     return
 
   unlink: ->
-    utils.log("Removing application targets: <green>#{@name}</green>")
+    log("Removing application targets: <green>#{@name}</green>")
     pkg.unlink() for key, pkg of @packages
 
   build: ->
-    utils.log("Building application targets: <green>#{@name}</green>")
+    log("Building application targets: <green>#{@name}</green>")
     pkg.build() for key, pkg of @packages
 
   watch: ->
-    utils.log("Watching application: <green>#{@name}</green>")
+    log("Watching application: <green>#{@name}</green>")
     dirs = (pkg.watch() for key, pkg of @packages)
     # make sure dirs has valid values
     if dirs.length 
-      utils.info("- Watching directories: <yellow>#{dirs}</yellow>")
+      log.info("- Watching directories: <yellow>#{dirs}</yellow>")
     else
-      utils.info("- No directories to watch...")
+      log.info("- No directories to watch...")
 
 
   version: ->
-    utils.log("Versioning application: <green>#{@name}</green>")
+    log("Versioning application: <green>#{@name}</green>")
     if @versioning
       @versioning.update()
     else 
-      utils.errorAndExit "ERROR: Versioning not enabled in slug.json"
+      log.errorAndExit "ERROR: Versioning not enabled in slug.json"
 
   applyRootDir: (value) ->
     values = utils.toArray(value)
@@ -156,16 +160,16 @@ class Package
           @route = @parent.applyBaseRoute(route, targetUrl)
 
     # make sure we have a route to use when using server command
-    if utils.COMMAND is "server"
-      utils.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>") unless @route
+    if hem.argv.command is "server"
+      log.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>") unless @route
 
   handleCompileError: (ex) ->
     # TODO: construct better error message, one that works for all precompilers,
     # having some problems with sty here, hmmm....
-    utils.error(ex.message)
-    utils.error(ex.path) if ex.path
+    log.error(ex.message)
+    log.error(ex.path) if ex.path
     # only return when in server/watch mode, otherwise exit
-    switch utils.COMMAND
+    switch hem.argv.command
       when "server" or "watch"
         # TODO: only return this for javascript
         return "console.log(\"HEM compile ERROR: #{ex}\n#{ex.path}\");"
@@ -174,12 +178,12 @@ class Package
 
   unlink: ->
     if fs.existsSync(@target)
-      utils.info "- removing <yellow>#{@target}</yellow>"
+      log.info "- removing <yellow>#{@target}</yellow>"
       fs.unlinkSync(@target) 
 
   build: (write = true) ->
-    extra = (utils.COMPRESS and " <b>--using compression</b>") or ""
-    utils.log("- Building target: <yellow>#{@target}</yellow>#{extra}")
+    extra = (hem.argv.compress and " <b>--using compression</b>") or ""
+    log("- Building target: <yellow>#{@target}</yellow>#{extra}")
     source = @compile()
     if source and write
       dirname = path.dirname(@target)
@@ -228,7 +232,7 @@ class JsPackage extends Package
   compile: ->
     try
       result = [@compileLibs(), @compileModules(), @after].join("\n")
-      result = uglifyjs.minify(result, {fromString: true}).code if utils.COMPRESS
+      result = uglifyjs.minify(result, {fromString: true}).code if hem.argv.compress
       result
     catch ex
       @handleCompileError(ex)
@@ -314,7 +318,7 @@ class CssPackage extends Package
 
       # join and minify 
       result = output.join("\n")
-      result = uglifycss.processString(result) if utils.COMPRESS
+      result = uglifycss.processString(result) if hem.argv.compress
       result
     catch ex
       @handleCompileError(ex)
