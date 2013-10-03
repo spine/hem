@@ -1,10 +1,11 @@
 fs        = require('fs')
 path      = require('path')
-utils     = require('./utils')
+log       = require('./log')
+hem       = require('./hem')
 compilers = {}
 lmCache   = {}
 
-# Load the modules from the project directory (instead of from the hem 
+# Load the modules from the project directory (instead of from the hem
 # node_modules). This allows a lot of the different javascript/css pre
 # compilers to be installed in the project vs having to be included with
 # the hem package.
@@ -18,17 +19,17 @@ projectPath = path.resolve process.cwd()
 # helper fuction to perform load/caching of modules
 requireLocalModule = (localModule, _path) ->
   modulePath = "#{projectPath}/node_modules/#{localModule}"
-  try 
+  try
     lmCache[localModule] or= require modulePath
   catch error
     relativePath = path.relative(projectPath, _path)
-    utils.error("Unable to load <green>#{localModule}</green> module to compile <yellow>#{relativePath}</yellow>")
-    utils.error("Try to use 'npm install #{localModule}' in your project directory.")
-    console.log(error) if utils.VERBOSE
+    log.error("Unable to load <green>#{localModule}</green> module to compile <yellow>#{relativePath}</yellow>")
+    log.error("Try to use 'npm install #{localModule}' in your project directory.")
+    log.error(error, false) if log.VERBOSE
     process.exit()
 
 ##
-## Basic javascript/css files 
+## Basic javascript/css files
 ##
 
 compilers.js = compilers.css = (_path) ->
@@ -83,7 +84,7 @@ compilers.eco = (_path) ->
   module.exports = content;
   """
 
-compilers.jeco = (_path) -> 
+compilers.jeco = (_path) ->
   eco = requireLocalModule('eco', _path)
   try
     content = eco.precompile fs.readFileSync _path, 'utf8'
@@ -93,7 +94,7 @@ compilers.jeco = (_path) ->
     err.path    = "jeco Path:  " + _path
     throw err
   """
-  module.exports = function(values, data){ 
+  module.exports = function(values, data){
     var $  = jQuery, result = $();
     values = $.makeArray(values);
     data = data || {};
@@ -120,7 +121,7 @@ compilers.jade = (_path) ->
   try
     template = jade.compile content,
       filename: _path
-      compileDebug: utils.COMMAND is "server"
+      compileDebug: hem.argv.command is "server"
       client: true
     source = template.toString()
     "module.exports = #{source};"
@@ -140,13 +141,13 @@ compilers.stylus = (_path) ->
   result  = ''
   stylus(content)
     .include(path.dirname(_path))
-    .render((err, css) -> 
+    .render((err, css) ->
       throw err if err
       result = css
     )
   result
   
-require.extensions['.styl'] = (module, filename) -> 
+require.extensions['.styl'] = (module, filename) ->
   source = JSON.stringify(compilers.stylus(filename))
   module._compile "module.exports = #{source}", filename
 
@@ -163,13 +164,13 @@ compilers.less = (_path) ->
     result = css
   result
 
-require.extensions['.less'] = (module, filename) -> 
+require.extensions['.less'] = (module, filename) ->
   source = JSON.stringify(compilers.less(filename))
   module._compile "module.exports = #{source}", filename
 
 ##
 ## Environment Compiler
-## 
+##
 
 # This creates a javascript module based off key values found in environment
 # variables or in the package.json file. Usefule for inserting build info
