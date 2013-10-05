@@ -8,7 +8,7 @@
     },
 
     "css": {
-        "paths": [
+        "src": [
             "css"
         ], 
         "target": "public/application.css"
@@ -29,7 +29,7 @@
             "spine/lib/manager", 
             "spine/lib/relation"
         ], 
-        "paths": [
+        "src": [
             "app"
         ], 
         "target": "public/application.js"
@@ -43,7 +43,7 @@
     "test": {
         "identifier": "specs",
         "libs": [],
-        "paths": [
+        "src": [
             "test/specs"
         ], 
         "target": "test/public/specs.js",
