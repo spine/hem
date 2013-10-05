@@ -5,11 +5,11 @@ uglifycss  = require('uglifycss')
 Dependency = require('./dependency')
 Stitch     = require('./stitch')
 utils      = require('./utils')
+argv       = require('./utils').ARGV
 log        = require('./log')
-hem        = require('./hem')
 versioning = require('./versioning')
 
-# ------- Parent Classes
+# ------- Application Class
 
 class Application
   constructor: (name, config = {}) ->
@@ -20,37 +20,35 @@ class Application
     # apply defaults
     if (config.defaults)
       try
-        loadedDefaults = utils.loadAsset('defaults/' + config.defaults)
         # make sure we don't modify the original assets (which is cached by require)
+        loadedDefaults = utils.loadAsset('defaults/' + config.defaults)
         defaults = utils.extend({}, loadedDefaults)
       catch err
         log.error "ERROR: Invalid 'defaults' value provided: " + config.defaults
         process.exit 1
+      # create updated config mapping by merging with default values
       config = utils.extend(defaults, config)
 
     # set root variable
     unless @root
-      # if name is also directory assume that is root
+      # if application name is also a directory then assume that is root
       if utils.isDirectory(@name)
         @root    = @name
-        @route or= @applyBaseRoute("/#{@name}")
+        @route or= "/#{@name}"
       # otherwise just work from top level directory
       else
-        @root = ""
-
-    # TODO: do we need to set the resolve the root to a full path?
+        @root    = "/"
+        @route or= "/"
 
     # make sure route has a value
-    @route  or= @applyBaseRoute("/")
-    @route    = @applyBaseRoute(config.hem?.baseAppRoute, @route)
     @static   = {}
     @packages = {}
 
-    # configure static routes
+    # configure static routes with base root and route values
     for route, value of config.static
-      @static[@applyBaseRoute(@route, route)] = @applyRootDir(value)[0]
+      @static[@applyBaseRoute(route)] = @applyRootDir(value)[0]
 
-    # configure js/css/test packages
+    # configure js/css packages
     for key, value of config
       packager = undefined
       # determine package type
@@ -113,6 +111,8 @@ class Application
       log.errorAndExit "ERROR: Versioning not enabled in slug.json"
 
   applyRootDir: (value) ->
+    # TODO: eventually use the Hem.home directory value if the home
+    # TODO: value is different from the process.cwd() value?!
     values = utils.toArray(value)
     values = values.map (value) =>
       if utils.startsWith(value, "." + path.sep)
@@ -122,46 +122,48 @@ class Application
     values
 
   applyBaseRoute: (values...) ->
+    values.unshift(@route) if @route
     utils.cleanRoute.apply(utils, values)
 
+# ------- Package Classes
+    
 class Package
 
-  constructor: (parent, config) ->
-    @parent = parent
+  constructor: (app, config) ->
+    @app    = app
     @name   = config.name
-    @paths  = @parent.applyRootDir(config.paths or "")
-    @target = @parent.applyRootDir(config.target or "")[0]
+    @src  = @app.applyRootDir(config.src or "")
+    @target = @app.applyRootDir(config.target or "")[0]
 
     # determine target filename
     if utils.isDirectory(@target)
       # determine actual file name
       if @name is @ext
-        targetFile = parent.name
+        targetFile = @app.name
       else
         targetFile = @name
       @target = utils.cleanPath(@target, targetFile)
-
     # make sure correct extension is present
     unless utils.endsWith(@target, ".#{@ext}")
       @target = "#{@target}.#{@ext}"
 
-    # determine url
+    # determine url from configuration
     if config.route
       if utils.startsWith(@target,"/")
         @route = config.route
       else
-        @route = @parent.applyBaseRoute(parent.route, config.route)
+        @route = @app.applyBaseRoute(config.route)
+    # use the static urls to determine the package @route
     else
-      # use the static urls to determine the package @route
-      for route, value of @parent.static when not @route
+      for route, value of @app.static when not @route
         if utils.startsWith(@target, value)
           regexp = new RegExp("^#{value.replace(/\\/g,"\\\\")}(\\\\|\/)?")
           targetUrl = @target.replace(regexp,"")
-          @route = @parent.applyBaseRoute(route, targetUrl)
+          @route = utils.cleanRoute(route, targetUrl)
 
     # make sure we have a route to use when using server command
-    if hem.argv.command is "server"
-      log.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>") unless @route
+    if argv.command is "server" and not @route
+      log.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>")
 
   handleCompileError: (ex) ->
     # TODO: construct better error message, one that works for all precompilers,
@@ -169,7 +171,7 @@ class Package
     log.error(ex.message)
     log.error(ex.path) if ex.path
     # only return when in server/watch mode, otherwise exit
-    switch hem.argv.command
+    switch argv.command
       when "server" or "watch"
         # TODO: only return this for javascript
         return "console.log(\"HEM compile ERROR: #{ex}\n#{ex.path}\");"
@@ -182,7 +184,7 @@ class Package
       fs.unlinkSync(@target) 
 
   build: (write = true) ->
-    extra = (hem.argv.compress and " <b>--using compression</b>") or ""
+    extra = (argv.compress and " <b>--using compression</b>") or ""
     log("- Building target: <yellow>#{@target}</yellow>#{extra}")
     source = @compile()
     if source and write
@@ -205,13 +207,13 @@ class Package
     dirs = utils.removeDuplicateValues(dirs)
     # start watch process
     for dir in dirs
-      require('watch').watchTree dir, watchOptions,  (file, curr, prev) =>
+      require('watch').watchTree dir, watchOptions, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           @build()
     dirs
 
   getWatchedDirs: ->
-    return @paths
+    return @src
 
   ext: ""
 
@@ -219,20 +221,20 @@ class Package
 
 class JsPackage extends Package
 
-  constructor: (parent, config)  ->
+  constructor: (app, config)  ->
     # call parent
-    super(parent, config)
+    super(app, config)
     
     # javascript only configurations
     @identifier = config.identifier or 'require'
-    @libs       = @parent.applyRootDir(config.libs or [])
+    @libs       = @app.applyRootDir(config.libs or [])
     @after      = utils.arrayToString(config.after or "")
     @modules    = utils.toArray(config.modules or [])
 
   compile: ->
     try
       result = [@compileLibs(), @compileModules(), @after].join("\n")
-      result = uglifyjs.minify(result, {fromString: true}).code if hem.argv.compress
+      result = uglifyjs.minify(result, {fromString: true}).code if argv.compress
       result
     catch ex
       @handleCompileError(ex)
@@ -246,7 +248,7 @@ class JsPackage extends Package
     # files first...
 
     @depend or= new Dependency(@modules)
-    _stitch   = new Stitch(@paths)
+    _stitch   = new Stitch(@src)
     _modules  = @depend.resolve().concat(_stitch.resolve())
     if _modules
       _stitch.template(@identifier, _modules)
@@ -278,14 +280,14 @@ class JsPackage extends Package
     results.join("\n")
 
   getWatchedDirs: ->
-    @paths.concat @libs
+    @src.concat @libs
 
   ext: "js"
 
 class TestPackage extends JsPackage
 
-    constructor: (parent, config)  ->
-      super(parent, config)
+    constructor: (app, config)  ->
+      super(app, config)
       # TODO: use after in default spine json to setup specs...
       # TODO: testLibs = ['jasmine'] or ['test/public/lib']
       @depends = utils.toArray(config.depends)
@@ -293,8 +295,8 @@ class TestPackage extends JsPackage
 
 class CssPackage extends Package
 
-  constructor: (parent, config) ->
-    super(parent, config)
+  constructor: (app, config) ->
+    super(app, config)
 
   compile: () ->
     try 
@@ -307,7 +309,7 @@ class CssPackage extends Package
         require(filepath)
 
       # loop over path values
-      for fileOrDir in @paths
+      for fileOrDir in @src
         # if directory loop over all top level files only
         if utils.isDirectory(fileOrDir)
           for file in fs.readdirSync(fileOrDir) when require.extensions[path.extname(file)]
@@ -318,7 +320,7 @@ class CssPackage extends Package
 
       # join and minify 
       result = output.join("\n")
-      result = uglifycss.processString(result) if hem.argv.compress
+      result = uglifycss.processString(result) if argv.compress
       result
     catch ex
       @handleCompileError(ex)

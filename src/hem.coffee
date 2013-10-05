@@ -1,15 +1,6 @@
-path        = require('path')
-optimist    = require('optimist')
-fs          = require('fs')
-utils       = require('./utils')
-compilers   = require('./compilers')
-server      = require('./server')
-application = require('./package')
-testing     = require('./test')
-
 # ------- Commandline arguments
 
-argv = optimist.usage([
+argv = require('optimist').usage([
   'usage:\nhem COMMAND',
   '    server  :start a dynamic development server',
   '    build   :serialize application to disk',
@@ -24,7 +15,7 @@ argv = optimist.usage([
 .alias('w', 'watch').describe('w',':watch files when running tests')
 .alias('s', 'slug').describe('s',':run hem using a specified slug file')
 .alias('n', 'nocolors').describe('n',':disable color in console output')
-.describe('v',':make hem more talkative(verbose)')
+.alias('v', 'verbose').describe('v',':make hem more talkative(verbose)')
 .argv
 
 # set command and targets properties
@@ -34,18 +25,27 @@ argv.targets = argv._[1..]
 # disable colors
 require("sty").disable() if !!argv.nocolors
 
-# expose argv 
-utils.ARGV = argv
+# turn on/off verbose logging
+require("./log").VERBOSE = argv.v = !!argv.v
 
-# always have a value for these argv options
-utils.COMPRESS = argv.compress = !!argv.compress
-utils.VERBOSE  = argv.v        = !!argv.v
-utils.COMMAND  = argv.command
+# save argv to utils class to allow access by other modules
+require("./utils").ARGV = argv
+
+# ------- perform requires
+
+path        = require('path')
+fs          = require('fs')
+compilers   = require('./compilers')
+server      = require('./server')
+testing     = require('./test')
+application = require('./package')
+log         = require('./log')
+utils       = require('./utils')
 
 # ------- Global Functions
 
 help = ->
-  utils.log "<b>HEM</b> Version: <green>" + require('../package.json')?.version + "</green>\n"
+  log "<b>HEM</b> Version: <green>" + require('../package.json')?.version + "</green>\n"
   optimist.showHelp()
   process.exit()
 
@@ -56,97 +56,87 @@ class Hem
   @exec: (command, options) ->
     (new @(options)).exec(command)
 
-  @include: (props) ->
-    @::[key] = value for key, value of props
+  @middleware: (slug) ->
+    hem = new Hem(slug)
+    server.middleware(hem)
 
-  @middleware: (slugFile) ->
-    hem = new Hem(slugFile)
-    server.middleware(hem.apps, hem.options.server)
+  @compilers: compilers
+
+  # default values for server
+  @defaults:
+    hem:
+      port: 9294
+      host: "localhost"
+      routes: {}
 
   # ------- instance variables
 
-  compilers: compilers
-
-  # the slug directory
-  homeDir: '' 
-
-  # default values for server
-  options:
-    hem:
-      port: 9294
-
-  # emtpy applications list
-  apps: []
+  # emtpy options map and applications list
+  options : {}
+  apps    : []
+  home    : process.cwd()
 
   # ------- Constructor
 
-  constructor: (options = {}) ->
-    # handle slug file
-    if options is "string"
-      slug = options
-    else
-      slug = argv.slug or './slug.json'
-      @options = utils.extend(options, @options) if options
+  constructor: (options) ->
+    # handle slug file options
+    switch typeof options
+      when "string"
+        slug = options
+      when "object"
+        @options = options
+      else
+        slug or= argv.slug or 'slug'
 
-    # quick check to make sure slug file exists
-    if fs.existsSync(slug)
-      options = @readSlug(slug)
-      options.hem?.port or= @options.hem.port
-      options.hem?.host or= @options.hem.host
-      @options = options
-      # make sure we are in same directory as slug
-      @homeDir = path.dirname(path.resolve(process.cwd() + "/"  + slug))
-      process.chdir(@homeDir)
-    else
-      utils.errorAndExit "Unable to find #{slug} file in current directory"
+    # if given a slug file, attempt to load
+    @options = @readSlug(slug) if slug
 
-    # allow overrides and set defaults
+    # make sure some defaults are present
+    @options.hem or= {}
+    @options.hem.port   or= Hem.defaults.hem.port
+    @options.hem.host   or= Hem.defaults.hem.host
+    @options.hem.routes or= Hem.defaults.hem.routes
+
+    # allow overrides from command line
     @options.hem.port = argv.port if argv.port
-    @options.hem.host or= ""
-    @options.hem.routes or= {}
 
     # setup applications from options/slug
     for name, config of @options
       continue if name is "hem"
-      config.hem = @options.hem
       @apps.push application.createApplication(name, config)
 
   # ------- Command Functions
 
   server: ->
     value = "http://#{@options.hem.host or "*"}:#{@options.hem.port}"
-    utils.log "Starting Server at <blue>#{value}</blue>"
-    server.start(@apps, @options.hem)
+    log "Starting Server at <blue>#{value}</blue>"
+    server.start(@)
 
   clean: ->
-    targets = argv.targets
-    cleanAll = targets.length is 0
-    app.unlink() for app in @apps when app.name in targets or cleanAll
+    app.unlink() for app in @apps
 
   build: ->
     @clean()
-    @buildTargets(argv.targets)
+    @compile()
 
   version: ->
-    @versionTargets(argv.targets)
+    app.version() for app in @apps
 
   watch: ->
-    targets = argv.targets
-    @buildTargets(targets)
-    watchAll = targets.length is 0
-    app.watch() for app in @apps when app.name in targets or watchAll
+    @compile()
+    app.watch() for app in @apps
 
   test: ->
     targets = argv.targets
     # set test options
-    testOptions = 
+    testOptions =
       basePath: @homeDir
     # check for watch mode
     if argv.watch
       @watch()
       testOptions.singleRun = false
     else
-      @buildTargets(targets)
+      @compile()
       testOptions.singleRun = true
     # run tests
     @testTargets(targets, testOptions)
@@ -155,40 +145,56 @@ class Hem
     printOptions = showHidden: false, colors: !argv.nocolors, depth: null
     inspect = require('util').inspect
     # print hem configuration
-    utils.log "> Configuration for <green>hem</green>:"
+    log "> Configuration for <green>hem</green>:"
     console.log(inspect(@options.hem, printOptions))
-    utils.log ""
+    log ""
     # print app configurations
-    targets   = argv.targets
-    targetAll = targets.length is 0
-    for app in @apps when app.name in targets or targetAll
-      utils.log "> Configuration values for <green>#{app.name}</green>:"
+    for app in @apps
+      log "> Configuration values for <green>#{app.name}</green>:"
       console.log(inspect(app, printOptions))
-      utils.log ""
+      log ""
 
   exec: (command = argv.command) ->
     return help() unless @[command]
+    # reset the apps list based on command line args
+    @apps = @getTargetApps()
+    # hope this works :o)
     @[command]()
 
   # ------- Private Functions
 
   readSlug: (slug) ->
-    return {} unless slug and fs.existsSync(slug)
-    JSON.parse(fs.readFileSync(slug, 'utf-8'))
+    # first make sure slug file exists
+    slugPath = path.resolve(slug)
+    try
+      slugPath = require.resolve(slugPath)
+    catch error
+      log.errorAndExit("Couldn't find slug file #{slugPath}. #{error}")
 
-  getTargetApps: (targets = []) ->
+    # set home directory to slug directory
+    Hem.home = path.dirname(slugPath)
+
+    # next try to require
+    try
+      delete require.cache[slugPath]
+      slug = require(slugPath)
+      slug.customize?(@) # allow any customizations to hem before running
+      slug
+    catch error
+      log.errorAndExit("Couldn't load slug file #{slugPath}. #{error}")
+
+  getTargetApps: (targets = argv.targets) ->
     targetAll = targets.length is 0
     (app for app in @apps when app.name in targets or targetAll)
 
+  compile: () ->
+    app.build() for app in @apps()
+
   testTargets: (targets = [], options = {}) ->
-    testApps = (app for app in @getTargetApps(targets) when app.test)
+    testApps = (app for app in @apps when app.test)
     testing.run(testApps, options)
 
-  buildTargets: (targets = []) ->
-    app.build() for app in @getTargetApps(targets)
 
-  versionTargets: (targets = []) ->
-    app.version() for app in @getTargetApps(targets)
 
 module.exports = Hem
 

@@ -1,7 +1,7 @@
 fs        = require('fs')
 path      = require('path')
 log       = require('./log')
-hem       = require('./hem')
+argv      = require('./utils').ARGV
 compilers = {}
 lmCache   = {}
 
@@ -121,7 +121,7 @@ compilers.jade = (_path) ->
   try
     template = jade.compile content,
       filename: _path
-      compileDebug: hem.argv.command is "server"
+      compileDebug: argv.command is "server"
       client: true
     source = template.toString()
     "module.exports = #{source};"
