@@ -15,7 +15,7 @@
     },
 
     "js": {
-        "identifier": "require", 
+        "commonjs": "require", 
         "libs": [
             "lib"
         ], 
@@ -41,7 +41,7 @@
     },
 
     "test": {
-        "identifier": "specs",
+        "commonjs": "specs",
         "libs": [],
         "src": [
             "test/specs"
