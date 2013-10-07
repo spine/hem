@@ -228,7 +228,7 @@ class JsPackage extends Package
     super(app, config)
     
     # javascript only configurations
-    @identifier = config.identifier or 'require'
+    @commonjs   = config.commonjs or 'require'
     @libs       = @app.applyRootDir(config.libs or [])
     @after      = utils.arrayToString(config.after or "")
     @modules    = utils.toArray(config.modules or [])
@@ -253,7 +253,7 @@ class JsPackage extends Package
     _stitch   = new Stitch(@src)
     _modules  = @depend.resolve().concat(_stitch.resolve())
     if _modules
-      _stitch.template(@identifier, _modules)
+      _stitch.template(@commonjs, _modules)
     else
       ""
 
