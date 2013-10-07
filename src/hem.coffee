@@ -1,3 +1,5 @@
+fs       = require('fs')
+path     = require('path')
 optimist = require('optimist')
 
 # ------- Commandline arguments
@@ -28,21 +30,19 @@ argv.targets = argv._[1..]
 require("sty").disable() if !!argv.nocolors
 
 # turn on/off verbose logging
-require("./log").VERBOSE = argv.v = !!argv.v
+log = require('./log')
+log.VERBOSE = argv.v = !!argv.v
 
 # save argv to utils class to allow access by other modules
-require("./utils").ARGV = argv
+utils = require('./utils')
+utils.ARGV = argv
 
 # ------- perform requires
 
-path        = require('path')
-fs          = require('fs')
 compilers   = require('./compilers')
 server      = require('./server')
 testing     = require('./test')
 application = require('./package')
-log         = require('./log')
-utils       = require('./utils')
 
 # ------- Global Functions
 
@@ -62,7 +62,10 @@ class Hem
     hem = new Hem(slug)
     server.middleware(hem)
 
-  @compilers: compilers
+  # exposing globals for customization
+
+  @compilers : compilers
+  @events    : utils.events # TODO: eventuall get an event system going...
 
   # default values for server
   @defaults:
@@ -110,7 +113,8 @@ class Hem
   server: ->
     value = "http://#{@options.hem.host or "*"}:#{@options.hem.port}"
     log "Starting Server at <blue>#{value}</blue>"
-    server.start(@)
+    app = server.start(@)
+    Hem.events.emit("server-start", app)
 
   clean: ->
     app.unlink() for app in @apps

@@ -1,6 +1,7 @@
-path  = require('path')
-fs    = require('fs')
-utils = {}
+path   = require('path')
+fs     = require('fs')
+events = require('events')
+utils  = {}
 
 # check for windows :o(...
 isWin = !!require('os').platform().match(/^win/)
@@ -56,6 +57,10 @@ utils.isDirectory = (dir) ->
     stats.isDirectory()
   catch e
     false
+
+# ------ Setup shareable events emitter
+
+utils.events = new events.EventEmitter()
 
 # ------ Formatting urls and folder paths
 
