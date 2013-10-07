@@ -1,6 +1,8 @@
+optimist = require('optimist')
+
 # ------- Commandline arguments
 
-argv = require('optimist').usage([
+argv = optimist.usage([
   'usage:\nhem COMMAND',
   '    server  :start a dynamic development server',
   '    build   :serialize application to disk',
@@ -67,7 +69,6 @@ class Hem
     hem:
       port: 9294
       host: "localhost"
-      routes: {}
 
   # ------- instance variables
 
@@ -95,7 +96,6 @@ class Hem
     @options.hem or= {}
     @options.hem.port   or= Hem.defaults.hem.port
     @options.hem.host   or= Hem.defaults.hem.host
-    @options.hem.routes or= Hem.defaults.hem.routes
 
     # allow overrides from command line
     @options.hem.port = argv.port if argv.port
@@ -117,13 +117,13 @@ class Hem
 
   build: ->
     @clean()
-    @compile()
+    @buildApps()
 
   version: ->
     app.version() for app in @apps
 
   watch: ->
-    @compile()
+    @buildApps()
     app.watch() for app in @apps
 
   test: ->
@@ -136,7 +136,7 @@ class Hem
       @watch()
       testOptions.singleRun = false
     else
-      @compile()
+      @buildApps()
       testOptions.singleRun = true
     # run tests
     @testTargets(targets, testOptions)
@@ -178,8 +178,7 @@ class Hem
     try
       delete require.cache[slugPath]
       slug = require(slugPath)
-      slug.customize?(@) # allow any customizations to hem before running
-      slug
+      slug?(Hem) or slug
     catch error
       log.errorAndExit("Couldn't load slug file #{slugPath}. #{error}")
 
@@ -187,8 +186,8 @@ class Hem
     targetAll = targets.length is 0
     (app for app in @apps when app.name in targets or targetAll)
 
-  compile: () ->
-    app.build() for app in @apps()
+  buildApps: () ->
+    app.build() for app in @apps
 
   testTargets: (targets = [], options = {}) ->
     testApps = (app for app in @apps when app.test)

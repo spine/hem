@@ -9,6 +9,7 @@ argv       = require('./utils').ARGV
 log        = require('./log')
 versioning = require('./versioning')
 
+
 # ------- Application Class
 
 class Application
@@ -41,12 +42,14 @@ class Application
         @route or= "/"
 
     # make sure route has a value
-    @static   = {}
-    @packages = {}
+    @static   = []
+    @packages = []
 
     # configure static routes with base root and route values
     for route, value of config.static
-      @static[@applyBaseRoute(route)] = @applyRootDir(value)[0]
+      @static.push
+        url  : @applyBaseRoute(route)
+        path : @applyRootDir(value)[0]
 
     # configure js/css packages
     for key, value of config
@@ -60,13 +63,12 @@ class Application
         value.name = key
       # add to @packages array
       if packager
-        pkg = new packager(@, value)
-        @packages[pkg.name] = pkg
+        @packages.push(new packager(@, value))
 
     # configure test structure
     if config.test
       config.test.name = "test"
-      @packages.test = new TestPackage(@, config.test)
+      @packages.push(new TestPackage(@, config.test))
 
     # configure versioning
     if config.version
@@ -80,22 +82,22 @@ class Application
     if @versioning
       route = @versioning.trim(route)
     # compare against package route values
-    for name, pkg of @packages
+    for pkg in @packages
       return pkg if route is pkg.route
     # return nothing
     return
 
   unlink: ->
     log("Removing application targets: <green>#{@name}</green>")
-    pkg.unlink() for key, pkg of @packages
+    pkg.unlink() for pkg in @packages
 
   build: ->
     log("Building application targets: <green>#{@name}</green>")
-    pkg.build() for key, pkg of @packages
+    pkg.build() for pkg in @packages
 
   watch: ->
     log("Watching application: <green>#{@name}</green>")
-    dirs = (pkg.watch() for key, pkg of @packages)
+    dirs = (pkg.watch() for pkg in @packages)
     # make sure dirs has valid values
     if dirs.length 
       log.info("- Watching directories: <yellow>#{dirs}</yellow>")
@@ -132,7 +134,7 @@ class Package
   constructor: (app, config) ->
     @app    = app
     @name   = config.name
-    @src  = @app.applyRootDir(config.src or "")
+    @src    = @app.applyRootDir(config.src or "")
     @target = @app.applyRootDir(config.target or "")[0]
 
     # determine target filename
@@ -155,11 +157,11 @@ class Package
         @route = @app.applyBaseRoute(config.route)
     # use the static urls to determine the package @route
     else
-      for route, value of @app.static when not @route
-        if utils.startsWith(@target, value)
-          regexp = new RegExp("^#{value.replace(/\\/g,"\\\\")}(\\\\|\/)?")
+      for route in @app.static when not @route
+        if utils.startsWith(@target, route.path)
+          regexp = new RegExp("^#{route.path.replace(/\\/g,"\\\\")}(\\\\|\/)?")
           targetUrl = @target.replace(regexp,"")
-          @route = utils.cleanRoute(route, targetUrl)
+          @route = utils.cleanRoute(route.url, targetUrl)
 
     # make sure we have a route to use when using server command
     if argv.command is "server" and not @route

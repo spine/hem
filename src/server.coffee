@@ -17,52 +17,61 @@ server.start = (hem) ->
   # start server
   options = hem.options.hem
   http.createServer(app).listen(options.port, options.host)
+  return app
 
 server.middleware = (hem) ->
-  statics = connect()
+  backend = connect()
   options = hem.options.hem
+  statics = []
+
+  # create array of static routes
+  for route, value of options?.static
+    statics.push
+      url  : route
+      path : value
 
   # determine if there is any dynamic or static routes to add
   for app in hem.apps
 
     # if verbose then print our mappings and apply the baseAppRoute if present
     log.info "> Apply route mappings for application: <green>#{app.name}</green>"
-    for name, pkg of app.packages
-      pkg.route = utils.cleanRoute(options.baseAppRoute, pkg.route) if options.baseAppRoute
+    for pkg in app.packages
+      if options.baseAppRoute
+        pkg.route = utils.cleanRoute(options.baseAppRoute, pkg.route)
       log.info " - Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
-    for route, value of app.static
-      route = utils.cleanRoute(options.baseAppRoute, route) if options.baseAppRoute
-      log.info " - Mapping static <yellow>#{route}</yellow> to <yellow>#{value}</yellow>"
 
-    # add static routes to main options.route collection
-    if app.static
-      options.routes = utils.extend(app.static, options.routes)
+    # loop over potential static routes and add them to main route array
+    for route in app.static
+      if options.baseAppRoute
+        route.url = utils.cleanRoute(options.baseAppRoute, route.url)
+      log.info " - Mapping static <yellow>#{route.url}</yellow> to <yellow>#{route.path}</yellow>"
+      statics.push(route)
 
   # setup separate connect app for static routes and proxy middleware
-  for route, value of options.routes
-    if fs.existsSync(value)
-      # test if file is directory or file....
-      if fs.lstatSync(value).isDirectory()
-        statics.use(route, checkForRedirect())
-        statics.use(route, connect.static(value) )
-      else
-        statics.use route, do (value) ->
-          (req, res) ->
-            fs.readFile value, (err, data) ->
-              if err
-                res.writeHead(404)
-                res.end(JSON.stringify(err))
-                return
+  for route in statics
+    # make sure path exists
+    unless fs.existsSync(route.path)
+      log.errorAndExit "The resource <yellow>#{route.path}</yellow> not found for static mapping <yellow>#{route.url}</yellow>"
+    # test if file is directory or file....
+    if fs.lstatSync(route.path).isDirectory()
+      backend.use(route.url, checkForRedirect())
+      backend.use(route.url, connect.static(route.path) )
+    else
+      backend.use route.url, do (route) ->
+        (req, res) ->
+          fs.readFile route.path, (err, data) ->
+            if err
+              res.writeHead(404)
+              res.end(JSON.stringify(err))
+            else
               res.writeHead(200)
               res.end(data)
-    else
-      log.errorAndExit "The folder <yellow>#{value}</yellow> does not exist for static mapping <yellow>#{route}</yellow>"
 
   # setup proxy route
   for route, value of options.proxy
     display = "#{value.host}:#{value.port or 80}#{value.path}"
     log.info "> Proxy requests <yellow>#{route}</yellow> to <yellow>#{display}</yellow>"
-    statics.use(route, createRoutingProxy(value))
+    backend.use(route, createRoutingProxy(value))
 
   # return the custom middleware for connect to use
   return (req, res, next) ->
@@ -73,7 +82,6 @@ server.middleware = (hem) ->
     if url.match(/(\.js|\.css)$/)
       for app in hem.apps
         if pkg = app.isMatchingRoute(url)
-          # TODO: keep (and return) in memory build if there hasn't been any changes??
           str = pkg.build(false)
           res.charset = 'utf-8'
           res.setHeader('Content-Type', mime.lookup(pkg.target))
@@ -82,7 +90,7 @@ server.middleware = (hem) ->
           return
 
     # pass request to static connect app to handle static/proxy requests
-    statics.handle(req, res, next)
+    backend.handle(req, res, next)
 
 # ------- Private Functions
 

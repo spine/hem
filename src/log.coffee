@@ -12,7 +12,7 @@ log.error = (message, parse = true) ->
   console.log "#{sty.red 'ERROR:'} #{parse and sty.parse(message) or message}"
 
 log.errorAndExit = (error, parse = true) ->
-  utils.error(error, parse)
+  log.error(error, parse)
   process.exit(1)
 
 log.parse = (message) ->
