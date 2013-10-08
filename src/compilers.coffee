@@ -40,7 +40,7 @@ require.extensions['.css'] = (module, filename) ->
   module._compile "module.exports = #{source}", filename
 
 ##
-## HTML files
+## HTML and Tmpl files
 ##
 
 compilers.html = (_path) ->
@@ -48,6 +48,9 @@ compilers.html = (_path) ->
   "module.exports = #{JSON.stringify(content)};\n"
 
 require.extensions['.html'] = (module, filename) ->
+  module._compile compilers.html(filename), filename
+
+require.extensions['.tmpl'] = (module, filename) ->
   module._compile compilers.html(filename), filename
 
 ##
