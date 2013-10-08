@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf8" />
+  <title>Hem Test Runner</title>
+</head>
+<body>
+
+<script type="text/javascript">
+(function() {
+
+  function startTests() {
+    // load in specs from specs.js file
+    for (var key in specs.modules) { specs(key); }
+
+    // create jasmine environment
+    var jasmineEnv = jasmine.getEnv();
+    jasmineEnv.updateInterval = 250;
+
+    /**
+      Create the `HTMLReporter`, which Jasmine calls to provide results of each spec
+      and each suite. The Reporter is responsible for presenting results to the user.
+     */
+    var htmlReporter = new jasmine.HtmlReporter();
+    jasmineEnv.addReporter(htmlReporter);
+
+    /**
+      Delegate filtering of specs to the reporter. Allows for clicking on single suites
+      or specs in the results to only run a subset of the suite.
+     */
+    jasmineEnv.specFilter = function(spec) {
+      return htmlReporter.specFilter(spec);
+    };
+
+    jasmineEnv.execute();
+  }
+
+  window.onload = function() {
+    var filesToLoad = []
+
+    // dynamically load the information we need
+    // 1) framework -> jasmine or mocha
+    // 2) pull jasmine from hem assets, along with phantomjs
+    // 3) but move phantom runner to hem? add runner parameter to argsv
+    // 4) need api to return file list
+    // 5) write index.html file and jasmine files once if not present
+
+    // then framework files
+    filesToLoad.push("/segway/feedlink/test/lib/jasmine.css")
+    filesToLoad.push("lib/jasmine.js")
+    filesToLoad.push("lib/jasmine-html.js")
+    // then project files
+    filesToLoad.push("../../common/application.js")
+    filesToLoad.push("../feedlink.js")
+    // finally test files
+    filesToLoad.push("specs.js")
+
+    var loadCssOrScript = function(position) {
+        // start tests if everything loaded
+        if (position >= filesToLoad.length) {
+            startTests();
+            return;
+        }
+
+        // create document elements
+        var head = document.getElementsByTagName("HEAD").item(0);
+        var child;
+        var source = filesToLoad[position];
+
+        // handle js
+        if (source.indexOf(".js") > -1) {
+
+            child = document.createElement("script");
+            child.type = "text/javascript";
+            child.src  = source;
+
+        // handle css
+        } else {
+            // skip css files for phantomjs
+            if (navigator.userAgent.indexOf("PhantomJS") > -1) {
+                loadCssOrScript(++position);
+                return
+            }
+            child = document.createElement("link");
+            child.setAttribute("rel", "stylesheet")
+            child.type = "text/css";
+            child.href = source;
+        }
+
+        // handle next call
+        child.onload = function() {
+            loadCssOrScript(++position);
+        }
+
+        // add child to document to load
+        head.appendChild(child);
+
+    }
+
+    // dynamically load application and specs javascript files
+    loadCssOrScript(0)
+  };
+
+  function ajaxJSONGet(url, callback){
+    var http_request = new XMLHttpRequest();
+    http_request.open("GET", url, true);
+    http_request.onreadystatechange = function () {
+      var done = 4;
+      var ok = 200;
+      if (http_request.readyState === done && http_request.status === ok){
+        callback(JSON.parse(http_request.responseText));
+      }
+    };
+    http_request.send();
+  }
+
+
+})();
+</script>
+{{= hmm }}
+</body>
+</html>
