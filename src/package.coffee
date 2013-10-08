@@ -1,4 +1,4 @@
-fs         = require('fs')
+fs         = require('fs-extra')
 path       = require('path')
 uglifyjs   = require('uglify-js')
 uglifycss  = require('uglifycss')
@@ -191,8 +191,7 @@ class Package
     source = @compile()
     if source and write
       dirname = path.dirname(@target)
-      unless fs.existsSync(dirname)
-        require('mkdirp').sync(dirname)
+      fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
       fs.writeFileSync(@target, source) 
     source
 
