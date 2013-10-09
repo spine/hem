@@ -11,7 +11,7 @@
 
   function startTests() {
     // load in specs from specs.js file
-    for (var key in specs.modules) { specs(key); }
+    for (var key in <%=commonjs%>.modules) { <%=commonjs%>(key); }
 
     // create jasmine environment
     var jasmineEnv = jasmine.getEnv();
@@ -36,28 +36,23 @@
   }
 
   window.onload = function() {
+    var http        = (location.protocol === "http:")
+    var urlsToLoad  = []
     var filesToLoad = []
 
-    // dynamically load the information we need
-    // 1) framework -> jasmine or mocha
-    // 2) pull jasmine from hem assets, along with phantomjs
-    // 3) but move phantom runner to hem? add runner parameter to argsv
-    // 4) need api to return file list
-    // 5) write index.html file and jasmine files once if not present
+    // files to load
+    <% for (var i = 0; i < files.length; i++) { %>
+    urlsToLoad.push("<%= files[i].url %>")
+    filesToLoad.push("<%= files[i].path %>")
+    <% } %>
 
-    // then framework files
-    filesToLoad.push("/segway/feedlink/test/lib/jasmine.css")
-    filesToLoad.push("lib/jasmine.js")
-    filesToLoad.push("lib/jasmine-html.js")
-    // then project files
-    filesToLoad.push("../../common/application.js")
-    filesToLoad.push("../feedlink.js")
-    // finally test files
-    filesToLoad.push("specs.js")
+    // determine if using http to load files
+    var files = http ? urlsToLoad : filesToLoad
 
+    // function to create elements to load css/js
     var loadCssOrScript = function(position) {
         // start tests if everything loaded
-        if (position >= filesToLoad.length) {
+        if (position >= files.length) {
             startTests();
             return;
         }
@@ -65,7 +60,7 @@
         // create document elements
         var head = document.getElementsByTagName("HEAD").item(0);
         var child;
-        var source = filesToLoad[position];
+        var source = files[position];
 
         // handle js
         if (source.indexOf(".js") > -1) {
@@ -101,22 +96,8 @@
     loadCssOrScript(0)
   };
 
-  function ajaxJSONGet(url, callback){
-    var http_request = new XMLHttpRequest();
-    http_request.open("GET", url, true);
-    http_request.onreadystatechange = function () {
-      var done = 4;
-      var ok = 200;
-      if (http_request.readyState === done && http_request.status === ok){
-        callback(JSON.parse(http_request.responseText));
-      }
-    };
-    http_request.send();
-  }
-
 
 })();
 </script>
-{{= hmm }}
 </body>
 </html>

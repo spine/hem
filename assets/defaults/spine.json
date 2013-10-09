@@ -1,8 +1,8 @@
 {
-    "root": "", 
+    "root": "",
     "route": "/",
 
-    "version": { 
+    "version": {
       "type": "package",
       "files": [ "public/index.html" ]
     },
@@ -10,53 +10,49 @@
     "css": {
         "src": [
             "css"
-        ], 
+        ],
         "target": "public/application.css"
     },
 
     "js": {
-        "commonjs": "require", 
+        "commonjs": "require",
         "libs": [
             "lib"
-        ], 
+        ],
         "modules": [
-            "jqueryify", 
-            "spine", 
-            "spine/lib/local", 
-            "spine/lib/list", 
-            "spine/lib/ajax", 
-            "spine/lib/route", 
-            "spine/lib/manager", 
+            "jqueryify",
+            "spine",
+            "spine/lib/local",
+            "spine/lib/list",
+            "spine/lib/ajax",
+            "spine/lib/route",
+            "spine/lib/manager",
             "spine/lib/relation"
-        ], 
+        ],
         "src": [
             "app"
-        ], 
+        ],
         "target": "public/application.js"
     },
 
     "static": {
-        "/": "public", 
+        "/": "public",
         "/test": "test/public"
     },
 
     "test": {
         "commonjs": "specs",
         "libs": [],
+        "depends": [],
         "src": [
             "test/specs"
-        ], 
+        ],
         "target": "test/public/specs.js",
         "after": [
-          "require('lib/setup');",
-          "for (var key in specs.modules) specs(key);"
+          "require('lib/setup');"
         ],
-        "depends": [
-          "#jasmine",
-          "common.js",
-          "js"
-        ],
-        "runner": "karma"
+        "runner": "karma",
+        "framework": "jasmine"
     }
 }
 
