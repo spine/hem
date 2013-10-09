@@ -307,30 +307,30 @@ class TestPackage extends JsPackage
     super()
 
   getAllTestTargets: ->
-      targets = []
-      homeRoute = path.dirname(@route)
+    targets = []
+    homeRoute = path.dirname(@route)
 
-      # first get dependencies
-      for dep in @depends
-        for depapp in @app.hem.allApps when depapp.name is dep
-          for pkg in depapp.packages
-            if pkg.constructor.name is "JsPackage"
-              url = path.relative(homeRoute, pkg.route)
-              pth = path.relative(@testHome, pkg.target)
-              targets.push({ url: url, path: pth })
+    # first get dependencies
+    for dep in @depends
+      for depapp in @app.hem.allApps when depapp.name is dep
+        for pkg in depapp.packages
+          if pkg.constructor.name is "JsPackage"
+            url = path.relative(homeRoute, pkg.route)
+            pth = path.relative(@testHome, pkg.target)
+            targets.push({ url: url, path: pth })
 
-      # get app targets
-      for pkg in @app.packages
-        if pkg.constructor.name is "JsPackage"
-          url = path.relative(homeRoute, pkg.route)
-          pth = path.relative(@testHome, pkg.target)
-          targets.push({ url: url, path: pth })
+    # get app targets
+    for pkg in @app.packages
+      if pkg.constructor.name is "JsPackage"
+        url = path.relative(homeRoute, pkg.route)
+        pth = path.relative(@testHome, pkg.target)
+        targets.push({ url: url, path: pth })
 
-      # finally test file
-      url = path.relative(homeRoute, pkg.route)
-      pth = path.relative(@testHome, pkg.target)
-      targets.push({ url: url, path: pth })
-      targets
+    # finally test file
+    url = path.relative(homeRoute, pkg.route)
+    pth = path.relative(@testHome, pkg.target)
+    targets.push({ url: url, path: pth })
+    targets
 
   getFrameworkFiles: ->
     targets = []
@@ -341,10 +341,12 @@ class TestPackage extends JsPackage
         targets.push({ url: url, path: url })
     targets
 
+  getTestIndexFile: ->
+    path.resolve(@testHome,'index.html')
 
   createTestFiles: ->
     # create index file
-    indexFile = path.resolve(@testHome,'index.html')
+    indexFile = @getTestIndexFile()
     files = []
     files.push.apply(files, @getFrameworkFiles())
     files.push.apply(files, @getAllTestTargets())

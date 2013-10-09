@@ -1,6 +1,7 @@
-fs    = require('fs')
-utils = require('./utils')
-path  = require('path')
+fs      = require('fs')
+path    = require('path')
+utils   = require('./utils')
+phantom = require('./phantom')
 
 # ------- Public Functions 
 
@@ -15,8 +16,8 @@ run = (apps, options = {}) ->
 # ------- Test Functions 
 
 runPhantom = (app, options = {}) ->
-  # TODO need to do this in steps if we have multiple apps
-  require('./phantom')(path.resolve(app.getTestPackage().testHome,'index.html'))
+  testFile = app.getTestPackage().getTestIndexFile()
+  phantom(testFile, "passOrFail" )
 
 runKarma = (app, options = {}) ->
   # use custom testacular config file provided by user
