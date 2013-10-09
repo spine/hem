@@ -13,7 +13,8 @@ versioning = require('./versioning')
 # ------- Application Class
 
 class Application
-  constructor: (name, config = {}) ->
+  constructor: (name, config = {}, hem) ->
+    @hem   = hem
     @name  = name
     @route = config.route
     @root  = config.root
@@ -99,7 +100,7 @@ class Application
     log("Watching application: <green>#{@name}</green>")
     dirs = (pkg.watch() for pkg in @packages)
     # make sure dirs has valid values
-    if dirs.length 
+    if dirs.length
       log.info("- Watching directories: <yellow>#{dirs}</yellow>")
     else
       log.info("- No directories to watch...")
@@ -109,7 +110,7 @@ class Application
     log("Versioning application: <green>#{@name}</green>")
     if @versioning
       @versioning.update()
-    else 
+    else
       log.errorAndExit "ERROR: Versioning not enabled in slug.json"
 
   applyRootDir: (value) ->
@@ -128,7 +129,7 @@ class Application
     utils.cleanRoute.apply(utils, values)
 
 # ------- Package Classes
-    
+
 class Package
 
   constructor: (app, config) ->
@@ -183,7 +184,7 @@ class Package
   unlink: ->
     if fs.existsSync(@target)
       log.info "- removing <yellow>#{@target}</yellow>"
-      fs.unlinkSync(@target) 
+      fs.unlinkSync(@target)
 
   build: (write = true) ->
     extra = (argv.compress and " <b>--using compression</b>") or ""
@@ -192,7 +193,7 @@ class Package
     if source and write
       dirname = path.dirname(@target)
       fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
-      fs.writeFileSync(@target, source) 
+      fs.writeFileSync(@target, source)
     source
 
   watch: ->
@@ -225,7 +226,7 @@ class JsPackage extends Package
   constructor: (app, config)  ->
     # call parent
     super(app, config)
-    
+
     # javascript only configurations
     @commonjs   = config.commonjs or 'require'
     @libs       = @app.applyRootDir(config.libs or [])
@@ -244,8 +245,8 @@ class JsPackage extends Package
 
     # TODO use detective to load only those modules that are required ("required")?
     # or use the modules [] to specifiy which modules if any to load? or
-    # set to false to never load any node_modules even if they are required in 
-    # javascript files. Would have to determine files needed from the stitched 
+    # set to false to never load any node_modules even if they are required in
+    # javascript files. Would have to determine files needed from the stitched
     # files first...
 
     @depend or= new Dependency(@modules)
@@ -261,7 +262,7 @@ class JsPackage extends Package
     # TODO: need to perform similar operation as stitch in that only
     # compilable code is used...
 
-    # check if folder or file 
+    # check if folder or file
     results = []
     for file in files
       # treat as normal javascript
@@ -287,12 +288,71 @@ class JsPackage extends Package
 
 class TestPackage extends JsPackage
 
-    constructor: (app, config)  ->
-      super(app, config)
-      # TODO: use after in default spine json to setup specs...
-      # TODO: testLibs = ['jasmine'] or ['test/public/lib']
-      @depends = utils.toArray(config.depends)
-      @runner  = config.runner
+  constructor: (app, config)  ->
+    super(app, config)
+    # test configurations
+    @depends   = utils.toArray(config.depends)
+    @runner    = config.runner
+    @framework = config.framework
+
+    # get test home directory based on target file location
+    @testHome = path.dirname(@target)
+
+  build: ->
+    @createTestFiles()
+    super()
+
+  getAllTestTargets: ->
+      targets = []
+      homeRoute = path.dirname(@route)
+
+      # first get dependencies
+      for dep in @depends
+        for depapp in @app.hem.apps when depapp.name is dep
+          for pkg in depapp.packages
+            if pkg.constructor.name is "JsPackage"
+              url = path.relative(homeRoute, pkg.route)
+              pth = path.relative(@testHome, pkg.target)
+              targets.push({ url: url, path: pth })
+
+      # get app targets
+      for pkg in @app.packages
+        if pkg.constructor.name is "JsPackage"
+          url = path.relative(homeRoute, pkg.route)
+          pth = path.relative(@testHome, pkg.target)
+          targets.push({ url: url, path: pth })
+
+      # finally test file
+      url = path.relative(homeRoute, pkg.route)
+      pth = path.relative(@testHome, pkg.target)
+      targets.push({ url: url, path: pth })
+      targets
+
+  getFrameworkFiles: ->
+    targets = []
+    frameworkPath = path.resolve(__dirname, "../assets/testing/#{@framework}")
+    for file in fs.readdirSync(frameworkPath)
+      if path.extname(file) in [".js",".css"]
+        url = "#{@framework}/#{file}"
+        targets.push({ url: url, path: url })
+    targets
+
+
+  createTestFiles: ->
+    # create index file
+    indexFile = path.resolve(@testHome,'index.html')
+    files = []
+    files.push.apply(files, @getFrameworkFiles())
+    files.push.apply(files, @getAllTestTargets())
+    template = utils.tmpl("testing/index", { commonjs: @commonjs, files: files } )
+    fs.outputFileSync(indexFile, template)
+
+    # copy the framework files if they aren't present
+    frameworkPath = path.resolve(__dirname, "../assets/testing/#{@framework}")
+    for file in fs.readdirSync(frameworkPath)
+      if path.extname(file) in [".js",".css"]
+        filepath = path.resolve(@testHome, "#{@framework}/#{file}")
+        utils.copyFile(path.resolve(frameworkPath, file), filepath)
 
 class CssPackage extends Package
 
@@ -300,7 +360,7 @@ class CssPackage extends Package
     super(app, config)
 
   compile: () ->
-    try 
+    try
       output = []
 
       # helper function to perform compiles
@@ -319,7 +379,7 @@ class CssPackage extends Package
         else
           output.push requireCss(fileOrDir)
 
-      # join and minify 
+      # join and minify
       result = output.join("\n")
       result = uglifycss.processString(result) if argv.compress
       result
@@ -330,9 +390,9 @@ class CssPackage extends Package
 
 # ------- Public Functions
 
-createApplication = (name, config) ->
-  return new Application(name, config)
+createApplication = (name, config, hem) ->
+  return new Application(name, config, hem)
 
 module.exports.createApplication = createApplication
 
-  
+

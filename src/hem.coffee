@@ -106,7 +106,7 @@ class Hem
     # setup applications from options/slug
     for name, config of @options
       continue if name is "hem"
-      @apps.push application.createApplication(name, config)
+      @apps.push application.createApplication(name, config, @)
 
   # ------- Command Functions
 
@@ -131,10 +131,9 @@ class Hem
     app.watch() for app in @apps
 
   test: ->
-    targets = argv.targets
     # set test options
     testOptions =
-      basePath: @homeDir
+      basePath: @home
     # check for watch mode
     if argv.watch
       @watch()
@@ -143,7 +142,7 @@ class Hem
       @buildApps()
       testOptions.singleRun = true
     # run tests
-    @testTargets(targets, testOptions)
+    testing.run(@apps, options)
 
   check: ->
     printOptions = showHidden: false, colors: !argv.nocolors, depth: null
@@ -159,9 +158,12 @@ class Hem
       log ""
 
   exec: (command = argv.command) ->
+    # handle empty arguments
     return help() unless @[command]
+
     # reset the apps list based on command line args
     @apps = @getTargetApps()
+
     # hope this works :o)
     @[command]()
 
@@ -192,12 +194,6 @@ class Hem
 
   buildApps: () ->
     app.build() for app in @apps
-
-  testTargets: (targets = [], options = {}) ->
-    testApps = (app for app in @apps when app.test)
-    testing.run(testApps, options)
-
-
 
 module.exports = Hem
 

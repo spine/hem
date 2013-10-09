@@ -3,22 +3,21 @@ utils = require('./utils')
 
 # ------- Public Functions 
 
-    # TODO: only ONE app at a time!!!
-
 run = (apps, options = {}) ->
-    # TODO: is karam avaliable, use that,
+    # TODO: is karam avaliable, use that, copy code from compilers
     # - fall back to phantomjs
     # - otherwise just open file in browser??
 
-    runKarma(apps, options)
+    # probably need to loop over apps and run karma for each??
+    runKarma(app, options) for app in apps
 
 # ------- Test Functions 
 
-runPhantomjs = (apps, options = {}) ->
+runPhantomjs = (app, options = {}) ->
   # look at https://github.com/sgentle/phantomjs-node
   # could spin up phantomjs and evaulate rendered page?
 
-runKarma = (apps, options = {}) ->
+runKarma = (app, options = {}) ->
   # use custom testacular config file provided by user
   testConfig = fs.existsSync(options.config) and fs.realpathSync(options.config)
 
@@ -28,18 +27,15 @@ runKarma = (apps, options = {}) ->
     basePath   : options.basePath
     reporters  : ['progress']
     logLevel   : 'info'
-    frameworks : ['jasmine']
+    frameworks : [options.framework]
     browsers   : options.browser and options.browser.split(/[ ,]+/) or ['PhantomJS']
-    files      : createKarmaFileList(apps)
-  
+    files      : createKarmaFileList(app)
+
   # start testacular server
   require('karma').server.start(testConfig)
 
-createKarmaFileList = (apps) ->
-  for app in apps
-    return [app.test.target, app.js.target]
-    # TODO: need to add special js to load the specs in... should be a part of the jasmine type during builds, either that
-    # or don't use stitch on jasmine files, just concat..
+createKarmaFileList = (app) ->
+  # get the test package and return the appropiate file list
 
 # ------- Exports
 
