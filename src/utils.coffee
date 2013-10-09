@@ -1,5 +1,5 @@
 path   = require('path')
-fs     = require('fs')
+fs     = require('fs-extra')
 events = require('events')
 utils  = {}
 
@@ -51,7 +51,19 @@ utils.extend = extend = (a, b) ->
 utils.loadAsset = (asset) ->
   require("../assets/" + asset)
 
-utils.copyAsset = (from, to) ->
+utils.copyFile = (from, to) ->
+  BUF_LENGTH = 64 * 1024
+  _buff = new Buffer(BUF_LENGTH)
+  fdr = fs.openSync(from, 'r')
+  fdw = fs.openSync(to, 'w')
+  bytesRead = 1
+  pos = 0
+  while bytesRead > 0
+    bytesRead = fs.readSync(fdr, _buff, 0, BUF_LENGTH, pos)
+    fs.writeSync(fdw, _buff, 0, bytesRead)
+    pos += bytesRead
+  fs.closeSync(fdr)
+  fs.closeSync(fdw)
 
 utils.isDirectory = (dir) ->
   try
