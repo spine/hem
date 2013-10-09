@@ -52,8 +52,12 @@ utils.loadAsset = (asset) ->
   require("../assets/" + asset)
 
 utils.copyFile = (from, to) ->
+  # make sure target files exists
+  fs.createFileSync(to)
+  # constants
   BUF_LENGTH = 64 * 1024
   _buff = new Buffer(BUF_LENGTH)
+  # perform copy
   fdr = fs.openSync(from, 'r')
   fdw = fs.openSync(to, 'w')
   bytesRead = 1

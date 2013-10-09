@@ -142,7 +142,7 @@ class Hem
       @buildApps()
       testOptions.singleRun = true
     # run tests
-    testing.run(@apps, options)
+    testing.run(@apps, @options)
 
   check: ->
     printOptions = showHidden: false, colors: !argv.nocolors, depth: null
@@ -160,10 +160,8 @@ class Hem
   exec: (command = argv.command) ->
     # handle empty arguments
     return help() unless @[command]
-
     # reset the apps list based on command line args
     @apps = @getTargetApps()
-
     # hope this works :o)
     @[command]()
 

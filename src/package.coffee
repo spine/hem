@@ -78,6 +78,10 @@ class Application
         log.errorAndExit "Incorrect type value for version configuration: (#{config.version.type})"
       @versioning = new verType(@, config.version)
 
+  getTestPackage: ->
+    for pkg in @packages
+      return pkg if pkg.constructor.name is "TestPackage"
+
   isMatchingRoute: (route) ->
     # strip out any versioning applied to file
     if @versioning

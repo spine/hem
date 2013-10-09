@@ -1,5 +1,6 @@
 fs    = require('fs')
 utils = require('./utils')
+path  = require('path')
 
 # ------- Public Functions 
 
@@ -9,13 +10,13 @@ run = (apps, options = {}) ->
     # - otherwise just open file in browser??
 
     # probably need to loop over apps and run karma for each??
-    runKarma(app, options) for app in apps
+    runPhantom(app, options) for app in apps when app.name isnt 'common'
 
 # ------- Test Functions 
 
-runPhantomjs = (app, options = {}) ->
-  # look at https://github.com/sgentle/phantomjs-node
-  # could spin up phantomjs and evaulate rendered page?
+runPhantom = (app, options = {}) ->
+  # TODO need to do this in steps if we have multiple apps
+  require('./phantom')(path.resolve(app.getTestPackage().testHome,'index.html'))
 
 runKarma = (app, options = {}) ->
   # use custom testacular config file provided by user
