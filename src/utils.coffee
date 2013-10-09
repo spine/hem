@@ -51,6 +51,8 @@ utils.extend = extend = (a, b) ->
 utils.loadAsset = (asset) ->
   require("../assets/" + asset)
 
+utils.copyAsset = (from, to) ->
+
 utils.isDirectory = (dir) ->
   try
     stats = fs.lstatSync(dir)
@@ -79,10 +81,10 @@ utils.tmpl = (str, data) ->
     str = str
     .split("'").join("\\'")
     .split("\n").join("\\n")
-    .replace(/{{([\s\S]*?)}}/mg, (m, t) -> '{{' + t.split("\\'").join("'").split("\\n").join("\n") + '}}')
-    .replace(/{{=(.+?)}}/g, "',$1,'")
-    .split("{{").join("');")
-    .split("}}").join("p.push('")
+    .replace(/<%([\s\S]*?)%>/mg, (m, t) -> '<%' + t.split("\\'").join("'").split("\\n").join("\n") + '%>')
+    .replace(/<%=(.+?)%>/g, "',$1,'")
+    .split("<%").join("');")
+    .split("%>").join("p.push('")
     # Generate a reusable function that will serve as a template
     fn = new Function("obj",
     """
