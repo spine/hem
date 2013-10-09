@@ -78,6 +78,7 @@ class Hem
   # emtpy options map and applications list
   options : {}
   apps    : []
+  allApps : []
   home    : process.cwd()
 
   # ------- Constructor
@@ -106,7 +107,7 @@ class Hem
     # setup applications from options/slug
     for name, config of @options
       continue if name is "hem"
-      @apps.push application.createApplication(name, config, @)
+      @allApps.push application.createApplication(name, config, @)
 
   # ------- Command Functions
 
@@ -188,7 +189,7 @@ class Hem
 
   getTargetApps: (targets = argv.targets) ->
     targetAll = targets.length is 0
-    (app for app in @apps when app.name in targets or targetAll)
+    (app for app in @allApps when app.name in targets or targetAll)
 
   buildApps: () ->
     app.build() for app in @apps

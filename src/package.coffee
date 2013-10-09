@@ -312,7 +312,7 @@ class TestPackage extends JsPackage
 
       # first get dependencies
       for dep in @depends
-        for depapp in @app.hem.apps when depapp.name is dep
+        for depapp in @app.hem.allApps when depapp.name is dep
           for pkg in depapp.packages
             if pkg.constructor.name is "JsPackage"
               url = path.relative(homeRoute, pkg.route)
