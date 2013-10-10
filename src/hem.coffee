@@ -43,6 +43,7 @@ compilers   = require('./compilers')
 server      = require('./server')
 testing     = require('./test')
 application = require('./package')
+versioning  = require('./versioning')
 
 # ------- Global Functions
 
@@ -61,11 +62,6 @@ class Hem
   @middleware: (slug) ->
     hem = new Hem(slug)
     server.middleware(hem)
-
-  # exposing globals for customization
-
-  @compilers : compilers
-  @events    : utils.events # TODO: eventually get an event system going...
 
   # default values for server
   @defaults:
@@ -161,10 +157,11 @@ class Hem
       log ""
 
   exec: (command = argv.command) ->
-    # handle empty arguments
     return help() unless @[command]
     # reset the apps list based on command line args
     @apps = @getTargetApps()
+    # customize hem
+    @slug.custom?(@)
     # hope this works :o)
     @[command]()
 
@@ -184,10 +181,12 @@ class Hem
     # next try to require
     try
       delete require.cache[slugPath]
-      slug = require(slugPath)
-      slug?(Hem) or slug
+      @slug = require(slugPath)
     catch error
       log.errorAndExit("Couldn't load slug file #{slugPath}. #{error}")
+
+    # return portion of slug file
+    @slug.config
 
   getTargetApps: (targets = argv.targets) ->
     targetAll = targets.length is 0
@@ -195,6 +194,15 @@ class Hem
 
   buildApps: () ->
     app.build() for app in @apps
+
+  module: (name) ->
+    switch name
+      when "compilers" then compilers
+      when "events" then utils.events
+      when "reporters" then testing.phantom.reporters
+      when "versioning" then versioning
+      else
+        throw new Error("Unknown module name #{name}")
 
 module.exports = Hem
 
