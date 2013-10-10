@@ -192,7 +192,7 @@ class Package
 
   build: (write = true) ->
     extra = (argv.compress and " <b>--using compression</b>") or ""
-    log("- Building target: <yellow>#{@target}</yellow>#{extra}")
+    log.info("- Building target: <yellow>#{@target}</yellow>#{extra}")
     source = @compile()
     if source and write
       dirname = path.dirname(@target)
@@ -296,7 +296,6 @@ class TestPackage extends JsPackage
     super(app, config)
     # test configurations
     @depends   = utils.toArray(config.depends)
-    @runner    = config.runner
     @framework = config.framework
 
     # get test home directory based on target file location

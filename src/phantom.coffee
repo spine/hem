@@ -1,6 +1,8 @@
 phantom = require 'phantom'
 
-# formatters to display test results
+# ------- Test Result Formatters
+
+# TODO: need to make this work with mocha at some point
 
 reporters =
 
@@ -11,16 +13,14 @@ reporters =
       ret
 
     desc = (el) -> $(el).find('> a.description')[0].text
-
     tick = (el) -> if $(el).is('.passed') then '✓ ' else '✖ '
 
     if typeof el is 'number'
       return "Passed: " + el + ", Failed: " + level
-    else
-      if (!$(el).is(".passed"))
-        return indent(level) + tick(el) + desc(el)
-      else
-        return null
+    else if (!$(el).is(".passed"))
+      return indent(level) + tick(el) + desc(el)
+
+  silent: -> return ""
 
   passOrFail: (el, level, strong) ->
     if typeof el is 'number'
@@ -29,28 +29,29 @@ reporters =
   formatColors: (el, level, strong) ->
     indent = (level) ->
       ret = ''
-      for i in [0..level]
-        ret = ret + '  '
-      return ret
+      ret = ret + '  ' for i in [0..level]
+      ret
 
     tick = (el) ->
       if $(el).is('.passed') then '\x1B[32m✓\x1B[0m' else '\x1B[31m✖'
 
-    desc = (el, strong) ->
-      strong or= false
+    desc = (el, strong = false) ->
       ret = $(el).find('> a.description')
       ret = strong and '\x1B[1m' + ret[0].text or ret[0].text
 
+    # display final results
     if typeof el is 'number'
       results= "-------------------------------------\n"
       results += "\x1B[32m✓\x1B[0m\x1B[1m Passed: \x1B[0m" + el
       if level > 0
         results += "\n\x1B[31m✖ \x1B[0m\x1B[1mFailed: \x1B[0m" + level
       return results
+    # format output
     else
       return '\x1B[1m' + indent(level) + tick(el) + ' ' + desc(el, strong)
 
-# wait for method used in page evaluation
+# ------- Wait for certain page elements to become visible
+
 waitFor = (->
 
   getTime = -> (new Date).getTime()
@@ -85,8 +86,54 @@ waitFor = (->
     int = setInterval(looop, 1000 )
 )()
 
+# ------- Jasmine Functions
 
-module.exports = (filepath, reportStyle = "formatColors") ->
+jasmine_parseTestResults = (report) ->
+  # parameters need to be passed in as a simple string so we
+  # need to turn report back into a real javascript function
+  eval("report = " + report)
+
+  # TODO: at some point, do we need to inject jQuery?
+
+  # handle looping over suites
+  printSuites = (root, level) ->
+    level or= 0
+    $(root).find('div.suite').each( (i, el) ->
+      output = report(el, level, true)
+      if $(el).parents('div.suite').length is level
+        window.callPhantom(output) if output
+        printSpecs(el, level + 1)
+      printSuites(el, level + 1)
+    )
+
+  # handle looping over specs
+  printSpecs = (root, level) ->
+    level or= 0
+    $(root).find('> .specSummary').each( (i, el) ->
+      output = report(el, level)
+      window.callPhantom(output) if output
+    )
+
+  # our starting point
+  printSuites($('div.jasmine_reporter'))
+
+  # handle fails
+  fails  = document.body.querySelectorAll('div.jasmine_reporter div.specSummary.failed').length
+  passed = document.body.querySelectorAll('div.jasmine_reporter div.specSummary.passed').length
+  window.callPhantom(report(passed, fails))
+
+  # return results, these will be eventually passed to the 
+  # the callback function that was provided initially.
+  return passed: passed, fails: fails
+
+jasmine_checkTestResults = (page) ->
+  (checkComplete) ->
+    isCheckComplete = -> document.querySelector(".duration")?.innerText
+    page.evaluate(isCheckComplete, checkComplete)
+
+# ------- Public Functions
+
+run = (filepath, options, callback) ->
   phantom.create (ph) ->
     ph.createPage (page) ->
 
@@ -103,52 +150,30 @@ module.exports = (filepath, reportStyle = "formatColors") ->
           console.log("Cannot open URL")
           ph.exit()
 
-        check = (callback) ->
-          isTestComplete = -> document.querySelector(".duration")?.innerText
-          page.evaluate(isTestComplete, callback)
+        # assign the appropiate framework functions
+        checkTestResults = jasmine_checkTestResults(page)
+        parseTestResults = jasmine_parseTestResults
 
-        parseTestResults = (report) ->
-          # parameters need to be passed in as a simple string so we
-          # need to turn report back into a real javascript function
-          eval("report = " + report)
-
-          # handle looping over suites
-          printSuites = (root, level) ->
-            level or= 0
-            $(root).find('div.suite').each( (i, el) ->
-              output = report(el, level, true)
-              if $(el).parents('div.suite').length is level
-                window.callPhantom(output) if output
-                printSpecs(el, level + 1)
-              printSuites(el, level + 1)
-            )
-
-          # handle looping over specs
-          printSpecs = (root, level) ->
-            level or= 0
-            $(root).find('> .specSummary').each( (i, el) ->
-              output = report(el, level)
-              window.callPhantom(output) if output
-            )
-
-          # our starting point
-          printSuites($('div.jasmine_reporter'))
-
-          # handle fails
-          fails  = document.body.querySelectorAll('div.jasmine_reporter div.specSummary.failed')
-          passed = document.body.querySelectorAll('div.jasmine_reporter div.specSummary.passed')
-          window.callPhantom(report(passed.length, fails.length))
+        # function to call upon completion of test parsing
+        complete = (results) ->
+          ph.exit()
+          callback?(results)
 
         # ability to request different type of outputs, default to formatColors
-        reporter = reporters[reportStyle or "formatColors"]
+        reporter = reporters[options.output]
+
 
         # function to call the parsing function, along with callback once
         # everything is complete and the reporter instance that is passed
         # to the parseTestResults function
-        evalTests = (time) ->
-          page.evaluate( parseTestResults, (-> ph.exit()), new String(reporter))
+        evalTestResults = (time) ->
+          page.evaluate( parseTestResults, complete, new String(reporter))
 
         # wait for indication tests are done and then
         # eval/print the test results, all passing, yay!
-        waitFor(check, evalTests)
+        waitFor(checkTestResults, evalTestResults)
 
+# ------- Exports
+
+module.exports.run = run
+module.exports.reporters = reporters

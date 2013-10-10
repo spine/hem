@@ -51,7 +51,6 @@
         "after": [
           "require('lib/setup');"
         ],
-        "runner": "karma",
         "framework": "jasmine"
     }
 }

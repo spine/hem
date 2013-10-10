@@ -133,8 +133,9 @@ class Hem
 
   test: ->
     # set test options
-    testOptions =
-      basePath: @home
+    testOptions = @options.hem.tests or {}
+    testOptions.basePath or= @home
+
     # check for watch mode
     if argv.watch
       @watch()
@@ -142,8 +143,9 @@ class Hem
     else
       @buildApps()
       testOptions.singleRun = true
+
     # run tests
-    testing.run(@apps, @options)
+    testing.run(@apps, testOptions)
 
   check: ->
     printOptions = showHidden: false, colors: !argv.nocolors, depth: null

@@ -1,23 +1,44 @@
 fs      = require('fs')
 path    = require('path')
+log     = require('./log')
 utils   = require('./utils')
 phantom = require('./phantom')
 
-# ------- Public Functions 
+# ------- Public Functions
 
-run = (apps, options = {}) ->
-    # TODO: is karam avaliable, use that, copy code from compilers
-    # - fall back to phantomjs
-    # - otherwise just open file in browser??
+run = (apps, options) ->
 
-    # probably need to loop over apps and run karma for each??
-    runPhantom(app, options) for app in apps when app.name isnt 'common'
+    # determine runner
+    switch options.runner
+      when "phantom"
+        runTests = runPhantom
+      when "karma"
+        runTests = runKarma
+      else
+        # TODO: open test file in browser as default??
+        throw new Error("Invalid or unset test runner value: #{options.runner}")
 
-# ------- Test Functions 
+    # need to loop over apps and run tests for each target app
+    for app in apps
+      runTests(app, options)
 
-runPhantom = (app, options = {}) ->
+# ------- Test Functions
+
+runPhantom = (app, options, done) ->
+  log("Testing  application targets: <green>#{app.name}</green>")
   testFile = app.getTestPackage().getTestIndexFile()
-  phantom(testFile, "passOrFail" )
+
+  # set some other defaults
+  options.output or= "passOrFail"
+
+  # TODO: need a way for watch to work?, we can use our new event system :o)
+  # TODO: need a way to run tests in sequential steps... async library??
+
+  # run phantom
+  phantom.run(testFile, options, (results) ->
+    # exit with the number of failed tests
+    process.exit(results.fails)
+  )
 
 runKarma = (app, options = {}) ->
   # use custom testacular config file provided by user
