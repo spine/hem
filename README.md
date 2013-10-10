@@ -35,8 +35,8 @@ In addition to the above ideas, I want to try to get some of the features below 
 - [*] versioning abilities
 - [ ] easier testing setup and execution (karma/phantomjs)
 - [ ] Simple event system
-- [ ] livereload abilities for css and possibly js
 - [ ] manifest creation
+- [ ] livereload abilities for css and possibly js
 - [ ] update examples/documention
 - [ ] really do need to write some tests for hem
 

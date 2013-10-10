@@ -111,7 +111,7 @@ class Hem
     value = "http://#{@options.hem.host or "*"}:#{@options.hem.port}"
     log "Starting Server at <blue>#{value}</blue>"
     app = server.start(@)
-    Hem.events.emit("server-start", app)
+    utils.events.emit("server-start", app)
 
   clean: ->
     app.unlink() for app in @apps
@@ -183,7 +183,7 @@ class Hem
       delete require.cache[slugPath]
       @slug = require(slugPath)
     catch error
-      log.errorAndExit("Couldn't load slug file #{slugPath}. #{error}")
+      log.errorAndExit("Couldn't load slug file #{slugPath}.")
 
     # return portion of slug file
     @slug.config
