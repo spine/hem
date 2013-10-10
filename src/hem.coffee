@@ -65,7 +65,7 @@ class Hem
   # exposing globals for customization
 
   @compilers : compilers
-  @events    : utils.events # TODO: eventuall get an event system going...
+  @events    : utils.events # TODO: eventually get an event system going...
 
   # default values for server
   @defaults:

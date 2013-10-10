@@ -1,4 +1,12 @@
-phantom = require 'phantom'
+log = require("./log")
+
+# attempt to load the phantom module, which is an optional 
+# dependency. If not available return an empty object
+try
+  phantom = require 'phantom'
+catch err
+  log.error "Unable to require('phantom') npm module..."
+  return
 
 # ------- Test Result Formatters
 

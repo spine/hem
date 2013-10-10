@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "0.4.17",
+  "version": "0.4.18",
   "description": "stiches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": [
     "spine",
@@ -42,11 +42,15 @@
     "connect": "~2.9.0",
     "http-proxy": "~0.10.3",
     "uglify-js": "~2.4.0",
-    "karma": "~0.10.2",
     "sty": "~0.6.1",
     "optimist": "~0.6.0",
     "watch": "~0.8.0",
     "fs-extra": "~0.7.0",
-    "phantom": "~0.5.2"
+    "async": "~0.2.9",
+    "open": "0.0.4"
+  },
+  "optionalDependencies": {
+    "phantom": "~0.5.2",
+    "karma": "~0.10.2"
   }
 }

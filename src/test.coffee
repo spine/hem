@@ -7,22 +7,26 @@ phantom = require('./phantom')
 # ------- Public Functions
 
 run = (apps, options) ->
+  # determine runner
+  switch options.runner
+    when "phantom"
+      runTests = if phantom.run then runPhantom else runBrowser
+    when "karma"
+      runTests = runKarma
+    when "browser"
+      runTests = runBrowser
+    else
+      throw new Error("Invalid or unset test runner value: #{options.runner}")
 
-    # determine runner
-    switch options.runner
-      when "phantom"
-        runTests = runPhantom
-      when "karma"
-        runTests = runKarma
-      else
-        # TODO: open test file in browser as default??
-        throw new Error("Invalid or unset test runner value: #{options.runner}")
-
-    # need to loop over apps and run tests for each target app
-    for app in apps
-      runTests(app, options)
+  # need to loop over apps and run tests for each target app
+  for app in apps
+    runTests(app, options)
 
 # ------- Test Functions
+
+runBrowser = (app, options, done) ->
+  open = require("open")
+  open(app.getTestPackage().getTestIndexFile())
 
 runPhantom = (app, options, done) ->
   log("Testing  application targets: <green>#{app.name}</green>")
@@ -37,7 +41,7 @@ runPhantom = (app, options, done) ->
   # run phantom
   phantom.run(testFile, options, (results) ->
     # exit with the number of failed tests
-    process.exit(results.fails)
+    process.exit(results.fails) if options.singleRun
   )
 
 runKarma = (app, options = {}) ->
@@ -63,5 +67,6 @@ createKarmaFileList = (app) ->
 # ------- Exports
 
 module.exports.run = run
+module.exports.phantom = phantom
 
 
