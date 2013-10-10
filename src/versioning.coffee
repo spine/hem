@@ -1,13 +1,14 @@
 fs    = require('fs')
 path  = require('path')
 utils = require('./utils')
+log   = require('./log')
 types = {}
 
 # private functions
 
 updateVersionInAppFiles = (files, packages, value) ->
   for file in files
-    utils.log "- updating file <yellow>#{file}</yellow> with version: <b>#{value}</b>"
+    log "- updating file <yellow>#{file}</yellow> with version: <b>#{value}</b>"
     data = fs.readFileSync(file, 'utf8')
     # match all target in packages
     for key, pkg of packages
@@ -21,7 +22,7 @@ updateVersionInData = (data, value, pkg) ->
   replace = "=$1$2#{name}.#{value}#{ext}$3"
   # perform replace
   if data.match(match)
-    utils.log "> found target: #{pkg.target}"
+    log "> found target: #{pkg.target}"
     data.replace(match, replace)
   else
     data
