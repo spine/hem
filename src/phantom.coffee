@@ -57,7 +57,7 @@ waitFor = (->
   getTime = -> (new Date).getTime()
 
   return (test, doIt, duration) ->
-    duration or= 10000
+    duration or= 6000
     start = getTime()
     finish = start + duration
     int = undefined
@@ -77,7 +77,7 @@ waitFor = (->
         if timeout and not condition
           console.log("ERROR - Timeout for page condition.")
           clearInterval(int)
-          ph.exit()
+          doIt(0)
 
       # perform the test evaluation
       test(testCallback)
@@ -167,7 +167,10 @@ run = (filepath, options, callback) ->
         # everything is complete and the reporter instance that is passed
         # to the parseTestResults function
         evalTestResults = (time) ->
-          page.evaluate( parseTestResults, complete, new String(reporter))
+          if time > 0
+            page.evaluate( parseTestResults, complete, new String(reporter))
+          else 
+            ph.exit()
 
         # wait for indication tests are done and then
         # eval/print the test results, all passing, yay!
