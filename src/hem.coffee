@@ -173,7 +173,7 @@ class Hem
     try
       slugPath = require.resolve(slugPath)
     catch error
-      log.errorAndExit("Couldn't find slug file #{slugPath}. #{error}")
+      log.errorAndExit("Couldn't find slug file #{path.dirname(slugPath)}")
 
     # set home directory to slug directory
     Hem.home = path.dirname(slugPath)
