@@ -44,6 +44,8 @@ server      = require('./server')
 testing     = require('./test')
 application = require('./package')
 versioning  = require('./versioning')
+events      = require('./events')
+console.log events
 
 # ------- Global Functions
 
@@ -111,7 +113,7 @@ class Hem
     value = "http://#{@options.hem.host or "*"}:#{@options.hem.port}"
     log "Starting Server at <blue>#{value}</blue>"
     app = server.start(@)
-    utils.events.emit("server-start", app)
+    events.emit("server-start", app)
 
   clean: ->
     app.unlink() for app in @apps
@@ -198,7 +200,7 @@ class Hem
   module: (name) ->
     switch name
       when "compilers" then compilers
-      when "events" then utils.events
+      when "events" then events
       when "reporters" then testing.phantom.reporters
       when "versioning" then versioning
       else

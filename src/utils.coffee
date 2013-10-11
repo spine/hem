@@ -1,6 +1,5 @@
 path   = require('path')
 fs     = require('fs-extra')
-events = require('events')
 utils  = {}
 
 # check for windows :o(...
@@ -114,10 +113,6 @@ utils.tmpl = (str, data) ->
     )
   # Provide some basic currying to the user
   return data and fn( data ) or fn;
-
-# ------ Setup shareable events emitter
-
-utils.events = new events.EventEmitter()
 
 # ------ Formatting urls and folder paths
 

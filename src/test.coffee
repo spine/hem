@@ -52,7 +52,7 @@ runKarma = (app, options = {}) ->
   testConfig or=
     singleRun  : options.singleRun or true
     basePath   : options.basePath
-    reporters  : ['progress']
+    reporters  : [options.output or 'progress']
     logLevel   : 'info'
     frameworks : [options.framework]
     browsers   : options.browser and options.browser.split(/[ ,]+/) or ['PhantomJS']

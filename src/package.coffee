@@ -6,6 +6,7 @@ Dependency = require('./dependency')
 Stitch     = require('./stitch')
 utils      = require('./utils')
 argv       = require('./utils').ARGV
+events     = require('./events')
 log        = require('./log')
 versioning = require('./versioning')
 
@@ -216,6 +217,7 @@ class Package
       require('watch').watchTree dir, watchOptions, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           @build()
+          events.emit("watch", @, file)
     dirs
 
   getWatchedDirs: ->
