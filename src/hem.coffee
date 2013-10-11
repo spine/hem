@@ -103,7 +103,7 @@ class Hem
 
     # setup applications from options/slug
     for name, config of @options
-      continue if name is "hem"
+      continue if name is "hem" or typeof config is 'function'
       @allApps.push application.createApplication(name, config, @)
 
   # ------- Command Functions
@@ -186,8 +186,8 @@ class Hem
     catch error
       log.errorAndExit("Couldn't load slug file #{slugPath}.")
 
-    # return portion of slug file
-    @slug.config
+    # return config portion of slug file
+    @slug.config or @slug
 
   getTargetApps: (targets = argv.targets) ->
     targetAll = targets.length is 0
