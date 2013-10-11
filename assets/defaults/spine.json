@@ -48,10 +48,9 @@
             "test/specs"
         ],
         "target": "test/public/specs.js",
-        "after": [
+        "before": [
           "require('lib/setup');"
-        ],
-        "framework": "jasmine"
+        ]
     }
 }
 

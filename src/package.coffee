@@ -236,7 +236,6 @@ class JsPackage extends Package
     # javascript only configurations
     @commonjs   = config.commonjs or 'require'
     @libs       = @app.applyRootDir(config.libs or [])
-    @after      = utils.arrayToString(config.after or "")
     @modules    = utils.toArray(config.modules or [])
 
   compile: ->
@@ -254,6 +253,12 @@ class JsPackage extends Package
     # set to false to never load any node_modules even if they are required in
     # javascript files. Would have to determine files needed from the stitched
     # files first...
+
+    # TODO: also the stitch module should keep cache of compiled code/or compile errors
+    # TODO: have watch pass in filepath that changed and only compile that module! have
+    # the stich use the cached version if possible. Should be as simple as clear cache
+    # of the module we want to recompile, if new file it won't have a cache...
+    # TODO: also for testing we can remove the specs that don't match and optional parameter
 
     @depend or= new Dependency(@modules)
     _stitch   = new Stitch(@src)
@@ -298,10 +303,14 @@ class TestPackage extends JsPackage
     super(app, config)
     # test configurations
     @depends   = utils.toArray(config.depends)
-    @framework = config.framework
+    @framework = @app.hem.options.hem.tests?.framework
 
     # get test home directory based on target file location
     @testHome = path.dirname(@target)
+
+    # special spec to run before tests are executed
+    @before   = utils.arrayToString(config.before or "")
+    
 
   build: ->
     @createTestFiles()
@@ -351,7 +360,7 @@ class TestPackage extends JsPackage
     files = []
     files.push.apply(files, @getFrameworkFiles())
     files.push.apply(files, @getAllTestTargets())
-    template = utils.tmpl("testing/index", { commonjs: @commonjs, files: files } )
+    template = utils.tmpl("testing/index", { commonjs: @commonjs, files: files, before: @before } )
     fs.outputFileSync(indexFile, template)
 
     # copy the framework files if they aren't present

@@ -34,6 +34,10 @@ class Module
     @id  = modulerize(@filename.replace(npath.join(@parent, npath.sep), ''))
     
   compile: ->
+    # TODO: need to cache results!
+    # TODO: need to have stich remember it's modules, so will
+    # need to make it a permanent variable for Stitch class 
+    # and the application will have to hold onto it.
     compilers[@ext](@filename)
     
   valid: ->

@@ -22,6 +22,14 @@ run = (apps, options) ->
   for app in apps
     runTests(app, options)
 
+  # TODO: thoughts...
+  # 1) pass apps to the runTests method and have it loop over apps
+  # 2) use async to run in sequnce!
+  # 3) need some way to but pre/post test javascript into file for both phantom/karma
+  # 4) pass in argument to only require certain specs to run!! goes with #3
+  # 5) use karma server once, and karma run after that, use our own watch to trigger run or 
+  #    run tests from multiple projects
+
 # ------- Test Functions
 
 runBrowser = (app, options, done) ->
@@ -58,8 +66,12 @@ runKarma = (app, options = {}) ->
     browsers   : options.browser and options.browser.split(/[ ,]+/) or ['PhantomJS']
     files      : createKarmaFileList(app)
 
+  # callback
+  callback = (exitCode) -> 
+    process.exit(exitCode) if options.singleRun
+
   # start testacular server
-  require('karma').server.start(testConfig)
+  require('karma').server.start(testConfig, callback)
 
 createKarmaFileList = (app) ->
   # get the test package and return the appropiate file list
