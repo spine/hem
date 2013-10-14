@@ -18,12 +18,13 @@ run = (apps, options) ->
     when "browser"
       runTests = runBrowser
     else
-      throw new Error("Invalid or unset test runner value: #{options.runner}")
+      log.errorAndExit("Invalid or unset test runner value: <yellow>#{options.runner}</yellow>")
 
   # loop over apps and run tests for each target app
   runTests(apps, options)
 
   # TODO: thoughts...
+  # 2) cache compile results!!
   # 3) need some way to set pre/post test javascript into specs file for both phantom/karma
   # 4) pass in argument to only require certain specs to run!! goes with #3
   # 5) use karma server once, and karma run after that, use our own watch to trigger run or
