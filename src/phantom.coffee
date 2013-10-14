@@ -1,12 +1,11 @@
 log = require("./log")
 
-# attempt to load the phantom module, which is an optional 
+# attempt to load the phantom module, which is an optional
 # dependency. If not available return an empty object
 try
   phantom = require 'phantom'
 catch err
-  log.error "Unable to require('phantom') npm module..."
-  return
+  phantom = undefined
 
 # ------- Test Result Formatters
 
@@ -83,9 +82,8 @@ waitFor = (->
           doIt(time - start)
         # THEN, no moretime but condition unfulfilled
         if timeout and not condition
-          console.log("ERROR - Timeout for page condition.")
           clearInterval(int)
-          doIt(0)
+          doIt(0, "Timeout for page condition.")
 
       # perform the test evaluation
       test(testCallback)
@@ -125,14 +123,14 @@ jasmine_parseTestResults = (report) ->
   # our starting point
   printSuites($('div.jasmine_reporter'))
 
-  # handle fails
-  fails  = document.body.querySelectorAll('div.jasmine_reporter div.specSummary.failed').length
+  # handle results
+  failed = document.body.querySelectorAll('div.jasmine_reporter div.specSummary.failed').length
   passed = document.body.querySelectorAll('div.jasmine_reporter div.specSummary.passed').length
-  window.callPhantom(report(passed, fails))
+  window.callPhantom(report(passed, failed))
 
-  # return results, these will be eventually passed to the 
+  # return results, these will be eventually passed to the
   # the callback function that was provided initially.
-  return passed: passed, fails: fails
+  return passed: passed, failed: failed
 
 jasmine_checkTestResults = (page) ->
   (checkComplete) ->
@@ -141,9 +139,10 @@ jasmine_checkTestResults = (page) ->
 
 # ------- Public Functions
 
-run = (filepath, options, callback) ->
-  phantom.create (ph) ->
-    ph.createPage (page) ->
+run = (filepath, options, callback, port = 12300) ->
+  log.info "Testing file <yellow>#{filepath}</yellow> on port <blue>#{port}</blue>"
+  phantom.create( (ph) ->
+    ph.createPage( (page) ->
 
       # print console.log output from the webpage
       page.set('onConsoleMessage', (msg) -> console.log(msg))
@@ -155,8 +154,9 @@ run = (filepath, options, callback) ->
       # open the filepath and beging tests
       page.open filepath, (status) ->
         if status isnt "success"
-          console.log("Cannot open URL")
           ph.exit()
+          callback({ error: "Cannot open URL" })
+          return
 
         # assign the appropiate framework functions
         checkTestResults = jasmine_checkTestResults(page)
@@ -173,18 +173,28 @@ run = (filepath, options, callback) ->
 
         # function to call the parsing function, along with callback once
         # everything is complete and the reporter instance that is passed
-        # to the parseTestResults function
-        evalTestResults = (time) ->
-          if time > 0
+        # to the parseTestResults function. If time parameter is 0 then 
+        # assume that the tests never fully completed.
+        evalTestResults = (time, err) ->
+          if err
+            complete({error: err})
+          else
             page.evaluate( parseTestResults, complete, new String(reporter))
-          else 
-            ph.exit()
 
         # wait for indication tests are done and then
         # eval/print the test results, all passing, yay!
         waitFor(checkTestResults, evalTestResults)
+    )
+  , { port: port } )
 
 # ------- Exports
 
-module.exports.run = run
+# check to make sure phantom is loaded correctly and if
+# not then display an appropiate error message...
+if phantom
+  module.exports.run = run
+else
+  module.exports.run = -> log.error "Unable to require('phantom') npm module..."
+
+# export reporters object to allow custom code
 module.exports.reporters = reporters

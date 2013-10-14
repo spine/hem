@@ -102,7 +102,7 @@ class Application
     pkg.build() for pkg in @packages
 
   watch: ->
-    log("Watching application: <green>#{@name}</green>")
+    log.info("Watching application: <green>#{@name}</green>")
     dirs = (pkg.watch() for pkg in @packages)
     # make sure dirs has valid values
     if dirs.length
@@ -217,7 +217,7 @@ class Package
       require('watch').watchTree dir, watchOptions, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
           @build()
-          events.emit("watch", @, file)
+          events.emit("watch", @app, @, file)
     dirs
 
   getWatchedDirs: ->
@@ -310,7 +310,7 @@ class TestPackage extends JsPackage
 
     # special spec to run before tests are executed
     @before   = utils.arrayToString(config.before or "")
-    
+    @after    = ""
 
   build: ->
     @createTestFiles()

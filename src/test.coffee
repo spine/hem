@@ -2,7 +2,9 @@ fs      = require('fs')
 path    = require('path')
 log     = require('./log')
 utils   = require('./utils')
+events  = require('./events')
 phantom = require('./phantom')
+async   = require('async')
 
 # ------- Public Functions
 
@@ -18,39 +20,76 @@ run = (apps, options) ->
     else
       throw new Error("Invalid or unset test runner value: #{options.runner}")
 
-  # need to loop over apps and run tests for each target app
-  for app in apps
-    runTests(app, options)
+  # loop over apps and run tests for each target app
+  runTests(apps, options)
 
   # TODO: thoughts...
-  # 1) pass apps to the runTests method and have it loop over apps
-  # 2) use async to run in sequnce!
-  # 3) need some way to but pre/post test javascript into file for both phantom/karma
+  # 3) need some way to set pre/post test javascript into specs file for both phantom/karma
   # 4) pass in argument to only require certain specs to run!! goes with #3
-  # 5) use karma server once, and karma run after that, use our own watch to trigger run or 
+  # 5) use karma server once, and karma run after that, use our own watch to trigger run or
   #    run tests from multiple projects
 
 # ------- Test Functions
 
-runBrowser = (app, options, done) ->
-  open = require("open")
-  open(app.getTestPackage().getTestIndexFile())
+runBrowser = (apps, options, done) ->
+  open  = require("open")
+  tasks = {}
 
-runPhantom = (app, options, done) ->
-  log("Testing  application targets: <green>#{app.name}</green>")
-  testFile = app.getTestPackage().getTestIndexFile()
+  # loop over target apps
+  for app in apps
+    testName = app.name
+    testFile = app.getTestPackage().getTestIndexFile()
+    tasks[testName] = do(testFile) ->
+      (done) ->
+        open(testFile)
+        done()
 
+  # if single run then just add to async series
+  if options.singleRun
+    async.series(tasks)
+  else
+    q = async.queue( ((task, callback) -> task(callback)), 1)
+    for task, taskObject of tasks
+      events.on("watch", (app, pkg, file) -> q.push(tasks[app.name]))
+
+runPhantom = (apps, options, done) ->
   # set some other defaults
   options.output or= "passOrFail"
+  tasks = {}
 
-  # TODO: need a way for watch to work?, we can use our new event system :o)
-  # TODO: need a way to run tests in sequential steps... async library??
+  # loop over apps to create test runner functions
+  for app in apps
+    testName = app.name
+    testFile = app.getTestPackage().getTestIndexFile()
+    testPort = 12300 + Object.keys(tasks).length
 
-  # run phantom
-  phantom.run(testFile, options, (results) ->
-    # exit with the number of failed tests
-    process.exit(results.fails) if options.singleRun
-  )
+    # add phantom call to tasks array
+    tasks[testName] = do(testName, testFile, testPort) ->
+      (done) ->
+        log("Testing application targets: <green>#{testName}</green>")
+        phantom.run(testFile, options, (results) ->
+          log.error results.error if results.error
+          done(null, results)
+        , testPort)
+
+  # if single run then just add to async series
+  if options.singleRun
+    async.series(tasks, (err, results) ->
+      exitCode = 0
+      for name, result of results
+        exitCode += result.failed and result.failed or 0
+        exitCode += result.error and 1 or 0
+      process.exit(exitCode)
+    )
+
+  # else add to queue and setup watch
+  else
+    q = async.queue( ((task, callback) -> task(callback)), 1)
+    for task, taskObject of tasks
+      # setup watch and use q.push(taskObject) to assign to q
+      events.on("watch", (app, pkg, file) ->
+        q.push(tasks[app.name])
+      )
 
 runKarma = (app, options = {}) ->
   # use custom testacular config file provided by user
@@ -67,7 +106,7 @@ runKarma = (app, options = {}) ->
     files      : createKarmaFileList(app)
 
   # callback
-  callback = (exitCode) -> 
+  callback = (exitCode) ->
     process.exit(exitCode) if options.singleRun
 
   # start testacular server
