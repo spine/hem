@@ -82,7 +82,7 @@ server.middleware = (hem) ->
     if url.match(/(\.js|\.css)$/)
       for app in hem.apps
         if pkg = app.isMatchingRoute(url)
-          str = pkg.build(false)
+          str = pkg.build()
           res.charset = 'utf-8'
           res.setHeader('Content-Type', mime.lookup(pkg.target))
           res.setHeader('Content-Length', Buffer.byteLength(str))

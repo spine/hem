@@ -24,8 +24,8 @@ run = (apps, options) ->
   runTests(apps, options)
 
   # TODO: thoughts...
-  # 2) cache compile results!!
   # 3) need some way to set pre/post test javascript into specs file for both phantom/karma
+  # 2) cache compile results!!
   # 4) pass in argument to only require certain specs to run!! goes with #3
   # 5) use karma server once, and karma run after that, use our own watch to trigger run or
   #    run tests from multiple projects

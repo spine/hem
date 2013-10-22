@@ -94,15 +94,15 @@ class Application
     return
 
   unlink: ->
-    log("Removing application targets: <green>#{@name}</green>")
+    log("Removing application: <green>#{@name}</green>")
     pkg.unlink() for pkg in @packages
 
   build: ->
-    log("Building application targets: <green>#{@name}</green>")
+    log("Building application: <green>#{@name}</green>")
     pkg.build() for pkg in @packages
 
   watch: ->
-    log.info("Watching application: <green>#{@name}</green>")
+    log("Watching application: <green>#{@name}</green>")
     dirs = (pkg.watch() for pkg in @packages)
     # make sure dirs has valid values
     if dirs.length
@@ -180,8 +180,8 @@ class Package
     log.error(ex.path) if ex.path
     # only return when in server/watch mode, otherwise exit
     switch argv.command
-      when "server" or "watch"
-        # TODO: only return this for javascript
+      when "server", "watch"
+        # TODO: only return this for javascript errors
         return "console.log(\"HEM compile ERROR: #{ex}\n#{ex.path}\");"
       else
         process.exit(1)
@@ -191,10 +191,16 @@ class Package
       log.info "- removing <yellow>#{@target}</yellow>"
       fs.unlinkSync(@target)
 
-  build: (write = true) ->
-    extra = (argv.compress and " <b>--using compression</b>") or ""
+  build: (moduleToRefresh) ->
+    # remove the files module from Stitch so its recompiled
+    Stitch.clear(moduleToRefresh) if moduleToRefresh
+    # extrea logging
+    extra  = (argv.compress and " <b>--using compression</b>") or ""
     log.info("- Building target: <yellow>#{@target}</yellow>#{extra}")
+    # compile source
     source = @compile()
+    # determine if we need to write to filesystem
+    write  = argv.command isnt "server"
     if source and write
       dirname = path.dirname(@target)
       fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
@@ -216,8 +222,11 @@ class Package
     for dir in dirs
       require('watch').watchTree dir, watchOptions, (file, curr, prev) =>
         if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-          @build()
+          # peform recompile
+          @build(file)
+          # emit watch event
           events.emit("watch", @app, @, file)
+    # return dirs that are watched
     dirs
 
   getWatchedDirs: ->
@@ -254,24 +263,21 @@ class JsPackage extends Package
     # javascript files. Would have to determine files needed from the stitched
     # files first...
 
-    # TODO: also the stitch module should keep cache of compiled code/or compile errors
-    # TODO: have watch pass in filepath that changed and only compile that module! have
-    # the stich use the cached version if possible. Should be as simple as clear cache
-    # of the module we want to recompile, if new file it won't have a cache...
     # TODO: also for testing we can remove the specs that don't match and optional parameter
 
     @depend or= new Dependency(@modules)
-    _stitch   = new Stitch(@src)
-    _modules  = @depend.resolve().concat(_stitch.resolve())
+    @stitch or= new Stitch(@src)
+    _modules  = @depend.resolve().concat(@stitch.resolve())
     if _modules
-      _stitch.template(@commonjs, _modules)
+      Stitch.template(@commonjs, _modules)
     else
       ""
 
   compileLibs: (files = @libs, parentDir = "") ->
 
     # TODO: need to perform similar operation as stitch in that only
-    # compilable code is used...
+    # compilable code is used... refactor Stitch class to handle this?? except
+    # we don't want the code actually stitched in a template, just plain old js
 
     # check if folder or file
     results = []

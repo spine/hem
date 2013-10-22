@@ -113,6 +113,8 @@ class Hem
     log "Starting Server at <blue>#{value}</blue>"
     app = server.start(@)
     events.emit("server", app)
+    # make sure watch is going to recompile immediately
+    app.watch() for app in @apps
 
   clean: ->
     app.unlink() for app in @apps
