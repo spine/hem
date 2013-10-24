@@ -47,10 +47,7 @@
         "src": [
             "test/specs"
         ],
-        "target": "test/public/specs.js",
-        "before": [
-          "require('lib/setup');"
-        ]
+        "target": "test/public/specs.js"
     }
 }
 

@@ -13,7 +13,7 @@ utils.flatten = flatten = (array, results = []) ->
       results.push(item)
   results
 
-utils.arrayToString = (value = "") ->
+utils.arrayToString = (value) ->
   if Array.isArray(value)
     result = ""
     for line in value

@@ -25,7 +25,6 @@ run = (apps, options) ->
 
   # TODO: thoughts...
   # 3) need some way to set pre/post test javascript into specs file for both phantom/karma
-  # 2) cache compile results!!
   # 4) pass in argument to only require certain specs to run!! goes with #3
   # 5) use karma server once, and karma run after that, use our own watch to trigger run or
   #    run tests from multiple projects
@@ -92,29 +91,34 @@ runPhantom = (apps, options, done) ->
         q.push(tasks[app.name])
       )
 
-runKarma = (app, options = {}) ->
-  # use custom testacular config file provided by user
-  testConfig = fs.existsSync(options.config) and fs.realpathSync(options.config)
+runKarma = (apps, options = {}) ->
+  
+  for app in apps
 
-  # create config file to pass into server if user doesn't supply a file to use
-  testConfig or=
-    singleRun  : options.singleRun or true
-    basePath   : options.basePath
-    reporters  : [options.output or 'progress']
-    logLevel   : 'info'
-    frameworks : [options.framework]
-    browsers   : options.browser and options.browser.split(/[ ,]+/) or ['PhantomJS']
-    files      : createKarmaFileList(app)
+    # create config file to pass into server if user doesn't supply a file to use
+    testConfig =
+      singleRun  : options.singleRun
+      basePath   : options.basePath
+      reporters  : [options.reporters or 'progress']
+      logLevel   : options.logLevel or 'error'
+      frameworks : [options.frameworks or 'jasmine']
+      browsers   : options.browser and options.browser.split(/[ ,]+/) or ['PhantomJS']
+      files      : createKarmaFileList(app)
+      autoWatch  : true
 
-  # callback
-  callback = (exitCode) ->
-    process.exit(exitCode) if options.singleRun
+    # callback
+    callback = (exitCode) ->
+      console.log "done!!"
+      process.exit(exitCode)
 
-  # start testacular server
-  require('karma').server.start(testConfig, callback)
+    # start testacular server
+    require('karma').server.start(testConfig, callback)
 
 createKarmaFileList = (app) ->
-  # get the test package and return the appropiate file list
+  files = []
+  for target in app.getTestPackage().getAllTestTargets(false)
+    files.push(target.path)
+  files
 
 # ------- Exports
 

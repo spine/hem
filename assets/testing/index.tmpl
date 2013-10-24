@@ -10,11 +10,6 @@
 (function() {
 
   function startTests() {
-    // javascript to run before tests
-    <%=before%>
-
-    // load in specs from specs.js file
-    for (var key in <%=commonjs%>.modules) { <%=commonjs%>(key); }
 
     // create jasmine environment
     var jasmineEnv = jasmine.getEnv();

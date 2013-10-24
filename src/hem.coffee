@@ -20,6 +20,8 @@ argv = optimist.usage([
 .alias('s', 'slug').describe('s',':run hem using a specified slug file')
 .alias('n', 'nocolors').describe('n',':disable color in console output')
 .alias('v', 'verbose').describe('v',':make hem more talkative(verbose)')
+.alias('g', 'grep').describe('g',':only run specific modules during test')
+.alias('r', 'runner').describe('r',':override the default test runner')
 .argv
 
 # set command and targets properties
@@ -33,18 +35,20 @@ require("sty").disable() if !!argv.nocolors
 log = require('./log')
 log.VERBOSE = argv.v = !!argv.v
 
-# save argv to utils class to allow access by other modules
-utils = require('./utils')
-utils.ARGV = argv
-
 # ------- perform requires
 
+utils       = require('./utils')
 compilers   = require('./compilers')
 server      = require('./server')
 testing     = require('./test')
 application = require('./package')
 versioning  = require('./versioning')
 events      = require('./events')
+
+# supply argv object to module
+
+compilers.argv   = argv
+application.argv = argv
 
 # ------- Global Functions
 
@@ -63,12 +67,6 @@ class Hem
   @middleware: (slug) ->
     hem = new Hem(slug)
     server.middleware(hem)
-
-  # default values for server
-  @defaults:
-    hem:
-      port: 9294
-      host: "localhost"
 
   # ------- instance variables
 
@@ -95,16 +93,23 @@ class Hem
 
     # make sure some defaults are present
     @options.hem or= {}
-    @options.hem.port   or= Hem.defaults.hem.port
-    @options.hem.host   or= Hem.defaults.hem.host
+    @options.hem.port or= 9294
+    @options.hem.host or= "localhost"
+
+    # test defaults
+    @options.hem.test or= {}
+    @options.hem.test.runner     or= "karma"
+    @options.hem.test.reporters  or= "progress"
+    @options.hem.test.frameworks or= "jasmine"
 
     # allow overrides from command line
     @options.hem.port = argv.port if argv.port
+    @options.hem.test.runner = argv.runner if argv.runner
 
     # setup applications from options/slug
     for name, config of @options
       continue if name is "hem" or typeof config is 'function'
-      @allApps.push application.createApplication(name, config, @)
+      @allApps.push application.create(name, config, @, argv)
 
   # ------- Command Functions
 
@@ -204,6 +209,7 @@ class Hem
       when "events" then events
       when "reporters" then testing.phantom.reporters
       when "versioning" then versioning
+      when "log" then log
       else
         throw new Error("Unknown module name #{name}")
 

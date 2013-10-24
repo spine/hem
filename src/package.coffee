@@ -5,17 +5,19 @@ uglifycss  = require('uglifycss')
 Dependency = require('./dependency')
 Stitch     = require('./stitch')
 utils      = require('./utils')
-argv       = require('./utils').ARGV
 events     = require('./events')
 log        = require('./log')
 versioning = require('./versioning')
 
+# ------- Variables set by hem during startup
+
+_hem  = undefined
+_argv = undefined
 
 # ------- Application Class
 
 class Application
-  constructor: (name, config = {}, hem) ->
-    @hem   = hem
+  constructor: (name, config = {}) ->
     @name  = name
     @route = config.route
     @root  = config.root
@@ -170,19 +172,28 @@ class Package
           @route = utils.cleanRoute(route.url, targetUrl)
 
     # make sure we have a route to use when using server command
-    if argv.command is "server" and not @route
+    if _argv.command is "server" and not @route
       log.errorAndExit("Unable to determine route for <yellow>#{@target}</yellow>")
 
   handleCompileError: (ex) ->
+    # check for method on _hem to allow override of behavior
+    if _hem.handleCompileError
+      _hem.handleCompileError(ex)
+      return
+
     # TODO: construct better error message, one that works for all precompilers,
-    # having some problems with sty here, hmmm....
     log.error(ex.message)
     log.error(ex.path) if ex.path
+
     # only return when in server/watch mode, otherwise exit
-    switch argv.command
-      when "server", "watch"
-        # TODO: only return this for javascript errors
-        return "console.log(\"HEM compile ERROR: #{ex}\n#{ex.path}\");"
+    switch _argv.command
+      when "server"
+        if @ext is "js"
+          return "alert(\"HEM: #{ex}\\n\\n#{ex.path}\");"
+        else
+          return ""
+      when "watch"
+        return ""
       else
         process.exit(1)
 
@@ -191,16 +202,16 @@ class Package
       log.info "- removing <yellow>#{@target}</yellow>"
       fs.unlinkSync(@target)
 
-  build: (moduleToRefresh) ->
+  build: (file) ->
     # remove the files module from Stitch so its recompiled
-    Stitch.clear(moduleToRefresh) if moduleToRefresh
+    Stitch.clear(file) if file
     # extrea logging
-    extra  = (argv.compress and " <b>--using compression</b>") or ""
+    extra = (_argv.compress and " <b>--using compression</b>") or ""
     log.info("- Building target: <yellow>#{@target}</yellow>#{extra}")
     # compile source
     source = @compile()
     # determine if we need to write to filesystem
-    write  = argv.command isnt "server"
+    write = _argv.command isnt "server"
     if source and write
       dirname = path.dirname(@target)
       fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
@@ -243,14 +254,18 @@ class JsPackage extends Package
     super(app, config)
 
     # javascript only configurations
-    @commonjs   = config.commonjs or 'require'
-    @libs       = @app.applyRootDir(config.libs or [])
-    @modules    = utils.toArray(config.modules or [])
+    @commonjs = config.commonjs or 'require'
+    @libs     = @app.applyRootDir(config.libs or [])
+    @modules  = utils.toArray(config.modules or [])
+
+    # javascript to add before/after the stitch file
+    @before   = utils.arrayToString(config.before or "")
+    @after    = utils.arrayToString(config.after or "")
 
   compile: ->
     try
-      result = [@compileLibs(), @compileModules(), @after].join("\n")
-      result = uglifyjs.minify(result, {fromString: true}).code if argv.compress
+      result = [@before, @compileLibs(), @compileModules(), @after].join("\n")
+      result = uglifyjs.minify(result, {fromString: true}).code if _argv.compress
       result
     catch ex
       @handleCompileError(ex)
@@ -309,42 +324,62 @@ class TestPackage extends JsPackage
     super(app, config)
     # test configurations
     @depends   = utils.toArray(config.depends)
-    @framework = @app.hem.options.hem.tests?.framework
 
     # get test home directory based on target file location
-    @testHome = path.dirname(@target)
+    @testHome  = path.dirname(@target)
+    @framework = _hem.options.hem.test.frameworks
 
-    # special spec to run before tests are executed
-    @before   = utils.arrayToString(config.before or "")
-    @after    = ""
+    # test to make sure framework is set correctly
+    if @framework not in ['jasmine','mocha']
+      log.errorAndExit("Test frameworks value is not valid: #{@framework}")
 
-  build: ->
+    # javascript to run at end of specs file
+    @after +=
+    """
+    // HEM: load in specs from test js file
+    var onlyMatchingModules = \"#{_argv.grep or ""}\";
+    for (var key in #{@commonjs}.modules) {
+      if (onlyMatchingModules && key.indexOf(onlyMatchingModules) == -1) {
+        continue;
+      }
+      #{@commonjs}(key); 
+    }
+    """
+
+  build: (file) ->
     @createTestFiles()
-    super()
+    super(file)
 
-  getAllTestTargets: ->
-    targets = []
+  getAllTestTargets: (relative = true) ->
+    targets   = []
     homeRoute = path.dirname(@route)
+
+    # create function to determine route/path
+    relativeFn = (home, target) ->
+      if relative
+        path.relative(home, target)
+      else
+        target
 
     # first get dependencies
     for dep in @depends
-      for depapp in @app.hem.allApps when depapp.name is dep
+      for depapp in _hem.allApps when depapp.name is dep
         for pkg in depapp.packages
-          if pkg.constructor.name is "JsPackage"
-            url = path.relative(homeRoute, pkg.route)
-            pth = path.relative(@testHome, pkg.target)
-            targets.push({ url: url, path: pth })
+          continue unless pkg.constructor.name is "JsPackage"
+          url = relativeFn(homeRoute, pkg.route)
+          pth = relativeFn(@testHome, pkg.target) 
+          targets.push({ url: url, path: pth })
 
     # get app targets
     for pkg in @app.packages
-      if pkg.constructor.name is "JsPackage"
-        url = path.relative(homeRoute, pkg.route)
-        pth = path.relative(@testHome, pkg.target)
-        targets.push({ url: url, path: pth })
+      continue unless pkg.constructor.name is "JsPackage"
+      url = relativeFn(homeRoute, pkg.route)
+      pth = relativeFn(@testHome, pkg.target)
+      targets.push({ url: url, path: pth })
 
-    # finally test file
-    url = path.relative(homeRoute, pkg.route)
-    pth = path.relative(@testHome, pkg.target)
+    # finally add main test target file
+    url = relativeFn(homeRoute, pkg.route)
+    pth = relativeFn(@testHome, pkg.target)
     targets.push({ url: url, path: pth })
     targets
 
@@ -359,6 +394,8 @@ class TestPackage extends JsPackage
 
   getTestIndexFile: ->
     path.resolve(@testHome,'index.html')
+
+  # TODO: only do this for browser tests???
 
   createTestFiles: ->
     # create index file
@@ -403,7 +440,7 @@ class CssPackage extends Package
 
       # join and minify
       result = output.join("\n")
-      result = uglifycss.processString(result) if argv.compress
+      result = uglifycss.processString(result) if _argv.compress
       result
     catch ex
       @handleCompileError(ex)
@@ -412,9 +449,11 @@ class CssPackage extends Package
 
 # ------- Public Functions
 
-createApplication = (name, config, hem) ->
-  return new Application(name, config, hem)
+create = (name, config, hem, argv) ->
+  _hem  or= hem
+  _argv or= argv
+  return new Application(name, config)
 
-module.exports.createApplication = createApplication
+module.exports.create = create
 
 
