@@ -50,7 +50,7 @@
     "open": "0.0.4"
   },
   "optionalDependencies": {
-    "phantom": "~0.5.2",
-    "karma": "~0.10.2"
+    "phantom": "0.5.x",
+    "karma": "0.10.x"
   }
 }

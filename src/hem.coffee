@@ -15,6 +15,7 @@ argv = optimist.usage([
   '    check   :check slug file values'
 ].join("\n"))
 .alias('p', 'port').describe('p',':hem server port')
+.alias('h', 'port').describe('p',':hem server host')
 .alias('c', 'compress').describe('c',':all compilations are compressed/minified')
 .alias('w', 'watch').describe('w',':watch files when running tests')
 .alias('s', 'slug').describe('s',':run hem using a specified slug file')
@@ -104,6 +105,7 @@ class Hem
 
     # allow overrides from command line
     @options.hem.port = argv.port if argv.port
+    @options.hem.host = argv.host if argv.host
     @options.hem.test.runner = argv.runner if argv.runner
 
     # setup applications from options/slug

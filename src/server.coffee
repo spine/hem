@@ -16,7 +16,10 @@ server.start = (hem) ->
   app.use(server.middleware(hem))
   # start server
   options = hem.options.hem
-  http.createServer(app).listen(options.port, options.host)
+  if options.host is "*"
+    http.createServer(app).listen(options.port)
+  else 
+    http.createServer(app).listen(options.port, options.host)
   return app
 
 server.middleware = (hem) ->
