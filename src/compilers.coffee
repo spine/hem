@@ -91,6 +91,26 @@ try
 catch err
 
 try
+  handlebars = require('handlebars')
+  
+  compilers.hbs = (path) ->
+    content = fs.readFileSync(path, 'utf8')
+    try
+      template = handlebars.precompile content,
+        separator: '\n'
+        knownHelpers: []
+        knownHelpersOnly: false
+      source = template.toString()
+      "module.exports = Handlebars.template(#{source});"
+    catch ex
+      throw new Error("#{ex} in #{path}")
+
+  require.extensions['.hbs'] = (module, filename) ->
+    module._compile compilers.hbs(filename), filename
+catch err
+
+
+try
   stylus = require('stylus')
   
   compilers.styl = (_path) ->
