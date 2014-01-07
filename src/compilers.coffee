@@ -77,7 +77,9 @@ try
   compilers.jade = (path) ->
     content = fs.readFileSync(path, 'utf8')
     try
-      template = jade.compile content,
+      # look first for compileClient (starting with jade v1.0.0) and fallback compile if not defined
+      jCompiler = jade.compileClient or jade.compile
+      template  = jCompiler content,
         filename: path
         compileDebug: compilers.DEBUG
         client: true

@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "stiches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": [
     "spine",
