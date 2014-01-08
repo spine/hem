@@ -125,7 +125,9 @@ compilers.jade = (_path) ->
   jade    = requireLocalModule('jade', _path)
   content = fs.readFileSync(_path, 'utf8')
   try
-    template = jade.compile content,
+     # look first for compileClient (starting with jade v1.0.0) and fallback compile if not defined
+    jCompile = jade.compileClient or jade.compile
+    template = jCompile content,
       filename: _path
       compileDebug: @argv.command is "server"
       client: true
