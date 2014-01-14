@@ -7,8 +7,10 @@ compilers    = require('./compilers')
 
 ## --- Private
 
+# TODO: make this a part of the stitch instance??
 _modules = {}
 
+# TODO: replace with node-glob file list
 _walk = (path, parent = path, result = []) ->
   return unless fs.existsSync(path)
   for child in fs.readdirSync(path)

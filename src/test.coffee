@@ -1,10 +1,10 @@
 fs      = require('fs')
 path    = require('path')
+async   = require('async')
 log     = require('./log')
 utils   = require('./utils')
 events  = require('./events')
 phantom = require('./phantom')
-async   = require('async')
 
 # ------- Public Functions
 
@@ -13,8 +13,6 @@ run = (apps, options) ->
   switch options.runner
     when "phantom"
       runTests = if phantom.run then runPhantom else runBrowser
-    when "karma"
-      runTests = runKarma
     when "browser"
       runTests = runBrowser
     else
@@ -22,12 +20,6 @@ run = (apps, options) ->
 
   # loop over apps and run tests for each target app
   runTests(apps, options)
-
-  # TODO: thoughts...
-  # 3) need some way to set pre/post test javascript into specs file for both phantom/karma
-  # 4) pass in argument to only require certain specs to run!! goes with #3
-  # 5) use karma server once, and karma run after that, use our own watch to trigger run or
-  #    run tests from multiple projects
 
 # ------- Test Functions
 
@@ -38,6 +30,7 @@ runBrowser = (apps, options, done) ->
   # loop over target apps
   for app in apps
     testName = app.name
+    # TODO: need to make sure test files exist, place in getTestTask() call!!
     testFile = app.getTestPackage().getTestIndexFile()
     tasks[testName] = do(testFile) ->
       (done) ->
@@ -60,6 +53,7 @@ runPhantom = (apps, options, done) ->
   # loop over apps to create test runner functions
   for app in apps
     testName = app.name
+    # TODO: need to make sure test files exist, place in getTestTask() call!!
     testFile = app.getTestPackage().getTestIndexFile()
     testPort = 12300 + Object.keys(tasks).length
 
@@ -91,34 +85,93 @@ runPhantom = (apps, options, done) ->
         q.push(tasks[app.name])
       )
 
-runKarma = (apps, options = {}) ->
-  
-  for app in apps
+# TODO: not sure how to incorperate all this...
 
-    # create config file to pass into server if user doesn't supply a file to use
-    testConfig =
-      singleRun  : options.singleRun
-      basePath   : options.basePath
-      reporters  : [options.reporters or 'progress']
-      logLevel   : options.logLevel or 'error'
-      frameworks : [options.frameworks or 'jasmine']
-      browsers   : options.browser and options.browser.split(/[ ,]+/) or ['PhantomJS']
-      files      : createKarmaFileList(app)
-      autoWatch  : true
+  constructor: (task)  ->
 
-    # callback
-    callback = (exitCode) ->
-      console.log "done!!"
-      process.exit(exitCode)
+    # get test home directory based on target file location
+    @testHome  = path.dirname(@target)
+    @framework = task.test
 
-    # start testacular server
-    require('karma').server.start(testConfig, callback)
+    # test to make sure framework is set correctly
+    if @framework not in ['jasmine','mocha']
+      log.errorAndExit("Test frameworks value is not valid: #{@framework}")
 
-createKarmaFileList = (app) ->
-  files = []
-  for target in app.getTestPackage().getAllTestTargets(false)
-    files.push(target.path)
-  files
+    # javascript to run at end of specs file
+    @after +=
+    """
+    // HEM: load in specs from test js file
+    var onlyMatchingModules = \"#{_argv.grep or ""}\";
+    for (var key in #{@commonjs}.modules) {
+      if (onlyMatchingModules && key.indexOf(onlyMatchingModules) == -1) {
+        continue;
+      }
+      #{@commonjs}(key); 
+    }
+    """
+
+  createTestFiles: ->
+    # create test html file
+    # TODO: check if file already exists!!
+    indexFile = @getTestIndexFile()
+    files = []
+    files.push.apply(files, @getFrameworkFiles())
+    files.push.apply(files, @getAllTestTargets())
+    template = utils.tmpl("testing/index", { commonjs: @commonjs, files: files, before: @before } )
+    fs.outputFileSync(indexFile, template)
+
+    # copy the framework files if they aren't present
+    frameworkPath = path.resolve(__dirname, "../assets/testing/#{@framework}")
+    for file in fs.readdirSync(frameworkPath)
+      if path.extname(file) in [".js",".css"]
+        filepath = path.resolve(@testHome, "#{@framework}/#{file}")
+        utils.copyFile(path.resolve(frameworkPath, file), filepath)
+
+  getAllTestTargets: (relative = true) ->
+    targets   = []
+    homeRoute = path.dirname(@route)
+
+    # create function to determine route/path
+    relativeFn = (home, target) ->
+      if relative
+        path.relative(home, target)
+      else
+        target
+
+    # first get dependencies
+    for dep in @depends
+      for depapp in _hem.allApps when depapp.name is dep
+        for pkg in depapp.packages
+          continue unless pkg.constructor.name is "JsPackage"
+          url = relativeFn(homeRoute, pkg.route)
+          pth = relativeFn(@testHome, pkg.target) 
+          targets.push({ url: url, path: pth })
+
+    # get app targets
+    for pkg in @app.packages
+      continue unless pkg.constructor.name is "JsPackage"
+      url = relativeFn(homeRoute, pkg.route)
+      pth = relativeFn(@testHome, pkg.target)
+      targets.push({ url: url, path: pth })
+
+    # finally add main test target file
+    url = relativeFn(homeRoute, pkg.route)
+    pth = relativeFn(@testHome, pkg.target)
+    targets.push({ url: url, path: pth })
+    targets
+
+  getFrameworkFiles: ->
+    targets = []
+    frameworkPath = path.resolve(__dirname, "../assets/testing/#{@framework}")
+    for file in fs.readdirSync(frameworkPath)
+      if path.extname(file) in [".js",".css"]
+        url = "#{@framework}/#{file}"
+        targets.push({ url: url, path: url })
+    targets
+
+  getTestIndexFile: ->
+    path.resolve(@testHome,'index.html')
+
 
 # ------- Exports
 

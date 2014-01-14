@@ -28,6 +28,8 @@ repl =
 # Resolves a `require()` call. Pass in the name of the module where
 # the call was made, and the path that was required.
 # Returns an array of: [moduleName, scriptPath]
+
+# TODO: have both stitch and dependency call this function to modularize??
 module.exports = (request, parent = repl) ->
   [_, paths]  = Module._resolveLookupPaths(request, parent)
   filename    = Module._findPath(request, paths)
@@ -52,6 +54,7 @@ module.exports = (request, parent = repl) ->
   id = filename.replace("#{dir}#{sep}", '')
   [modulerize(id, filename), filename]
 
+# TODO: pretty sure this isn't used...
 module.exports.paths = (filename) ->
   Module._nodeModulePaths(dirname(filename))
 

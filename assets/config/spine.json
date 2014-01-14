@@ -1,0 +1,53 @@
+{
+    "root": "",
+    "route": "/",
+    "static": {
+        "/": "public",
+        "/test": "test/public"
+    },
+
+    "version": {
+      "type": "package",
+      "files": [ "public/index.html" ]
+    },
+
+
+    "build": {
+
+      "css": {
+          "src": [
+              "css"
+          ],
+          "target": "public"
+      },
+
+      "some_application": {
+          "type": "js",
+          "commonjs": "require",
+          "libs": [
+              "lib"
+          ],
+          "src": [
+              "app"
+          ],
+          "target": "public"
+      },
+ 
+      "specs.js": {
+          "commonjs": "specs",
+          "test": "jasmine",
+          "libs": [],
+          "depends": [],
+          "src": [
+              "test/specs"
+          ],
+          "target": "test/public"
+      }
+    }
+
+    "tasks": {
+      "manifest": {
+        "depends": "build",
+
+}
+

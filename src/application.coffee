@@ -2,31 +2,19 @@ fs         = require('fs-extra')
 path       = require('path')
 uglifyjs   = require('uglify-js')
 uglifycss  = require('uglifycss')
-Dependency = require('./dependency')
-Stitch     = require('./stitch')
 utils      = require('./utils')
 events     = require('./events')
 log        = require('./log')
-versioning = require('./versioning')
-
-# Thoughts..
-# 1. use gaze/globule for defining files to compile/watch
-# 2. seaparate compilers and minifiers
-# 3. other translations after/before compile -> remove comments, append javascript, etc..
-# 4. be sure to mention awesome modules in readme.md!!
-
-# ------- Variables set by hem during startup
-
-_hem  = undefined
-_argv = undefined
+Dependency = require('./dependency')
+Stitch     = require('./stitch')
+Tasks      = require('./tasks.coffee')
+Versioning = require('./versioning')
 
 # ------- Application Class
 
 class Application
   constructor: (name, config = {}) ->
     @name  = name
-    @route = config.route
-    @root  = config.root
 
     # apply defaults, make this a require to load in?? TODO:
     if (config.extend)
@@ -40,6 +28,12 @@ class Application
       # create updated config mapping by merging with default values
       config = utils.extend(defaults, config)
 
+    # folder and url settings
+    @route  = config.route
+    @root   = config.root
+    @static = config.static or []
+    @tasks  = config.tasks or []
+
     # set root variable, and possibly route
     unless @root
       # if application name is also a directory then assume that is root
@@ -51,78 +45,54 @@ class Application
         @root    = "/"
         @route or= "/"
 
-    # make sure route has a value
-    @static   = []
-    @packages = []
-
     # configure static routes with base root and route values
     for route, value of config.static
       @static.push
-        url  : @applyBaseRoute(route)
-        path : @applyRootDir(value)[0]
+        url  : @applyRoute(route)
+        path : @applyRoot(value)[0]
 
     # configure js/css packages
     for key, value of config
-      packager = undefined
-      # determine package type
-      if key is 'js' or utils.endsWith(key,'.js')
-        packager = JsPackage
-        value.name = key
-      else if key is 'css' or utils.endsWith(key,'.css')
-        packager = CssPackage
-        value.name = key
-      # add to @packages array
-      if packager
-        @packages.push(new packager(@, value))
-
-    # configure test structure
-    if config.test
-      config.test.name = "test"
-      @packages.push(new TestPackage(@, config.test))
-
-    # simply mark a package as a 'test' package???
-    # configure builder here... so far would have css builder and js builder, but could have more
-    # resource builder, mover??? dependent on .js/.css extensions in package name
+      task = Tasks.create(key, value)
+      @tasks.push(task) if task
 
     # configure versioning
     if config.version
-      verType = versioning[config.version.type]
+      verType = Versioning[config.version.type]
       unless verType
         log.errorAndExit "Incorrect type value for version configuration: (#{config.version.type})"
       @versioning = new verType(@, config.version)
 
-  getTestPackage: ->
-    for pkg in @packages
-      # simply mark packages as test: true
-      return pkg if pkg.constructor.name is "TestPackage"
+  getTestTask: ->
+    for task in @tasks
+      return task if task.test
 
   isMatchingRoute: (route) ->
     # strip out any versioning applied to file
     if @versioning
       route = @versioning.trim(route)
     # compare against package route values
-    for pkg in @packages
-      return pkg if route is pkg.route
+    for task in @tasks
+      return task if route is task.route
     # return nothing
     return
 
   unlink: ->
     log("Removing application: <green>#{@name}</green>")
-    pkg.unlink() for pkg in @packages
+    task.unlink() for task in @tasks
 
   build: ->
     log("Building application: <green>#{@name}</green>")
-    pkg.build() for pkg in @packages
+    task.execute() for task in @tasks
 
   watch: ->
     log("Watching application: <green>#{@name}</green>")
-    dirs = (pkg.watch() for pkg in @packages)
+    dirs = (task.watch() for task in @tasks)
     # make sure dirs has valid values
     if dirs.length
       log.info("- Watching directories: <yellow>#{dirs}</yellow>")
     else
       log.info("- No directories to watch...")
-
 
   version: ->
     log("Versioning application: <green>#{@name}</green>")
@@ -131,7 +101,7 @@ class Application
     else
       log.errorAndExit "ERROR: Versioning not enabled in slug.json"
 
-  applyRootDir: (value) ->
+  applyRoot: (value) ->
     # TODO: eventually use the Hem.home directory value if the home
     # TODO: value is different from the process.cwd() value?!
     values = utils.toArray(value)
@@ -142,15 +112,13 @@ class Application
         utils.cleanPath(@root, value)
     values
 
-  applyBaseRoute: (values...) ->
+  applyRoute: (values...) ->
     values.unshift(@route) if @route
     utils.cleanRoute.apply(utils, values)
 
 # ------- Public Functions
 
-create = (name, config, hem, argv) ->
-  _hem  or= hem
-  _argv or= argv
+create = (name, config) ->
   return new Application(name, config)
 
 module.exports.create = create

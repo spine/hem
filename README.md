@@ -33,12 +33,15 @@ In addition to the above ideas, I want to try to get some of the features below 
 - [*] Easier to setup proxy
 - [*] ability to act as middleware for connect/express apps
 - [*] versioning abilities
+- [*] Simple event system
 - [ ] easier testing setup and execution (karma/phantomjs)
-- [ ] Simple event system
-- [ ] manifest creation
 - [ ] livereload abilities for css and possibly js
+- [ ] manifest creation
 - [ ] update examples/documention
 - [ ] really do need to write some tests for hem
+
+do away with test target in hem???? have a karam preprocessor built in?
+or just install karma in project folder
 
 Will look into but not 100% sure
 ---
@@ -46,13 +49,18 @@ Will look into but not 100% sure
 These would be nice to have things, will have to research it more in the future...
 
 - [*] easier ways to add your own compilers/extensions
-- [ ] source mapping
-- [ ] integrate spine.app commands into hem
-- [ ] possibly look at AMD vs commonjs???
 - [ ] jshint/lint checks??
+- [ ] more events, to manipulate js after compiles?
+- [ ] use https://github.com/isaacs/minimatch
+
+Save for a rainy day 
+---
+- [ ] source mapping
+- [ ] integrate spine.app commands into hem, perhaps a hem plugin in system?
+- [ ] possibly look at AMD vs commonjs???
 
 When will it be done??
 ---
 
-Thats a good question :) I think its possible to have the main features done, tested, and ready to go by the end of november :o).
+Thats a good question :) I think its possible to have the main features done, tested, and ready to go by the end of january 2014, no I'm serious this time :o).
 

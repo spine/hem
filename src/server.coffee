@@ -36,17 +36,17 @@ server.middleware = (hem) ->
   # determine if there is any dynamic or static routes to add
   for app in hem.apps
 
-    # if verbose then print our mappings and apply the baseAppRoute if present
+    # if verbose then print our mappings and apply root context if present
     log.info "> Apply route mappings for application: <green>#{app.name}</green>"
     for pkg in app.packages
-      if options.baseAppRoute
-        pkg.route = utils.cleanRoute(options.baseAppRoute, pkg.route)
+      if options.context
+        pkg.route = utils.cleanRoute(options.context, pkg.route)
       log.info " - Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
 
     # loop over potential static routes and add them to main route array
     for route in app.static
-      if options.baseAppRoute
-        route.url = utils.cleanRoute(options.baseAppRoute, route.url)
+      if options.context
+        route.url = utils.cleanRoute(options.context, route.url)
       log.info " - Mapping static <yellow>#{route.url}</yellow> to <yellow>#{route.path}</yellow>"
       statics.push(route)
 
@@ -76,6 +76,9 @@ server.middleware = (hem) ->
     log.info "> Proxy requests <yellow>#{route}</yellow> to <yellow>#{display}</yellow>"
     backend.use(route, createRoutingProxy(value))
 
+  # setup livereload if switch is true
+  backend.use(createReloadProxy())
+
   # return the custom middleware for connect to use
   return (req, res, next) ->
     # get url path
@@ -85,7 +88,7 @@ server.middleware = (hem) ->
     if url.match(/(\.js|\.css)$/)
       for app in hem.apps
         if pkg = app.isMatchingRoute(url)
-          str = pkg.build()
+          str = pkg.execute()
           res.charset = 'utf-8'
           res.setHeader('Content-Type', mime.lookup(pkg.target))
           res.setHeader('Content-Length', Buffer.byteLength(str))
@@ -134,6 +137,12 @@ patchServerResponseForRedirects = (fromHost, returnHost) ->
       newLocation = "://#{returnHost}"
       headers.location = headers.location.replace(oldLocation,newLocation)
     return writeHead.apply(@, arguments)
+
+createReloadProxy = () ->
+  # init the browser-sync module
+
+  # need to return the middleware that returns the jsavascript
+  # and modifies the body...
 
 # export the public functions
 module.exports = server

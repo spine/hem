@@ -42,14 +42,15 @@ utils       = require('./utils')
 compilers   = require('./compilers')
 server      = require('./server')
 testing     = require('./test')
-application = require('./package')
+application = require('./application')
 versioning  = require('./versioning')
 events      = require('./events')
+tasks       = require('./tasks')
 
 # supply argv object to module
 
-compilers.argv   = argv
-application.argv = argv
+compilers.argv = argv
+tasks.argv     = argv
 
 # ------- Global Functions
 
@@ -68,6 +69,10 @@ class Hem
   @middleware: (slug) ->
     hem = new Hem(slug)
     server.middleware(hem)
+
+  # ------- Class variables exposed to customization
+
+  # TODO: expost the modules most likely will be updated/customized
 
   # ------- instance variables
 
@@ -111,7 +116,7 @@ class Hem
     # setup applications from options/slug
     for name, config of @options
       continue if name is "hem" or typeof config is 'function'
-      @allApps.push application.create(name, config, @, argv)
+      @allApps.push application.create(name, config)
 
   # ------- Command Functions
 
@@ -209,11 +214,13 @@ class Hem
     switch name
       when "compilers" then compilers
       when "events" then events
-      when "reporters" then testing.phantom.reporters
       when "versioning" then versioning
       when "log" then log
+      when "tasks" then tasks
+      when "reporters" then testing.phantom.reporters
       else
         throw new Error("Unknown module name #{name}")
 
+# TODO: add tasks/reporters/compilers/events to hem class??
 module.exports = Hem
 

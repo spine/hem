@@ -7,6 +7,7 @@ types = {}
 # private functions
 
 updateVersionInAppFiles = (files, packages, value) ->
+  # TODO: use node-glob!!
   for file in files
     log "- updating file <yellow>#{file}</yellow> with version: <b>#{value}</b>"
     data = fs.readFileSync(file, 'utf8')
