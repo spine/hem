@@ -1,22 +1,18 @@
-fs         = require('fs-extra')
-path       = require('path')
-uglifyjs   = require('uglify-js')
-uglifycss  = require('uglifycss')
-utils      = require('./utils')
-events     = require('./events')
-log        = require('./log')
-Dependency = require('./dependency')
-Stitch     = require('./stitch')
-Tasks      = require('./tasks.coffee')
-Versioning = require('./versioning')
+fs       = require('fs-extra')
+path     = require('path')
+uglifyjs = require('uglify-js')
+utils    = require('./utils')
+events   = require('./events')
+log      = require('./log')
+Tasks    = require('./tasks.coffee')
 
 # ------- Application Class
 
 class Application
-  constructor: (name, config = {}) ->
+  constructor: (name, config = {}, argv) ->
     @name  = name
 
-    # apply defaults, make this a require to load in?? TODO:
+    # TODO: apply defaults, make this a require to load in??
     if (config.extend)
       try
         # make sure we don't modify the original assets (which is cached by require)
@@ -31,8 +27,8 @@ class Application
     # folder and url settings
     @route  = config.route
     @root   = config.root
-    @static = config.static or []
-    @tasks  = config.tasks or []
+    @static = []
+    @tasks  = {}
 
     # set root variable, and possibly route
     unless @root
@@ -51,43 +47,41 @@ class Application
         url  : @applyRoute(route)
         path : @applyRoot(value)[0]
 
-    # configure js/css packages
-    for key, value of config
-      task = Tasks.create(key, value)
-      @tasks.push(task) if task
-
-    # configure versioning
-    if config.version
-      verType = Versioning[config.version.type]
-      unless verType
-        log.errorAndExit "Incorrect type value for version configuration: (#{config.version.type})"
-      @versioning = new verType(@, config.version)
-
-  getTestTask: ->
-    for task in @tasks
-      return task if task.test
+    # configure tasks
+    for cmd, value of config.tasks
+      @tasks[cmd] = []
+      # helper method to run all tasks for a cmd and return a result
+      @tasks[cmd].runAll = (options) ->
+        result = undefined
+        @forEach (task) ->
+          result or= task.run(options)
+      # create the actual tasks for the specific cmd (build, version, test...)
+      for key, options of value
+        options.argv = argv
+        task = Tasks.createTask(app, key, options)
+        @tasks[cmd].push(task)
 
   isMatchingRoute: (route) ->
-    # strip out any versioning applied to file
-    if @versioning
-      route = @versioning.trim(route)
+    # strip out any versioning applied to request file
+    if @tasks.version
+      route = @tasks.version[0].run(route)
     # compare against package route values
-    for task in @tasks
-      return task if route is task.route
+    for task in @tasks.build
+      return task.run() if route is task.route
     # return nothing
     return
 
   unlink: ->
     log("Removing application: <green>#{@name}</green>")
-    task.unlink() for task in @tasks
+    task.unlink() for task in @tasks.build
 
   build: ->
     log("Building application: <green>#{@name}</green>")
-    task.execute() for task in @tasks
+    task.run() for task in @tasks.build
 
   watch: ->
     log("Watching application: <green>#{@name}</green>")
-    dirs = (task.watch() for task in @tasks)
+    dirs = (task.watch() for task in @tasks.build)
     # make sure dirs has valid values
     if dirs.length
       log.info("- Watching directories: <yellow>#{dirs}</yellow>")
@@ -96,14 +90,14 @@ class Application
 
   version: ->
     log("Versioning application: <green>#{@name}</green>")
-    if @versioning
-      @versioning.update()
+    if @tasks.version
+      task.run() for task in @tasks.version
     else
-      log.errorAndExit "ERROR: Versioning not enabled in slug.json"
+      log.errorAndExit "ERROR: Versioning tasks have not been configured."
 
   applyRoot: (value) ->
     # TODO: eventually use the Hem.home directory value if the home
-    # TODO: value is different from the process.cwd() value?!
+    #       value is different from the process.cwd() value?!
     values = utils.toArray(value)
     values = values.map (value) =>
       if utils.startsWith(value, "." + path.sep)
@@ -118,9 +112,8 @@ class Application
 
 # ------- Public Functions
 
-create = (name, config) ->
-  return new Application(name, config)
+module.exports.create = (name, config, argv) ->
+  return new Application(name, config, argv)
 
-module.exports.create = create
 
 

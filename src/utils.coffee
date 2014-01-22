@@ -75,6 +75,22 @@ utils.isDirectory = (dir) ->
   catch e
     false
 
+utils.requireDirectory = (directory) ->
+  directory = path.resolve(directory)
+  fs.readdirSync(directory).reduce (hash, file) ->
+    file_path = path.join(directory, file)
+    file_name = file.substring(0, file.lastIndexOf('.'))
+    file_extension = file.substring(file.lastIndexOf('.'))
+    if file_extension not in ['.coffee', '.js']
+      return hash
+    else if file_name is 'index' and typeof require(file_path) is 'object'
+      for key, value of require(file_path)
+        hash[key] = value
+    else
+      hash[file_name] = require(file_path)
+    return hash
+  , {}
+
 # ------ Simple templating function
 
 # Simple JavaScript Templating

@@ -4,6 +4,7 @@ optimist = require('optimist')
 
 # ------- Commandline arguments
 
+# TODO: make watch just a switch, not an actual command...
 argv = optimist.usage([
   'usage:\nhem COMMAND',
   '    server  :start a dynamic development server',
@@ -43,14 +44,13 @@ compilers   = require('./compilers')
 server      = require('./server')
 testing     = require('./test')
 application = require('./application')
-versioning  = require('./versioning')
 events      = require('./events')
 tasks       = require('./tasks')
 
-# supply argv object to module
+# supply argv object to modules
 
-compilers.argv = argv
-tasks.argv     = argv
+compilers.argv  = argv
+applicaton.argv = argv
 
 # ------- Global Functions
 
@@ -210,17 +210,15 @@ class Hem
   buildApps: () ->
     app.build() for app in @apps
 
-  module: (name) ->
-    switch name
-      when "compilers" then compilers
-      when "events" then events
-      when "versioning" then versioning
-      when "log" then log
-      when "tasks" then tasks
-      when "reporters" then testing.phantom.reporters
-      else
-        throw new Error("Unknown module name #{name}")
+# ------- Expose internal modules for customization
 
-# TODO: add tasks/reporters/compilers/events to hem class??
+Hem.compilers = compilers
+Hem.log       = log
+Hem.events    = events
+Hem.tasks     = tasks.tasks
+Hem.argv      = argv
+
+# ------- Public Export
+
 module.exports = Hem
 

@@ -1,53 +1,55 @@
 {
     "root": "",
     "route": "/",
+
     "static": {
         "/": "public",
         "/test": "test/public"
     },
 
-    "version": {
-      "type": "package",
-      "files": [ "public/index.html" ]
-    },
-
-
-    "build": {
-
-      "css": {
-          "src": [
-              "css"
-          ],
-          "target": "public"
-      },
-
-      "some_application": {
-          "type": "js",
-          "commonjs": "require",
-          "libs": [
-              "lib"
-          ],
-          "src": [
-              "app"
-          ],
-          "target": "public"
-      },
- 
-      "specs.js": {
-          "commonjs": "specs",
-          "test": "jasmine",
-          "libs": [],
-          "depends": [],
-          "src": [
-              "test/specs"
-          ],
-          "target": "test/public"
-      }
-    }
 
     "tasks": {
-      "manifest": {
-        "depends": "build",
+        "build": {
 
+            "css": {
+                "src": [
+                  "css"
+                ],
+                "target": "public"
+            },
+
+            "application.js": {
+                "libs": [
+                  "lib"
+                ],
+                "src": [
+                  "app"
+                ],
+                "target": "public"
+            },
+
+            "specs.js": {
+                "commonjs": "specs",
+                "libs": [],
+                "depends": [],
+                "src": [
+                  "test/specs"
+                ],
+                "target": "test/public"
+            }
+        },
+
+        "test": {
+            "phantom": {
+                "framework": "jasmine"
+            }
+        },
+
+        "version": {
+            "npmpackage" : { 
+                "src": [ "public/index.html" ]
+            }
+        }
+    }
 }
 
