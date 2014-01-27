@@ -208,3 +208,7 @@ will watch and compile jasmine tests, but you will have to go to localhost:9294/
 * This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
 
 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/spine/hem/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
