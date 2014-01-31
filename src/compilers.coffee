@@ -18,8 +18,11 @@ projectPath = path.resolve process.cwd()
 
 # TODO: test to make sure the project path contains a node_modules folder??
 # TODO: provide compiler options in slug file!
+# TODO: come up with consistant error object to throw on compile errors
+#       handleError(ex, compilerName, _path) -> do stuff...
 
-# helper fuction to perform load/caching of modules
+# helper fuction to perform load/caching of modules from 
+# the project folder, will quit if unable to load...
 requireLocalModule = (localModule, _path) ->
   modulePath = "#{projectPath}/node_modules/#{localModule}"
   try
@@ -66,11 +69,35 @@ compilers.litcoffee = (_path) -> compileCoffeescript(_path, true)
 compileCoffeescript = (_path, literate = false) ->
   try
     cs.compile(fs.readFileSync(_path, 'utf8'), filename: _path, literate: literate)
-  catch err
-    err.message = "Coffeescript Error: " + err.message
+  catch ex
+    err = new Error(ex)
+    err.message = "Coffeescript Error: " + ex.message
     err.path    = "Coffeescript Path:  " + _path
     err.path    = err.path + ":" + (err.location.first_line + 1) if err.location
     throw err
+
+##
+## Compile Handlebars
+##
+
+compilers.hbs = (_path) ->
+  handlebars = requireLocalModule('handlebars', _path)
+  try
+    content  = fs.readFileSync(path, 'utf8')
+    template = handlebars.precompile content,
+         separator: '\n'
+         knownHelpers: []
+         knownHelpersOnly: false
+    source = template.toString()
+    "module.exports = Handlebars.template(#{source});"
+  catch ex
+    err = new Error(ex)
+    err.message = "eco Error: " + ex.message
+    err.path    = "eco Path:  " + _path
+    throw err
+
+require.extensions['.hbs'] = (module, filename) ->
+  module._compile compilers.hbs(filename), filename
 
 ##
 ## Eco and Jeco Compiler
@@ -80,9 +107,9 @@ compilers.eco = (_path) ->
   eco = requireLocalModule('eco', _path)
   try
     content = eco.precompile fs.readFileSync _path, 'utf8'
-  catch err
-    err = new Error(err)
-    err.message = "eco Error: " + err.message
+  catch ex
+    err = new Error(ex)
+    err.message = "eco Error: " + ex.message
     err.path    = "eco Path:  " + _path
     throw err
   """
@@ -114,7 +141,7 @@ compilers.jeco = (_path) ->
   };
   """
 
-# require.extensions['.eco'] in eco package contains the function
+# require.extensions['.eco'] in eco package contains require.extensions setup
 require.extensions['.jeco'] = require.extensions['.eco']
 
 ##
@@ -145,16 +172,20 @@ require.extensions['.jade'] = (module, filename) ->
 
 compilers.stylus = (_path) ->
   stylus  = requireLocalModule('stylus', _path)
-  content = fs.readFileSync(_path, 'utf8')
-  result  = ''
-  stylus(content)
-    .include(path.dirname(_path))
-    .render((err, css) ->
-      throw err if err
-      result = css
-    )
-  result
-  
+  try
+    content = fs.readFileSync(_path, 'utf8')
+    result  = ''
+    stylus(content)
+      .include(path.dirname(_path))
+      .render((err, css) ->
+        throw err if err
+        result = css
+      )
+    result
+  catch ex
+    throw new Error("#{ex} in #{_path}")
+
+
 require.extensions['.styl'] = (module, filename) ->
   source = JSON.stringify(compilers.stylus(filename))
   module._compile "module.exports = #{source}", filename

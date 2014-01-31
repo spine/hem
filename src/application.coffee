@@ -2,33 +2,34 @@ fs       = require('fs-extra')
 path     = require('path')
 uglifyjs = require('uglify-js')
 utils    = require('./utils')
-events   = require('./events')
-log      = require('./log')
-Tasks    = require('./tasks.coffee')
+Events   = require('./events')
+Log      = require('./log')
+Job      = require('./job')
 
 # ------- Application Class
 
 class Application
-  constructor: (name, config = {}, argv) ->
-    @name  = name
+  constructor: (name, config, argv) ->
+    @argv = argv
+    @name = name
 
     # TODO: apply defaults, make this a require to load in??
-    if (config.extend)
+    if (config.base)
       try
         # make sure we don't modify the original assets (which is cached by require)
-        baseConfig = utils.loadAsset('config/' + config.extend)
+        baseConfig = utils.loadAsset('config/' + config.base)
         defaults   = utils.extend({}, baseConfig)
       catch err
-        log.error "ERROR: Invalid 'extend' value provided: " + config.extend
+        Log.error "Invalid 'base' value provided: " + config.base
         process.exit 1
       # create updated config mapping by merging with default values
-      config = utils.extend(defaults, config)
+      config = utils.extend defaults, config
 
     # folder and url settings
     @route  = config.route
     @root   = config.root
     @static = []
-    @tasks  = {}
+    @jobs   = {}
 
     # set root variable, and possibly route
     unless @root
@@ -47,55 +48,40 @@ class Application
         url  : @applyRoute(route)
         path : @applyRoot(value)[0]
 
-    # configure tasks
-    for cmd, value of config.tasks
-      @tasks[cmd] = []
-      # helper method to run all tasks for a cmd and return a result
-      @tasks[cmd].runAll = (options) ->
-        result = undefined
-        @forEach (task) ->
-          result or= task.run(options)
-      # create the actual tasks for the specific cmd (build, version, test...)
-      for key, options of value
-        options.argv = argv
-        task = Tasks.createTask(app, key, options)
-        @tasks[cmd].push(task)
+    # configure jobs
+    for jobname, value of config.jobs
+      job = new Job(@, jobname, value)
+      @jobs[jobname] = job if job.tasks.length > 0
 
   isMatchingRoute: (route) ->
-    # strip out any versioning applied to request file
-    if @tasks.version
-      route = @tasks.version[0].run(route)
-    # compare against package route values
-    for task in @tasks.build
+    # strip out any potential versioning applied to request file
+    if @jobs.version
+      params = route: route
+      @jobs.version.run(params)
+      route = params.route
+    # compare against task route values
+    for task in @jobs.build.tasks
       return task.run() if route is task.route
     # return nothing
     return
 
-  unlink: ->
-    log("Removing application: <green>#{@name}</green>")
-    task.unlink() for task in @tasks.build
+  exec: (jobname, params) ->
+    job = @jobs[jobname]
+    if job
+      job.run(params)
+    else
+      Log.errorAndExit "ERROR: #{jobname} job has not been configured."
+
+  clean: ->
+    @exec 'clean'
 
   build: ->
-    log("Building application: <green>#{@name}</green>")
-    task.run() for task in @tasks.build
+    @exec 'build'
 
-  watch: ->
-    log("Watching application: <green>#{@name}</green>")
-    dirs = (task.watch() for task in @tasks.build)
-    # make sure dirs has valid values
-    if dirs.length
-      log.info("- Watching directories: <yellow>#{dirs}</yellow>")
-    else
-      log.info("- No directories to watch...")
+  deploy: ->
+    @exec 'deploy'
 
-  version: ->
-    log("Versioning application: <green>#{@name}</green>")
-    if @tasks.version
-      task.run() for task in @tasks.version
-    else
-      log.errorAndExit "ERROR: Versioning tasks have not been configured."
-
-  applyRoot: (value) ->
+  applyRoot: (value, returnArray = true) ->
     # TODO: eventually use the Hem.home directory value if the home
     #       value is different from the process.cwd() value?!
     values = utils.toArray(value)
@@ -104,7 +90,10 @@ class Application
         value
       else
         utils.cleanPath(@root, value)
-    values
+    if returnArray
+      values
+    else
+      values[0]
 
   applyRoute: (values...) ->
     values.unshift(@route) if @route

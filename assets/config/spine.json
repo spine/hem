@@ -8,17 +8,19 @@
     },
 
 
-    "tasks": {
-        "build": {
+    "jobs": {
+        "build": [
 
-            "css": {
+            {
+                "task": "css",
                 "src": [
                   "css"
                 ],
                 "target": "public"
             },
 
-            "application.js": {
+            {
+                "task": "js",
                 "libs": [
                   "lib"
                 ],
@@ -28,27 +30,30 @@
                 "target": "public"
             },
 
-            "specs.js": {
+            {
+                "task": "js",
                 "commonjs": "specs",
                 "libs": [],
                 "depends": [],
                 "src": [
                   "test/specs"
                 ],
-                "target": "test/public"
+                "target": "test/public/specs.js"
             }
-        },
+        ],
 
         "test": {
-            "phantom": {
-                "framework": "jasmine"
-            }
+            "task": "phantom",
+            "framework": "jasmine"
         },
 
-        "version": {
-            "npmpackage" : { 
-                "src": [ "public/index.html" ]
-            }
+        "deploy": {
+            "task": "version",
+            "src": [ "public/index.html" ]
+        },
+
+        "clean": {
+            "task": "clean"
         }
     }
 }

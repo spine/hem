@@ -1,80 +1,82 @@
-Dependency = require('./dependency')
-Stitch     = require('./stitch')
+Dependency = require('../dependency')
+Stitch     = require('../stitch')
+Log        = require('../log')
+utils      = require('../utils')
+path       = require('path')
+uglifyjs   = require('uglify-js')
 
+# ---------- helper function to perform compiles
 
-class JsTask extends Task
+compile = (task) ->
+  try
+    result = [task.before, compileLibs(task.libs), compileModules(task), task.after].join("\n")
+    result = uglifyjs.minify(result, {fromString: true}).code if task.job.argv.compress
+    result
+  catch ex
+    task.handleError(ex)
+    return ""
 
-  constructor: (app, config)  ->
-    # for now forcing use of commonjs bundler
-    config.commonjs or= 'required'
-    # call parent
-    super(app, config)
+compileModules = (task) ->
+  task.stitch or= new Stitch(task.src)
+  task.depend or= new Dependency(task.modules)
+  _modules  = task.depend.resolve().concat(task.stitch.resolve())
+  if _modules
+    Stitch.template(task.commonjs, _modules)
+  else
+    ""
 
-    # javascript only configurations
-    @commonjs = config.commonjs
+compileLibs = (files, parentDir = "") ->
 
-    # javascript to add before/after the stitch file
-    @before   = utils.arrayToString(config.before or "")
-    @after    = utils.arrayToString(config.after or "")
+  # TODO: need to perform similar operation as stitch in that only
+  # compilable code is used... refactor Stitch class to handle this?? except
+  # we don't want the code actually stitched in a template, just plain old js
 
-    # dependecy on other apps?
-    @test     = config.test
-    @depends  = utils.toArray(config.depends)
+  # check if folder or file
+  results = []
+  for file in files
+    slash = if parentDir is "" then "" else path.sep
+    file  = parentDir + slash + file
+    if fs.existsSync(file)
+      stats = fs.lstatSync(file)
+      if (stats.isDirectory())
+        dir = fs.readdirSync(file)
+        results.push compileLibs(task, dir, file)
+      else if stats.isFile() and path.extname(file) in ['.js','.coffee']
+        results.push fs.readFileSync(file, 'utf8')
+  results.join("\n")
 
-  # remove the files module from Stitch so its recompiled
-  execute: (file) ->
-    Stitch.clear(file) if file
+# ---------- define task
+
+task = ->
+  # for now forcing use of commonjs bundler
+  @targetExt  = "js"
+  @bundle     = true
+  @commonjs or= 'required'
+
+  # javascript to add before/after the stitch file
+  @before   = utils.arrayToString(@before or "")
+  @after    = utils.arrayToString(@after or "")
+
+  # dependecy on other apps?
+  @depends  = utils.toArray(@depends)
+
+  return (params) ->
+    # remove the files module from Stitch so its recompiled
+    Stitch.clear(params.watch) if params.watch
+
     # extra logging for debug mode
-    extra = (_argv.compress and " <b>--using compression</b>") or ""
-    log.info("- Building target: <yellow>#{@target}</yellow>#{extra}")
+    extra = (@job.argv.compress and " <b>--using compression</b>") or ""
+    Log.info "- Building target: <yellow@target}</yellow>#{extra}"
+
     # compile source
-    source = @compile()
-    
-    # TODO: run additional tasks or steps here...
+    source = compile(@)
 
     # determine if we need to write to filesystem
-    write = _argv.command isnt "server"
+    write = @job.argv.command isnt "server"
     if source and write
-      dirname = path.dirname(@target)
+      dirname = path.dirname(task.target)
       fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
-      fs.writeFileSync(@target, source)
+      fs.writeFileSync(task.target, source)
     source
 
-  compile: ->
-    try
-      result = [@before, @compileLibs(), @compileModules(), @after].join("\n")
-      result = uglifyjs.minify(result, {fromString: true}).code if _argv.compress
-      result
-    catch ex
-      @handleExecuteError(ex)
-
-  compileModules: ->
-    @stitch or= new Stitch(@src)
-    @depend or= new Dependency(@modules)
-    _modules  = @depend.resolve().concat(@stitch.resolve())
-    if _modules
-      Stitch.template(@commonjs, _modules)
-    else
-      ""
-
-  compileLibs: (files = @libs, parentDir = "") ->
-
-    # TODO: need to perform similar operation as stitch in that only
-    # compilable code is used... refactor Stitch class to handle this?? except
-    # we don't want the code actually stitched in a template, just plain old js
-
-    # check if folder or file
-    results = []
-    for file in files
-      slash = if parentDir is "" then "" else path.sep
-      file  = parentDir + slash + file
-      if fs.existsSync(file)
-        stats = fs.lstatSync(file)
-        if (stats.isDirectory())
-          dir = fs.readdirSync(file)
-          results.push @compileLibs(dir, file)
-        else if stats.isFile() and path.extname(file) in ['.js','.coffee']
-          results.push fs.readFileSync(file, 'utf8')
-    results.join("\n")
-
-
+module.exports = task

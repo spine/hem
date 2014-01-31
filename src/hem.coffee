@@ -9,21 +9,18 @@ argv = optimist.usage([
   'usage:\nhem COMMAND',
   '    server  :start a dynamic development server',
   '    build   :serialize application to disk',
-  '    watch   :build & watch disk for changes'
   '    test    :build and run tests'
   '    clean   :clean compiled targets'
-  '    version :version the application files'
-  '    check   :check slug file values'
+  '    deploy  :deploy the application files'
 ].join("\n"))
 .alias('p', 'port').describe('p',':hem server port')
 .alias('h', 'host').describe('h',':hem server host')
 .alias('c', 'compress').describe('c',':all compilations are compressed/minified')
-.alias('w', 'watch').describe('w',':watch files when running tests')
+.alias('w', 'watch').describe('w',':watch files')
 .alias('s', 'slug').describe('s',':run hem using a specified slug file')
 .alias('n', 'nocolors').describe('n',':disable color in console output')
 .alias('v', 'verbose').describe('v',':make hem more talkative(verbose)')
 .alias('g', 'grep').describe('g',':only run specific modules during test')
-.alias('r', 'runner').describe('r',':override the default test runner')
 .argv
 
 # set command and targets properties
@@ -45,12 +42,11 @@ server      = require('./server')
 testing     = require('./test')
 application = require('./application')
 events      = require('./events')
-tasks       = require('./tasks')
+job         = require('./job')
 
 # supply argv object to modules
 
 compilers.argv  = argv
-applicaton.argv = argv
 
 # ------- Global Functions
 
@@ -69,10 +65,6 @@ class Hem
   @middleware: (slug) ->
     hem = new Hem(slug)
     server.middleware(hem)
-
-  # ------- Class variables exposed to customization
-
-  # TODO: expost the modules most likely will be updated/customized
 
   # ------- instance variables
 
@@ -102,60 +94,45 @@ class Hem
     @options.hem.port or= 9294
     @options.hem.host or= "localhost"
 
-    # test defaults
-    @options.hem.test or= {}
-    @options.hem.test.runner     or= "karma"
-    @options.hem.test.reporters  or= "progress"
-    @options.hem.test.frameworks or= "jasmine"
-
     # allow overrides from command line
     @options.hem.port = argv.port if argv.port
     @options.hem.host = argv.host if argv.host
-    @options.hem.test.runner = argv.runner if argv.runner
 
     # setup applications from options/slug
     for name, config of @options
       continue if name is "hem" or typeof config is 'function'
-      @allApps.push application.create(name, config)
+      @allApps.push application.create(name, config, argv)
 
   # ------- Command Functions
 
   server: ->
+    app   = server.start(@)
     value = "http://#{@options.hem.host or "*"}:#{@options.hem.port}"
     log "Starting Server at <blue>#{value}</blue>"
-    app = server.start(@)
+    # handle watch flag (default to true)
+    if @options.hem.serverWatch
+      argv.watch or= @options.hem.serverWatch
+    else
+      argv.watch or= true
+    # handle events
     events.emit("server", app)
-    # make sure watch is going to recompile immediately
-    app.watch() for app in @apps
-
+    
   clean: ->
-    app.unlink() for app in @apps
+    app.clean() for app in @apps
 
   build: ->
-    @clean()
     @buildApps()
 
-  version: ->
-    app.version() for app in @apps
-
-  watch: ->
-    @buildApps()
-    app.watch() for app in @apps
+  deploy: ->
+    app.deploy() for app in @apps
 
   test: ->
-    # set test options
     testOptions = @options.hem.tests or {}
-    testOptions.basePath or= @home
-
-    # check for watch mode
     if argv.watch
-      @watch()
       testOptions.singleRun = false
     else
       @buildApps()
       testOptions.singleRun = true
-
-    # run tests
     testing.run(@apps, testOptions)
 
   check: ->
@@ -215,8 +192,9 @@ class Hem
 Hem.compilers = compilers
 Hem.log       = log
 Hem.events    = events
-Hem.tasks     = tasks.tasks
+Hem.tasks     = job.tasks
 Hem.argv      = argv
+Hem.utils     = utils
 
 # ------- Public Export
 
