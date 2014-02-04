@@ -4,13 +4,12 @@ Log        = require('../log')
 utils      = require('../utils')
 path       = require('path')
 uglifyjs   = require('uglify-js')
-fs         = require('fs')
 
 # ---------- helper function to perform compiles
 
 compile = (task) ->
-    result = [task.before, compileLibs(task.libs), compileModules(task), task.after].join("\n")
-    result = uglifyjs.minify(result, {fromString: true}).code if task.argv.compress
+    result = [compileModules(task)].join("\n")
+    result = uglifyjs.minify(result, {fromString: true}).code if task.argv().compress
     result
 
 compileModules = (task) ->
@@ -24,26 +23,9 @@ compileModules = (task) ->
   else
     ""
 
-compileLibs = (task, parentDir = "") ->
-
-
-  # TODO: need to perform similar operation as stitch in that only
-  # compilable code is used... refactor Stitch class to handle this?? except
-  # we don't want the code actually stitched in a template, just plain old js
-
-  # check if folder or file
-  results = []
-  for file in files
-    slash = if parentDir is "" then "" else path.sep
-    file  = parentDir + slash + file
-    if fs.existsSync(file)
-      stats = fs.lstatSync(file)
-      if (stats.isDirectory())
-        dir = fs.readdirSync(file)
-        results.push compileLibs(task, dir, file)
-      else if stats.isFile() and path.extname(file) in ['.js','.coffee']
-        results.push fs.readFileSync(file, 'utf8')
-  results.join("\n")
+compileLibs = (task) ->
+  task.stitchLibs or= new Stitch(task.lib)
+  task.stitchLibs.join()
 
 # ---------- define task
 
@@ -53,15 +35,15 @@ task = ->
   @bundle    = "require"
 
   # javascript to add before/after the stitch file
-  @before = utils.arrayToString(@before or "")
-  @after  = utils.arrayToString(@after or "")
+  @before = utils.arrayToString(@before or "") if @before
+  @after  = utils.arrayToString(@after or "")  if @after
 
   return (params) ->
     # remove the file module from Stitch so its recompiled
     @stitch?.clear(params.watch) if params.watch
 
     # extra logging for debug mode
-    extra = (@argv.compress and " <b>--using compression</b>") or ""
+    extra = (@argv().compress and " <b>--using compression</b>") or ""
     Log.info "- Building target: <yellow@target}</yellow>#{extra}"
 
     # compile source
@@ -72,11 +54,6 @@ task = ->
       return ""
 
     # determine if we need to write to filesystem
-    write = @argv.command isnt "server"
-    if source and write
-      dirname = path.dirname(@target)
-      fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
-      fs.writeFileSync(@target, source)
-    source
+    @write(source)
 
 module.exports = task

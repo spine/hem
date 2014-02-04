@@ -61,8 +61,8 @@ class Stitch
   bundle: (indentifier) ->
     Stitch.bundle(identifier, @resolve)
 
-  join: ->
-    @resolve().join("\n")
+  join: (separator = "\n") ->
+    (module.compile() for module in @resolve()).join(separator)
 
   resolve: ->
     # return array of modules 
@@ -71,6 +71,7 @@ class Stitch
   clear: (filename) ->
     delete modules[_path.resolve(filename)]
 
+# TODO: probably not the best name, what else could be used?? unit, item, node...
 class Module
   constructor: (@filename, @parent, @type) ->
     @ext = _path.extname(@filename).slice(1)

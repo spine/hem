@@ -1,8 +1,13 @@
 fs     = require('fs-extra')
 path   = require('path')
-utils  = require('./utils')
-events = require('./events')
+Utils  = require('./utils')
+Events = require('./events')
 Log    = require('./log')
+
+# TODO:
+# implement node-glob
+# implement new watch
+# test clean!
 
 # ------- Job Class
 
@@ -68,17 +73,17 @@ class Job
     for task in @tasks
       for fileOrDir in task.watch
         continue unless fs.existsSync(fileOrDir)
-        if utils.isDirectory(fileOrDir)
+        if Utils.isDirectory(fileOrDir)
           dirs.push fileOrDir
         else
           dirs.push path.dirname(fileOrDir)
-      dirs = utils.removeDuplicateValues(dirs)
+      dirs = Utils.removeDuplicateValues(dirs)
       # callback that wraps task object in correct scope
       callback = (task) ->
         return (file, curr, prev) =>
           if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
             task.run(watch: file)
-            events.emit("watch", task, file)
+            Events.emit("watch", task, file)
       # start watch process TODO: triggered when all config loading is done?
       for dir in dirs
         require('watch').watchTree dir, options, callback
@@ -88,11 +93,14 @@ class Job
   init: (task) ->
     # update config values
     task.src    = @app.applyRoot(task.src or [])
-    task.libs   = @app.applyRoot(task.libs or [])
+    task.lib    = @app.applyRoot(task.lib or [])
     task.target = @app.applyRoot(task.target or [], false)
 
     # setup watch list
-    task.watch or= task.src.concat task.libs
+    if task.watch
+      task.watch = @app.applyRoot(task.watch or [])
+    else if task.src?.length > 0 or task.lib?.length > 0
+      task.watch or= task.src.concat task.lib
 
     # configure target and route values
     @initTarget(task)
@@ -101,26 +109,26 @@ class Job
   initTarget: (task) ->
     return unless task.target
     # determine target filename if task bundles everything into one file
-    if utils.isDirectory(task.target)
-      task.target = utils.cleanPath(task.target, @app.name)
+    if Utils.isDirectory(task.target)
+      task.target = Utils.cleanPath(task.target, @app.name)
     # make sure correct extension is present
-    unless task.targetExt and utils.endsWith(task.target, ".#{task.targetExt}")
+    unless task.targetExt and Utils.endsWith(task.target, ".#{task.targetExt}")
       task.target = "#{task.target}.#{task.targetExt}"
 
   initRoutes: (task) ->
     # if route already set then see if we need to apply app root
     if @route
-      if utils.startsWith(@target,"/")
+      if Utils.startsWith(@target,"/")
         @route = @route
       else
         @route = @app.applyRoute(@route)
     # use the static app urls to determine the task @route
     else
       for sroute in @app.static when not @route
-        if utils.startsWith(@target, sroute.path)
+        if Utils.startsWith(@target, sroute.path)
           regexp    = new RegExp("^#{sroute.path.replace(/\\/g,"\\\\")}(\\\\|\/)?")
           targetUrl = @target.replace(regexp,"")
-          @route = utils.cleanRoute(sroute.url, targetUrl)
+          @route = Utils.cleanRoute(sroute.url, targetUrl)
 
 # ------- TaskWrapper Class
 
@@ -131,7 +139,6 @@ class TaskWrapper
   constructor: (job, config) ->
     @job  = job
     @name = config.task
-    @argv = job.app.argv
 
     # copy other config values
     for key, value of config
@@ -158,11 +165,21 @@ class TaskWrapper
     else
       Log.errorAndExit "In job '#{@job.name} the task '#{@name}' does not have a method to call."
 
+  argv: -> @job.app.argv
+
   handleError: (ex) ->
     Log.error("(#{@job.name}/#{@name}) - #{ex.message}")
     Log.error(ex.path) if ex.path
     console.log ex.stack if ex.stack
     process.exit(1) unless @argv.watch
+
+  write: (source, filename = @target) ->
+    # determine if we need to write to filesystem
+    if source and @argv().command isnt "server"
+      dirname = path.dirname(filename)
+      fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
+      fs.writeFileSync(filename, source)
+    source
 
 
 # TODO: add image copy and manifest tasks at some point, jshint, component.io build tasks?

@@ -1,15 +1,5 @@
 uglifycss = require('uglifycss')
-path      = require('path')
-fs        = require('fs')
-uglifycss = require('uglifycss')
-utils     = require('../utils')
-
-# ---------- helper function to perform compiles
-
-requireCss = (filepath) ->
-  filepath = require.resolve(path.resolve(filepath))
-  delete require.cache[filepath]
-  require(filepath)
+Stitch    = require('../stitch')
 
 # ---------- define task
 
@@ -19,26 +9,15 @@ task = ->
 
   # main task to compile and minify css
   return (params) ->
+    @stitch or= new Stitch(@src, "css")
     try
-      output = []
-      # TODO: use glob to get set of files...
-      # TODO: eventually make similar setup to js compile so we only accept
-      #       the file that changes and cache the others...
-      for fileOrDir in @src
-        # if directory loop over all top level files only
-        if utils.isDirectory(fileOrDir)
-          for file in fs.readdirSync(fileOrDir) when require.extensions[path.extname(file)]
-            file = path.resolve(fileOrDir, file)
-            output.push requireCss(file)
-        else
-          output.push requireCss(fileOrDir)
-
       # join and minify
-      result = output.join("\n")
-      result = uglifycss.processString(result) if @argv.compress
-      result
+      source = @stitch.join()
+      source = uglifycss.processString(source) if @argv().compress
     catch ex
       @handleError(ex)
       return ""
+    # determine if we need to write to filesystem
+    @write(source)
 
 module.exports = task

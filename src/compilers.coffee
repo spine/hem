@@ -170,7 +170,7 @@ require.extensions['.jade'] = (module, filename) ->
 ## Stylus Compiler
 ##
 
-compilers.stylus = (_path) ->
+compilers.stylus = compilers.styl = (_path) ->
   stylus  = requireLocalModule('stylus', _path)
   try
     content = fs.readFileSync(_path, 'utf8')
