@@ -1,32 +1,44 @@
-npath        = require('path')
+_path        = require('path')
 fs           = require('fs')
 compilers    = require('./compilers')
-{modulerize} = require('./resolve')
-{flatten}    = require('./utils')
-
+Utils        = require('./utils')
 
 ## --- Private
 
-# TODO: make this a part of the stitch instance??
-_modules = {}
-
 # TODO: replace with node-glob file list
-_walk = (path, parent = path, result = []) ->
+walk = (type, modules, path, parent = path, result = []) ->
   return unless fs.existsSync(path)
   for child in fs.readdirSync(path)
-    child = npath.join(path, child)
+    child = _path.join(path, child)
     stat  = fs.statSync(child)
     if stat.isDirectory()
-      _walk(child, parent, result)
+      walk(type, modules, child, parent, result)
     else
-      module = _createModule(child, parent)
-      result.push(module) if module.valid()
+      module = createModule(type, modules, child, parent)
+      result.push module
   result
 
-_createModule = (child, parent) ->
-  if not _modules[child]
-    _modules[child] = new Module(child, parent)
-  _modules[child]
+createModule = (type, modules, child, parent) ->
+  if not modules[child]
+    module = new Module(child, parent, type)
+    if module.valid() and module.compile()
+      modules[child] = module
+  modules[child]
+
+# Normalize paths and remove extensions
+# to create valid CommonJS module names
+modulerize = (id, filename = id) ->
+  ext      = _path.extname(filename)
+  dirName  = _path.dirname(id)
+  baseName = _path.basename(id, ext)
+  # Do not allow names like 'underscore/underscore'
+  if dirName is baseName
+    modName = baseName
+  else
+    modName = _path.join(_path.dirname(id), _path.basename(id, ext))
+  # deal with window path separator
+  modName.replace(/\\/g, '/')
+
 
 ## --- classes
 
@@ -34,33 +46,40 @@ class Stitch
 
   ## --- class methods
 
-  @template: (identifier, modules) ->
+  @bundle: (identifier, modules) ->
     context =
       identifier : identifier
       modules    : modules
-    require('./utils').tmpl("stitch", context )
-
-  @clear: (filename) ->
-    delete _modules[npath.resolve(filename)]
+    Utils.tmpl("stitch", context )
 
   ## --- instance methods
 
-  constructor: (@paths = []) ->
-    @paths = (npath.resolve(path) for path in @paths)
+  constructor: (@paths = [], @type = 'js' ) ->
+    @paths   = (_path.resolve(path) for path in @paths)
+    @modules = {}
+
+  bundle: (indentifier) ->
+    Stitch.bundle(identifier, @resolve)
+
+  join: ->
+    @resolve().join("\n")
 
   resolve: ->
-    flatten(_walk(path) for path in @paths)
+    # return array of modules 
+    Utils.flatten(walk(@type, @modules, path) for path in @paths)
+
+  clear: (filename) ->
+    delete modules[_path.resolve(filename)]
 
 class Module
-  constructor: (@filename, @parent) ->
-    @ext = npath.extname(@filename).slice(1)
-    @id  = modulerize(@filename.replace(npath.join(@parent, npath.sep), ''))
+  constructor: (@filename, @parent, @type) ->
+    @ext = _path.extname(@filename).slice(1)
+    @id  = modulerize(@filename.replace(_path.join(@parent, _path.sep), ''))
 
   compile: ->
-    @_compiled or= compilers[@ext](@filename)
+    @out or= compilers[@ext](@filename)
 
   valid: ->
     !!compilers[@ext]
 
-    
 module.exports = Stitch

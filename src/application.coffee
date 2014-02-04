@@ -26,10 +26,14 @@ class Application
       config = utils.extend defaults, config
 
     # folder and url settings
+    # change to @path
     @route  = config.route
     @root   = config.root
     @static = []
     @jobs   = {}
+
+    # dependecy on other apps?
+    @depends = utils.toArray(config.depends or "")
 
     # set root variable, and possibly route
     unless @root

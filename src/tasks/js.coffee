@@ -4,28 +4,28 @@ Log        = require('../log')
 utils      = require('../utils')
 path       = require('path')
 uglifyjs   = require('uglify-js')
+fs         = require('fs')
 
 # ---------- helper function to perform compiles
 
 compile = (task) ->
-  try
     result = [task.before, compileLibs(task.libs), compileModules(task), task.after].join("\n")
-    result = uglifyjs.minify(result, {fromString: true}).code if task.job.argv.compress
+    result = uglifyjs.minify(result, {fromString: true}).code if task.argv.compress
     result
-  catch ex
-    task.handleError(ex)
-    return ""
 
 compileModules = (task) ->
+  # create stitch/dependency modules only on first call
   task.stitch or= new Stitch(task.src)
   task.depend or= new Dependency(task.modules)
-  _modules  = task.depend.resolve().concat(task.stitch.resolve())
-  if _modules
-    Stitch.template(task.commonjs, _modules)
+  # perform compilation
+  modules = task.depend.resolve().concat(task.stitch.resolve())
+  if modules and task.bundle
+    Stitch.bundle(task.bundle, modules)
   else
     ""
 
-compileLibs = (files, parentDir = "") ->
+compileLibs = (task, parentDir = "") ->
+
 
   # TODO: need to perform similar operation as stitch in that only
   # compilable code is used... refactor Stitch class to handle this?? except
@@ -49,34 +49,34 @@ compileLibs = (files, parentDir = "") ->
 
 task = ->
   # for now forcing use of commonjs bundler
-  @targetExt  = "js"
-  @bundle     = true
-  @commonjs or= 'required'
+  @targetExt = "js"
+  @bundle    = "require"
 
   # javascript to add before/after the stitch file
-  @before   = utils.arrayToString(@before or "")
-  @after    = utils.arrayToString(@after or "")
-
-  # dependecy on other apps?
-  @depends  = utils.toArray(@depends)
+  @before = utils.arrayToString(@before or "")
+  @after  = utils.arrayToString(@after or "")
 
   return (params) ->
-    # remove the files module from Stitch so its recompiled
-    Stitch.clear(params.watch) if params.watch
+    # remove the file module from Stitch so its recompiled
+    @stitch?.clear(params.watch) if params.watch
 
     # extra logging for debug mode
-    extra = (@job.argv.compress and " <b>--using compression</b>") or ""
+    extra = (@argv.compress and " <b>--using compression</b>") or ""
     Log.info "- Building target: <yellow@target}</yellow>#{extra}"
 
     # compile source
-    source = compile(@)
+    try
+      source = compile(@)
+    catch ex
+      @handleError(ex)
+      return ""
 
     # determine if we need to write to filesystem
-    write = @job.argv.command isnt "server"
+    write = @argv.command isnt "server"
     if source and write
-      dirname = path.dirname(task.target)
+      dirname = path.dirname(@target)
       fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
-      fs.writeFileSync(task.target, source)
+      fs.writeFileSync(@target, source)
     source
 
 module.exports = task

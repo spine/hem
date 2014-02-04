@@ -35,10 +35,10 @@ task = ->
 
       # join and minify
       result = output.join("\n")
-      result = uglifycss.processString(result) if @job.argv.compress
+      result = uglifycss.processString(result) if @argv.compress
       result
     catch ex
-      @handleError(ex, @job.name in ['build'] )
+      @handleError(ex)
       return ""
 
 module.exports = task

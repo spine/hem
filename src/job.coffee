@@ -131,10 +131,11 @@ class TaskWrapper
   constructor: (job, config) ->
     @job  = job
     @name = config.task
+    @argv = job.app.argv
 
     # copy other config values
     for key, value of config
-      @[key] = value unless key in ['job', 'name', 'task']
+      @[key] = value unless key in ['job', 'name', 'task', 'argv']
 
     # create task function to run
     @task = Job.tasks[config.task].call?(@)
@@ -152,16 +153,16 @@ class TaskWrapper
       Log.errorAndExit("Unable to determine server route for <yellow>#{@target}</yellow>")
 
   run: (params = {}) ->
-    if @task.run and typeof @task.run is "function"
+    if typeof @task is "function"
       @task.call(@, params)
     else
-      Log.errorAndExit "Task '#{@name}' does not have a run() method to call."
+      Log.errorAndExit "In job '#{@job.name} the task '#{@name}' does not have a method to call."
 
-  handleError: (ex, exit = false) ->
-    # TODO: construct better error message, one that works for all precompilers,
-    Log.error(ex.message)
+  handleError: (ex) ->
+    Log.error("(#{@job.name}/#{@name}) - #{ex.message}")
     Log.error(ex.path) if ex.path
-    process.exit(1) if exit
+    console.log ex.stack if ex.stack
+    process.exit(1) unless @argv.watch
 
 
 # TODO: add image copy and manifest tasks at some point, jshint, component.io build tasks?
