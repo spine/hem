@@ -1,65 +1,139 @@
-{extname} = require('path')
+# builtins
+_module   = require('module')
+natives   = process.binding('natives')
+path      = require('path')
 fs        = require('fs')
-detective = require('fast-detective')
-resolve   = require('./resolve')
-compilers = require('./compilers')
+# 3rd party
+detective = require('detective')
 
-mtime = (path) ->
-  fs.statSync(path).mtime.valueOf()
+# inspect the source for dependencies
 
-class Module
-  @walk: ['js', 'coffee']
-    
-  constructor: (request, parent) ->
-    [@id, @filename] = resolve(request, parent)
-    @ext   = extname(@filename).slice(1)
-    @mtime = mtime(@filename)
-    @paths = resolve.paths(@filename)
+from_source = (source, parent, opt, cb) ->
+  cache          = opt.cache;
+  ignore_missing = false or opt.ignoreMissing
+  requires       = detective(source)
+  result         = []
 
-  compile: ->
-    if not @_compile or @changed()
-      @mtime    = mtime(@filename)
-      @_compile = compilers[@ext](@filename)
-    @_compile
-      
-  modules: ->
-    if not @_modules or @changed()
-      @_modules = @resolve()
-    @_modules
-  
-  changed: ->
-    @mtime isnt mtime(@filename)
-    
-  resolve: ->
-    for path in @calls()
-      new @constructor(path, @)
-  
-  # Find calls to require()
-  calls: ->
-    if @ext in @constructor.walk
-      detective(@compile())
-    else []
+  # remove duplicate requires with the same name
+  # this avoids trying to process the require twice
+  requires = requires.filter( (elem, idx) -> requires.indexOf(elem) is idx )
 
-class Dependency
-  constructor: (paths = []) ->
-    @paths = paths
+  (next = ->
+    req = requires.shift
+    return cb(null, result) unless req
 
-  resolve: ->
-    @modules or= (new Module(path) for path in @paths)
-    @deepResolve(@modules)
+    # short require name
+    id = req
 
-  # Private
+    resolve req, parent, (err, full_path, ignore) ->
+      return cb(err) if err
 
-  deepResolve: (modules = [], result = [], search = {}) ->
-    for module in modules when not search[module.filename]
-      search[module.filename] = true
-      result.push(module)
-      @deepResolve(
-        module.modules(),
-        result
-        search
-      )
-    result
-    
-module.exports = Dependency
-module.exports.Module = Module
+      if not full_path
+        # if resolver ignored the native module we just push it manually
+        if natives[id]
+          result.push
+            id   : id
+            core : true
+          return next()
+
+        # skip the dependency if we can't find it
+        return next() if (ignore_missing)
+
+        # return error if missing
+        return cb(new Error('Cannot find module: \'' + req + '\' ' + 'required from ' + parent.filename))
+
+      # ignore indicates we should not process dependencies for this file
+      # this is useful if we don't care about certain files being handled further
+      # we still want the dependency added to the deps of the file we processed
+      # but do not process this file or it's deps
+      if ignore
+        result.push
+          id: id,
+          filename: full_path
+        return next()
+
+      # new parent entry
+      new_parent =
+        id       : id
+        filename : full_path
+        paths    : parent.paths.concat(node_module_paths(full_path))
+
+      # read file
+      from_filename full_path, new_parent, opt, (err, deps, src) ->
+        return cb(err) if err
+
+        # build up response
+        res =
+          id: id,
+          filename: full_path,
+          deps: deps
+        res.source = src if (opt.includeSource)
+        result.push res
+
+        # continue on
+        next()
+
+  )() # first call to next
+
+from_filename = (filename, parent, opt, cb) ->
+  cache = opt.cache
+
+  # wtf is this cache?
+  # appears to be the list of dependencies for this filename
+  # what it really should be is the info
+  cached = cache[filename]
+  return cb(null, cached.deps, cached.src) if cached
+
+  fs.readFile filename, 'utf8', (err, content) ->
+    return cb(err) if err
+
+    # must be set before the compile call to handle circular references
+    result = cache[filename] = deps: []
+
+    try
+      from_source content, parent, opt, (err, deps) ->
+        return cb(err) if err
+        result.deps = deps
+        # only cache source if caller will want the source
+        result.src = content if opt.includeSource
+        return cb(err, deps, content)
+    catch err
+      err.message = filename + ': ' + err.message
+      throw err
+
+# default resolver if none specified just resolves as node would
+
+resolve = (id, parent, cb) ->
+  cb(null, lookup_path(id, parent))
+
+# lookup the full path to our module with local name 'name'
+
+lookup_path = (name, parent) ->
+  resolved_module = _module.Module._resolveLookupPaths(name, parent)
+  paths = resolved_module[1]
+  _module.Module._findPath(name, paths)
+
+# return an array of node_module paths given a filename
+
+node_module_paths = (filename) ->
+  return _module.Module._nodeModulePaths(path.dirname(filename))
+
+# process filename and callback with tree of dependencies
+# the tree does have circular references when a child requires a parent
+module.exports = (filename, opt, cb) ->
+  opt or= {};
+  if typeof opt is 'function'
+    cb  = opt
+    opt = {}
+
+  # add the cache storage
+  opt.cache or= {}
+
+  # entry parent specifies the base node modules path
+  entry_parent =
+    id       : filename
+    filename : filename
+    paths    : node_module_paths(filename)
+
+  # start process
+  from_filename(filename, entry_parent, opt, cb)
