@@ -5,9 +5,14 @@ Events = require('./events')
 Log    = require('./log')
 
 # TODO:
+# implement detective
 # implement node-glob
 # implement new watch
-# test clean!
+# make sure verion still works!
+# make sure server still works!
+# make sure testing still works!
+# implement html5 manafest task and jshint tasks
+# live reload!!
 
 # ------- Job Class
 
@@ -174,15 +179,22 @@ class TaskWrapper
     process.exit(1) unless @argv.watch
 
   write: (source, filename = @target) ->
-    # determine if we need to write to filesystem
-    if source and @argv().command isnt "server"
-      dirname = path.dirname(filename)
+    source if @argv().command is "server"
+
+    # helper function
+    writeFile = (file, data) ->
+      dirname = path.dirname(file)
       fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
       fs.writeFileSync(filename, source)
+
+    # determine if we need to write to filesystem
+    if Array.isArray(source)
+      # TODO: eventually need logic to determine @target for source when array..
+      writeFile(module.filename, module.source) for module in source
+    else
+      writeFile(filename, source)
     source
 
-
-# TODO: add image copy and manifest tasks at some point, jshint, component.io build tasks?
 
 # ------- Public Export
 

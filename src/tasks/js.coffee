@@ -15,24 +15,26 @@ compile = (task) ->
 compileModules = (task) ->
   # create stitch/dependency modules only on first call
   task.stitch or= new Stitch(task.src)
-  task.depend or= new Dependency(task.modules)
-  # perform compilation
-  modules = task.depend.resolve().concat(task.stitch.resolve())
-  if modules and task.bundle
-    Stitch.bundle(task.bundle, modules)
-  else
-    ""
+  task.stitch.resolve
+    bundle   : task.bundle
+    commonjs : task.commonjs
+    npm      : task.npm
 
 compileLibs = (task) ->
   task.stitchLibs or= new Stitch(task.lib)
-  task.stitchLibs.join()
+  # libs are always bundled as a simple join
+  task.stitchLibs.resolve
+    bundle   : true
+    commonjs : false
 
 # ---------- define task
 
 task = ->
   # for now forcing use of commonjs bundler
   @targetExt = "js"
-  @bundle    = "require"
+  @bundle    or= true
+  @commonjs  or= "require"
+  @npm       or= false
 
   # javascript to add before/after the stitch file
   @before = utils.arrayToString(@before or "") if @before

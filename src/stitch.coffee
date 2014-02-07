@@ -3,27 +3,34 @@ fs           = require('fs')
 compilers    = require('./compilers')
 Utils        = require('./utils')
 
+# TODO: provide global settings for stitch
+# ignoreMissingDependencies = true
+
 ## --- Private
 
+_modulesByFile = {}
+_modulesById   = {}
+
 # TODO: replace with node-glob file list
-walk = (type, modules, path, parent = path, result = []) ->
+walk = (type, path, parent = path, result = []) ->
   return unless fs.existsSync(path)
   for child in fs.readdirSync(path)
     child = _path.join(path, child)
     stat  = fs.statSync(child)
     if stat.isDirectory()
-      walk(type, modules, child, parent, result)
+      walk(type, child, parent, result)
     else
-      module = createModule(type, modules, child, parent)
+      module = createModule(type, child, parent)
       result.push module
   result
 
-createModule = (type, modules, child, parent) ->
-  if not modules[child]
+createModule = (type, child, parent) ->
+  if not _modulesByFile[child]
     module = new Module(child, parent, type)
     if module.valid() and module.compile()
-      modules[child] = module
-  modules[child]
+      _modulesByFile[child]   = module
+      _modulesById[module.id] = module if module.id
+  _modulesByFile[child]
 
 # Normalize paths and remove extensions
 # to create valid CommonJS module names
@@ -39,6 +46,29 @@ modulerize = (id, filename = id) ->
   # deal with window path separator
   modName.replace(/\\/g, '/')
 
+# Different bunlding options for js and css
+resolvers =
+  js: (modules, options = {}) ->
+    # resolve npm modules
+    if options.npm
+      for mod in modules
+        mod.depends()
+
+    # bundling options
+    if options.bundle
+      if options.commonjs
+        identifier = if typeof options.commonjs is 'boolean' then 'require' else options.commonjs
+        Stitch.bundle(modules, identifier)
+      else
+        Stitch.join(modules, options.separator)
+    else
+      modules
+
+  css: (modules, options = {}) ->
+    if options.bundle
+      Stitch.join(modules, options.separator)
+    else
+      modules
 
 ## --- classes
 
@@ -46,39 +76,47 @@ class Stitch
 
   ## --- class methods
 
-  @bundle: (identifier, modules) ->
+  @bundle: (modules, identifier) ->
     context =
       identifier : identifier
       modules    : modules
     Utils.tmpl("stitch", context )
 
+  @join: (modules, separator = "\n") ->
+    (mod.compile() for mod in modules).join(separator)
+
+  @delete: (filename) ->
+    mod = _modulesByFile(_path.resolve(filename))
+    if mod
+      delete modulesByFile[mod.filename]
+      delete modulesById[mod.id]
+
   ## --- instance methods
 
   constructor: (@paths = [], @type = 'js' ) ->
-    @paths   = (_path.resolve(path) for path in @paths)
-    @modules = {}
+    @paths = (_path.resolve(path) for path in @paths)
+    unless resolvers[@type]
+      throw new Error("Invalid type supplied to Stitch contructor")
 
-  bundle: (indentifier) ->
-    Stitch.bundle(identifier, @resolve)
-
-  join: (separator = "\n") ->
-    (module.compile() for module in @resolve()).join(separator)
-
-  resolve: ->
-    # return array of modules 
-    Utils.flatten(walk(@type, @modules, path) for path in @paths)
-
-  clear: (filename) ->
-    delete modules[_path.resolve(filename)]
+  resolve: (options = {}) ->
+    modules = Utils.flatten(walk(@type, path) for path in @paths)
+    resolvers[@type](modules, options)
 
 # TODO: probably not the best name, what else could be used?? unit, item, node...
 class Module
+
   constructor: (@filename, @parent, @type) ->
     @ext = _path.extname(@filename).slice(1)
-    @id  = modulerize(@filename.replace(_path.join(@parent, _path.sep), ''))
+    if @type is "js"
+      @id  = modulerize(@filename.replace(_path.join(@parent, _path.sep), ''))
 
   compile: ->
-    @out or= compilers[@ext](@filename)
+    @source or= compilers[@ext](@filename)
+
+  depends: ->
+    require('./dependency')(@, (err, res) =>
+      console.log @id, err, res if res.length > 0
+    )
 
   valid: ->
     !!compilers[@ext]

@@ -10,7 +10,7 @@ detective = require('detective')
 
 from_source = (source, parent, opt, cb) ->
   cache          = opt.cache;
-  ignore_missing = false or opt.ignoreMissing
+  ignore_missing = true
   requires       = detective(source)
   result         = []
 
@@ -19,7 +19,7 @@ from_source = (source, parent, opt, cb) ->
   requires = requires.filter( (elem, idx) -> requires.indexOf(elem) is idx )
 
   (next = ->
-    req = requires.shift
+    req = requires.shift()
     return cb(null, result) unless req
 
     # short require name
@@ -73,7 +73,7 @@ from_source = (source, parent, opt, cb) ->
         # continue on
         next()
 
-  )() # first call to next
+  )() 
 
 from_filename = (filename, parent, opt, cb) ->
   cache = opt.cache
@@ -120,7 +120,8 @@ node_module_paths = (filename) ->
 
 # process filename and callback with tree of dependencies
 # the tree does have circular references when a child requires a parent
-module.exports = (filename, opt, cb) ->
+
+module.exports = (mod, opt, cb) ->
   opt or= {};
   if typeof opt is 'function'
     cb  = opt
@@ -131,9 +132,9 @@ module.exports = (filename, opt, cb) ->
 
   # entry parent specifies the base node modules path
   entry_parent =
-    id       : filename
-    filename : filename
-    paths    : node_module_paths(filename)
+    id       : mod.id
+    filename : mod.filename
+    paths    : node_module_paths(mod.filename)
 
   # start process
-  from_filename(filename, entry_parent, opt, cb)
+  from_source(mod.source, entry_parent, opt, cb)
