@@ -8,8 +8,8 @@ Utils        = require('./utils')
 
 ## --- Private
 
-_modulesByFile = {}
-_modulesById   = {}
+_patchesByFile = {}
+_patchesById   = {}
 
 # TODO: replace with node-glob file list
 walk = (type, path, parent = path, result = []) ->
@@ -20,17 +20,17 @@ walk = (type, path, parent = path, result = []) ->
     if stat.isDirectory()
       walk(type, child, parent, result)
     else
-      module = createModule(type, child, parent)
-      result.push module
+      patch = createPatch(type, child, parent)
+      result.push patch
   result
 
-createModule = (type, child, parent) ->
-  if not _modulesByFile[child]
-    module = new Module(child, parent, type)
-    if module.valid() and module.compile()
-      _modulesByFile[child]   = module
-      _modulesById[module.id] = module if module.id
-  _modulesByFile[child]
+createPatch = (type, child, parent) ->
+  if not _patchesByFile[child]
+    patch = new Patch(child, parent, type)
+    if patch.valid() and patch.compile()
+      _patchesByFile[child]  = patch
+      _patchesById[patch.id] = patch if patch.id
+  _patchesByFile[child]
 
 # Normalize paths and remove extensions
 # to create valid CommonJS module names
@@ -49,27 +49,27 @@ modulerize = (filename, parent) ->
 
 # Different bunlding options for js and css
 resolvers =
-  js: (modules, options = {}) ->
+  js: (patches, options = {}) ->
     # resolve npm modules
     if options.npm
-      for mod in modules
-        mod.depends()
+      for patch in patches
+        patch.depends()
 
     # bundling options
     if options.bundle
       if options.commonjs
         identifier = if typeof options.commonjs is 'boolean' then 'require' else options.commonjs
-        Stitch.bundle(modules, identifier)
+        Stitch.bundle(patches, identifier)
       else
-        Stitch.join(modules, options.separator)
+        Stitch.join(patches, options.separator)
     else
-      modules
+      patches
 
-  css: (modules, options = {}) ->
+  css: (patches, options = {}) ->
     if options.bundle
-      Stitch.join(modules, options.separator)
+      Stitch.join(patches, options.separator)
     else
-      modules
+      patches
 
 ## --- classes
 
@@ -77,20 +77,20 @@ class Stitch
 
   ## --- class methods
 
-  @bundle: (modules, identifier) ->
+  @bundle: (patches, identifier) ->
     context =
       identifier : identifier
-      modules    : modules
+      modules    : patches
     Utils.tmpl("stitch", context )
 
-  @join: (modules, separator = "\n") ->
-    (mod.compile() for mod in modules).join(separator)
+  @join: (patches, separator = "\n") ->
+    (patch.compile() for patch in patches).join(separator)
 
   @delete: (filename) ->
-    mod = _modulesByFile(_path.resolve(filename))
-    if mod
-      delete modulesByFile[mod.filename]
-      delete modulesById[mod.id]
+    patch = _patchesByFile(_path.resolve(filename))
+    if patch
+      delete _patchesByFile[patch.filename]
+      delete _patchesById[patch.id]
 
   ## --- instance methods
 
@@ -100,11 +100,10 @@ class Stitch
       throw new Error("Invalid type supplied to Stitch contructor")
 
   resolve: (options = {}) ->
-    modules = Utils.flatten(walk(@type, path) for path in @paths)
-    resolvers[@type](modules, options)
+    patches = Utils.flatten(walk(@type, path) for path in @paths)
+    resolvers[@type](patches, options)
 
-# TODO: probably not the best name, what else could be used?? unit, item, node...
-class Module
+class Patch
 
   constructor: (@filename, @parent, @type) ->
     @ext = _path.extname(@filename).slice(1)
