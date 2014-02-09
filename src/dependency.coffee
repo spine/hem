@@ -6,6 +6,10 @@ fs        = require('fs')
 # 3rd party
 detective = require('detective')
 
+# 1. change module to node/item 
+# 2. move this code to stitch
+# 3. hopefully it still works, make use of caching!
+
 # inspect the source for dependencies
 
 from_source = (source, parent, opt, cb) ->
@@ -23,7 +27,7 @@ from_source = (source, parent, opt, cb) ->
     return cb(null, result) unless req
 
     # short require name
-    id = req
+    id = modulerize(req, parent.filename)
 
     resolve req, parent, (err, full_path, ignore) ->
       return cb(err) if err
@@ -40,6 +44,7 @@ from_source = (source, parent, opt, cb) ->
         return next() if (ignore_missing)
 
         # return error if missing
+        # TODO: check other modules??
         return cb(new Error('Cannot find module: \'' + req + '\' ' + 'required from ' + parent.filename))
 
       # ignore indicates we should not process dependencies for this file
@@ -49,7 +54,8 @@ from_source = (source, parent, opt, cb) ->
       if ignore
         result.push
           id: id,
-          filename: full_path
+          filename: full_path,
+          npm: true
         return next()
 
       # new parent entry
@@ -65,10 +71,14 @@ from_source = (source, parent, opt, cb) ->
         # build up response
         res =
           id: id,
+          req: req,
           filename: full_path,
-          deps: deps
+          deps: deps,
+          npm: true,
+          parent: parent.filename
         res.source = src if (opt.includeSource)
         result.push res
+        console.log res
 
         # continue on
         next()
@@ -100,6 +110,32 @@ from_filename = (filename, parent, opt, cb) ->
     catch err
       err.message = filename + ': ' + err.message
       throw err
+
+# determine the id value to use
+
+modulerize = (filename, parent) ->
+  # deal with relative modules from npm
+  if filename[0] is "."
+    parts    = parent.split(path.sep)
+    parent   = parent.replace(/(node_modules(\/|\\)[^/\\]+)\/.+/,"$1")
+    filename = path.resolve(parent, filename)
+    id       = filename.replace(/.+node_modules(\/|\\)/,"")
+  # coming from src folders
+  else
+    id = filename.replace(path.join(parent, path.sep), '')
+
+  # set variables
+  ext      = path.extname(filename)
+  dirName  = path.dirname(id)
+  baseName = path.basename(id, ext)
+
+  # Do not allow names like 'underscore/underscore'
+  if dirName is baseName
+    modName = baseName
+  else
+    modName = path.join(path.dirname(id), baseName)
+  # deal with window path separator
+  modName.replace(/\\/g, '/')
 
 # default resolver if none specified just resolves as node would
 

@@ -34,7 +34,8 @@ createModule = (type, child, parent) ->
 
 # Normalize paths and remove extensions
 # to create valid CommonJS module names
-modulerize = (id, filename = id) ->
+modulerize = (filename, parent) ->
+  id       = filename.replace(_path.join(parent, _path.sep), '')
   ext      = _path.extname(filename)
   dirName  = _path.dirname(id)
   baseName = _path.basename(id, ext)
@@ -108,15 +109,19 @@ class Module
   constructor: (@filename, @parent, @type) ->
     @ext = _path.extname(@filename).slice(1)
     if @type is "js"
-      @id  = modulerize(@filename.replace(_path.join(@parent, _path.sep), ''))
+      @id  = modulerize(@filename, @parent)
 
   compile: ->
     @source or= compilers[@ext](@filename)
 
   depends: ->
     require('./dependency')(@, (err, res) =>
-      console.log @id, err, res if res.length > 0
+      console.log @id, err, res if res.length > 200
     )
+    # need to cache/save results
+    # return array of Modules, need a new name!!
+    # way to find missing deps without errors?
+    # need to modify inner deps based on parent id?? or just path from node_modules directory!
 
   valid: ->
     !!compilers[@ext]
