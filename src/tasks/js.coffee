@@ -1,4 +1,3 @@
-Dependency = require('../dependency')
 Stitch     = require('../stitch')
 Log        = require('../log')
 utils      = require('../utils')
@@ -8,20 +7,20 @@ uglifyjs   = require('uglify-js')
 # ---------- helper function to perform compiles
 
 compile = (task) ->
-    result = [compileModules(task)].join("\n")
+    result = [compileModules(task, src), compileLibs(task, lib)].join("\n")
     result = uglifyjs.minify(result, {fromString: true}).code if task.argv().compress
     result
 
-compileModules = (task) ->
+compileModules = (taskm, src) ->
   # create stitch/dependency modules only on first call
-  task.stitch or= new Stitch(task.src)
+  task.stitch or= new Stitch(src)
   task.stitch.resolve
     bundle   : task.bundle
     commonjs : task.commonjs
     npm      : task.npm
 
-compileLibs = (task) ->
-  task.stitchLibs or= new Stitch(task.lib)
+compileLibs = (task, lib) ->
+  task.stitchLibs or= new Stitch(lib)
   # libs are always bundled as a simple join
   task.stitchLibs.resolve
     bundle   : true
@@ -42,7 +41,7 @@ task = ->
 
   return (params) ->
     # remove the file module from Stitch so its recompiled
-    @stitch?.clear(params.watch) if params.watch
+    Stitch.remove(params.watch) if params.watch
 
     # extra logging for debug mode
     extra = (@argv().compress and " <b>--using compression</b>") or ""

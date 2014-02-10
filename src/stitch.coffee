@@ -15,6 +15,7 @@ cache =
   byId: {}
 
 # TODO: replace with node-glob file list
+# TODO: could cache.byId ever be a duplicate?? maybe use cache[ext].byId??
 
 walk = (type, path, parent = path, result = []) ->
   return unless fs.existsSync(path)
@@ -53,8 +54,6 @@ modulerize = (filename, parent, ext) ->
     parent   = parent.replace(/(node_modules(\/|\\)[^/\\]+)\/.+/,"$1")
     filename = _path.resolve(parent, filename)
     id       = filename.replace(/.+node_modules(\/|\\)/,"")
-    if filename.indexOf("validate") > 0
-      console.log "+", filename, id
   # coming from src folders
   else
     id = filename.replace(_path.join(parent, _path.sep), '')
@@ -122,7 +121,7 @@ class Stitch
   @join: (patches, separator = "\n") ->
     (patch.compile() for patch in patches).join(separator)
 
-  @delete: (filename) ->
+  @remove: (filename) ->
     patch = cache.file(_path.resolve(filename))
     if patch
       delete cache.file[patch.filename]
@@ -207,7 +206,7 @@ depsFromPatch = (patch) ->
         if Stitch.ignoreMissingDependencies is false
           throw new Error "#{patch.appPath} contains missing module #{id}"
         if Stitch.reportMissingDependencies
-          Log.error "#{patch.appPath} contains missing module <green>#{id}</green>"
+          Log "<yellow>Warning:</yellow> #{patch.appPath} contains missing module <green>#{id}</green>"
         return next()
 
       # see if we have already processed this path

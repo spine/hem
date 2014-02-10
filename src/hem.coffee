@@ -39,13 +39,11 @@ log.VERBOSE = argv.v = !!argv.v
 utils       = require('./utils')
 compilers   = require('./compilers')
 server      = require('./server')
-testing     = require('./test')
 application = require('./application')
 events      = require('./events')
 job         = require('./job')
 
 # supply argv object to modules
-
 compilers.argv  = argv
 
 # ------- Global Functions
@@ -66,17 +64,20 @@ class Hem
     hem = new Hem(slug)
     server.middleware(hem)
 
+  # set home directory for utils functions
+  @home: process.cwd()
+
   # ------- instance variables
 
   # emtpy options map and applications list
   options : {}
   apps    : []
   allApps : []
-  home    : process.cwd()
 
   # ------- Constructor
 
   constructor: (options) ->
+
     # handle slug file options
     switch typeof options
       when "string"
@@ -127,13 +128,7 @@ class Hem
     app.deploy() for app in @apps
 
   test: ->
-    testOptions = @options.hem.tests or {}
-    if argv.watch
-      testOptions.singleRun = false
-    else
-      @buildApps()
-      testOptions.singleRun = true
-    testing.run(@apps, testOptions)
+    app.test() for app in @apps
 
   check: ->
     printOptions = showHidden: false, colors: !argv.nocolors, depth: null
@@ -168,7 +163,7 @@ class Hem
       log.errorAndExit("Couldn't find slug file #{path.dirname(slugPath)}")
 
     # set home directory to slug directory
-    @home = path.dirname(slugPath)
+    Hem.home = path.dirname(slugPath)
 
     # next try to require
     try

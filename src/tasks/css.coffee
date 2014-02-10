@@ -6,10 +6,12 @@ Stitch    = require('../stitch')
 task = ->
   @targetExt = "css"
   @bundle    = true
+  @stitch  or= new Stitch(@src, "css")
 
   # main task to compile and minify css
   return (params) ->
-    @stitch or= new Stitch(@src, "css")
+    # remove the file module from Stitch so its recompiled
+    Stitch.remove(params.watch) if params.watch
 
     try
       # join and minify

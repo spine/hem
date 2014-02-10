@@ -13,15 +13,14 @@ class Application
     @argv = argv
     @name = name
 
-    # TODO: apply defaults, make this a require to load in??
+    # apply defaults if any
     if (config.base)
       try
         # make sure we don't modify the original assets (which is cached by require)
         baseConfig = utils.loadAsset('config/' + config.base)
         defaults   = utils.extend({}, baseConfig)
       catch err
-        Log.error "Invalid 'base' value provided: " + config.base
-        process.exit 1
+        Log.errorAndExit "Invalid 'base' value provided: " + config.base
       # create updated config mapping by merging with default values
       config = utils.extend defaults, config
 
@@ -60,6 +59,7 @@ class Application
   isMatchingRoute: (route) ->
     # strip out any potential versioning applied to request file
     if @jobs.version
+      # TODO: use event system instead
       params = route: route
       @jobs.version.run(params)
       route = params.route
@@ -84,6 +84,9 @@ class Application
 
   deploy: ->
     @exec 'deploy'
+
+  test: ->
+    @exec 'test'
 
   applyRoot: (value, returnArray = true) ->
     # TODO: eventually use the Hem.home directory value if the home

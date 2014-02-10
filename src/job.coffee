@@ -7,8 +7,10 @@ Log    = require('./log')
 # TODO:
 # implement node-glob
 # implement new watch
-# make sure version still works!
+# implement (err, result) -> call back for tasks instead of options
+
 # make sure server still works!
+# make sure version still works!
 # make sure testing still works!
 # implement html5 manafest task and jshint tasks
 # live reload!!
@@ -83,6 +85,7 @@ class Job
           dirs.push path.dirname(fileOrDir)
       dirs = Utils.removeDuplicateValues(dirs)
       # callback that wraps task object in correct scope
+      # TODO: have task simply hook into event system instead of passing options!
       callback = (task) ->
         return (file, curr, prev) =>
           if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
@@ -167,7 +170,7 @@ class TaskWrapper
     if typeof @task is "function"
       @task.call(@, params)
     else
-      Log.errorAndExit "In job '#{@job.name} the task '#{@name}' does not have a method to call."
+      Log.errorAndExit "In job '#{@job.name} the task '#{@name}' needs to be a function."
 
   argv: -> @job.app.argv
 
