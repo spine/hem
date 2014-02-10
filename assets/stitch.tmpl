@@ -1,8 +1,11 @@
 (function(/*! Stitch !*/) {
   if (!this.<%=identifier%>) {
-    var modules = {}, cache = {}, require = function(name, root) {
-      var path = expand(root, name), indexPath = expand(path, './index'), module, fn;
-      module   = cache[path] || cache[indexPath]
+    var modules = {};
+    var cache   = {};
+
+    var require = function(name, root) {
+      var path   = expand(root, name), indexPath = expand(path, './index'), fn;
+      var module = cache[path] || cache[indexPath]
       if (module) {
         return module.exports;
       } else if (fn = modules[path] || modules[path = indexPath]) {
@@ -20,7 +23,9 @@
       } else {
         throw 'module ' + name + ' not found';
       }
-    }, expand = function(root, name) {
+    }
+
+    var expand = function(root, name) {
       var results = [], parts, part;
       if (/^\.\.?(\\/|$)/.test(name)) {
         parts = [root, name].join('/').split('/');
@@ -36,9 +41,12 @@
         }
       }
       return results.join('/');
-    }, dirname = function(path) {
+    }
+
+    var dirname = function(path) {
       return path.split('/').slice(0, -1).join('/');
     };
+
     this.<%=identifier%> = function(name) {
       return require(name, '');
     }
@@ -51,9 +59,9 @@
   }
   return this.<%=identifier%>.define;
 }).call(this)({
-  <% 
-    var output = []; 
-    for (var i = 0; i < modules.length; i++) { 
+  <%
+    var output  = [];
+    for (var i = 0; i < modules.length; i++) {
       output.push(JSON.stringify(modules[i].id) + ": function(exports, require, module) { " + modules[i].compile() + " }" );
     }
   %>
