@@ -47,12 +47,15 @@
       return path.split('/').slice(0, -1).join('/');
     };
 
+    // expose global functions and variables
+
     this.<%=identifier%> = function(name) {
       return require(name, '');
-    }
+    };
     this.<%=identifier%>.define = function(bundle) {
-      for (var key in bundle)
+      for (var key in bundle) {
         modules[key] = bundle[key];
+      }
     };
     this.<%=identifier%>.modules = modules;
     this.<%=identifier%>.cache   = cache;

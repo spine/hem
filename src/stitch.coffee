@@ -164,6 +164,7 @@ class Patch
 ## --- dependency helpers
 
 # lookup the full path to our module with local name 'name'
+# review https://github.com/joyent/node/blob/master/lib/module.js#L224
 
 lookup_path = (name, parent) ->
   resolved_module = _module.Module._resolveLookupPaths(name, parent)

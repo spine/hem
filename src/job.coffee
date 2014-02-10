@@ -5,10 +5,9 @@ Events = require('./events')
 Log    = require('./log')
 
 # TODO:
-# implement detective
 # implement node-glob
 # implement new watch
-# make sure verion still works!
+# make sure version still works!
 # make sure server still works!
 # make sure testing still works!
 # implement html5 manafest task and jshint tasks
