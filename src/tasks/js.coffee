@@ -1,27 +1,46 @@
 Stitch     = require('../stitch')
 Log        = require('../log')
 utils      = require('../utils')
-path       = require('path')
-uglifyjs   = require('uglify-js')
 
 # ---------- helper function to perform compiles
 
 compile = (task) ->
-    result = [compileModules(task, src), compileLibs(task, lib)].join("\n")
-    result = uglifyjs.minify(result, {fromString: true}).code if task.argv().compress
-    result
+  results = []
 
-compileModules = (taskm, src) ->
+  # compile different src folders/paths
+  mods = compileMods(task, task.src)
+  libs = compileLibs(task, task.lib)
+  mods = [mods] unless Array.isArray(mods)
+  libs = [libs] unless Array.isArray(libs)
+  results.push.apply results, mods
+  results.push.apply results, libs
+
+  # deal with setting targets
+  if task.bundle
+    source = []
+    for result in results
+      source.push result.source
+    result =
+      source : source.join("\n")
+      target : task.target
+      route  : task.route
+  else
+    for result in results
+      result.target = "??"
+      result.route  = "??"
+    results
+
+compileMods = (task, src) ->
   # create stitch/dependency modules only on first call
-  task.stitch or= new Stitch(src)
-  task.stitch.resolve
+  task.stitchMods or= new Stitch(src)
+  task.stitchMods.resolve
     bundle   : task.bundle
     commonjs : task.commonjs
     npm      : task.npm
 
 compileLibs = (task, lib) ->
-  task.stitchLibs or= new Stitch(lib)
   # libs are always bundled as a simple join
+  task.stitchLibs or= new Stitch(lib)
   task.stitchLibs.resolve
     bundle   : true
     commonjs : false
@@ -37,24 +56,18 @@ task = ->
 
   # javascript to add before/after the stitch file
   @before = utils.arrayToString(@before or "") if @before
-  @after  = utils.arrayToString(@after or "")  if @after
+  @after  = utils.arrayToString(@after  or "") if @after
 
-  return (params) ->
-    # remove the file module from Stitch so its recompiled
-    Stitch.remove(params.watch) if params.watch
-
+  # main task to compile css
+  return (next) ->
     # extra logging for debug mode
     extra = (@argv().compress and " <b>--using compression</b>") or ""
-    Log.info "- Building target: <yellow@target}</yellow>#{extra}"
+    Log.info "- Building target: <yellow>#{@target}</yellow>#{extra}"
 
     # compile source
     try
-      source = compile(@)
+      next(null, compile(@))
     catch ex
-      @handleError(ex)
-      return ""
-
-    # determine if we need to write to filesystem
-    @write(source)
+      next(ex)
 
 module.exports = task

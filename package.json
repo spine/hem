@@ -9,7 +9,7 @@
     "stylus",
     "jade",
     "eco",
-    "testacular",
+    "phantom",
     "jasmine"
   ],
   "contributors": [
@@ -36,24 +36,22 @@
   },
   "preferGlobal": true,
   "dependencies": {
-    "fast-detective": "~0.0.2",
-    "uglifycss": "0.0.5",
-    "coffee-script": "~1.6.3",
-    "connect": "~2.9.0",
-    "http-proxy": "~0.10.3",
-    "uglify-js": "~2.4.0",
-    "sty": "~0.6.1",
-    "optimist": "~0.6.0",
-    "watch": "~0.8.0",
-    "fs-extra": "~0.7.0",
-    "async": "~0.2.9",
+    "uglifycss": "0.0.8",
+    "coffee-script": "1.7.1",
+    "connect": "2.12.0",
+    "http-proxy": "1.0.2",
+    "uglify-js": "2.4.12",
+    "sty": "0.6.1",
+    "optimist": "0.6.1",
+    "fs-extra": "0.8.1",
+    "async": "0.2.10",
     "open": "0.0.4",
-    "glob": "~3.2.8",
-    "browser-sync": "~0.4.11",
-    "gaze": "~0.4.3",
-    "detective": "~2.2.0"
+    "browser-sync": "0.5.7",
+    "gaze": "0.5.0",
+    "detective": "2.4.0",
+    "globule": "0.2.0"
   },
   "optionalDependencies": {
-    "phantom": "0.5.x"
+    "phantom": "0.5.4"
   }
 }

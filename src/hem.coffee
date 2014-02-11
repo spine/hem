@@ -1,6 +1,7 @@
 fs       = require('fs')
 path     = require('path')
 optimist = require('optimist')
+coffee   = require('coffee-script/register')
 
 # ------- Commandline arguments
 
@@ -160,6 +161,7 @@ class Hem
     try
       slugPath = require.resolve(slugPath)
     catch error
+      console.log error
       log.errorAndExit("Couldn't find slug file #{path.dirname(slugPath)}")
 
     # set home directory to slug directory

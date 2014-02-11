@@ -88,6 +88,11 @@ runPhantom = (apps, options, done) ->
         q.push(tasks[app.name])
       )
       
+# ------- Exports
+
+module.exports.run = run
+module.exports.phantom = phantom
+
 
 
 

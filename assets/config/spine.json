@@ -14,7 +14,7 @@
             {
                 "task": "css",
                 "src": [
-                  "css"
+                  "css/*"
                 ],
                 "target": "public"
             },
@@ -22,10 +22,10 @@
             {
                 "task": "js",
                 "libs": [
-                  "lib"
+                  "lib/**"
                 ],
                 "src": [
-                  "app"
+                  "app/**"
                 ],
                 "target": "public"
             },
@@ -34,9 +34,8 @@
                 "task": "js",
                 "bundle": "specs",
                 "libs": [],
-                "depends": [],
                 "src": [
-                  "test/specs"
+                  "test/specs/**"
                 ],
                 "target": "test/public/specs.js"
             }

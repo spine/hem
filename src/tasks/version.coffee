@@ -5,21 +5,21 @@ Log   = require('../log')
 
 # private functions
 
-updateVersionInAppFiles = (files, builds, value) ->
+updateFiles = (files, builds, value) ->
   # TODO: use node-glob!!
   for file in files
     Log "- updating file <yellow>#{file}</yellow> with version: <b>#{value}</b>"
     data = fs.readFileSync(file, 'utf8')
     # match all target in packages
     for key, build of builds
-      data = updateVersionInData(data, value, build)
+      data = updateVersion(data, value, build)
     fs.writeFileSync(file, data)
 
-updateVersionInData = (data, value, build) ->
+updateVersion = (data, value, build) ->
   ext     = path.extname(pkg.target)
-  name    = path.basename(pkg.target, ext)
-  match   = new RegExp("=(\"|')(.*/?)#{name}[^\"']?#{ext}(\"|')")
-  replace = "=$1$2#{name}.#{value}#{ext}$3"
+  bname   = path.basename(pkg.target, ext)
+  match   = new RegExp("=(\"|')(.*/?)#{bname}[^\"']?#{ext}(\"|')")
+  replace = "=$1$2#{bname}.#{value}#{ext}$3"
   # perform replace
   if data.match(match)
     Log "> found target: #{pkg.target}"
@@ -31,29 +31,22 @@ updateVersionInData = (data, value, build) ->
 
 types =
   package: ->
-      JSON.parse(fs.readFileSync('./package.json', 'utf8')).version
+    JSON.parse(fs.readFileSync('./package.json', 'utf8')).version
 
 task = ->
   # initialize version type
   @type or= 'package'
   unless types[@type]
     Log.errorAndExit "Invalid version type #{@type} for job #{@job.name}"
+  @version or= types[@type]
 
-  return (params) ->
+  # TODO: somehow need to register to parent job a regex for route matching??
+  @trim = (url) ->
+    url.replace(/^([^.]+).*(\.css|\.js)$/i, "$1$2")
 
-    update = (type) ->
-      getVersion = types[type]
-      updateVersionInAppFiles(@src, @job.app.tasks.build, getVersion())
-
-    trim = (url) ->
-      url.replace(/^([^.]+).*(\.css|\.js)$/i, "$1$2")
-
-    # if supplied a param, then trim any potential versioning
-    if params.route
-      params.route = trim(params.route)
-    # else perform the versioning function
-    else
-      update(@type)
+  return (next) ->
+    results = updateFiles(@src, @job.app.tasks.build, @version())
+    next(null, results)
 
 # TODO: other types that could be made
 # 1) based on git commits/tags

@@ -1,27 +1,27 @@
-uglifycss = require('uglifycss')
-Stitch    = require('../stitch')
+Stitch = require('../stitch')
 
 # ---------- define task
 
 task = ->
   @targetExt = "css"
   @bundle    = true
-  @stitch  or= new Stitch(@src, "css")
 
-  # main task to compile and minify css
-  return (params) ->
-    # remove the file module from Stitch so its recompiled
-    Stitch.remove(params.watch) if params.watch
-
+  # main task to compile css
+  return (next) ->
     try
-      # join and minify
-      source = @stitch.resolve( bundle: @bundle )
-      source = uglifycss.processString(source) if @argv().compress
+      @stitch or= new Stitch(@src, "css")
+      results   = @stitch.resolve( bundle: @bundle )
+      # determine targets
+      if Array.isArray(results)
+        for result in results
+          result.target = "???"
+          result.route  = "???"
+      else
+        results.target = @target
+        results.route  = @route
+      # finish task
+      next(null, results)
     catch ex
-      @handleError(ex)
-      return ""
-
-    # determine if we need to write to filesystem
-    @write(source)
+      next(ex)
 
 module.exports = task

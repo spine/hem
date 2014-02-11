@@ -57,22 +57,20 @@ class Application
       @jobs[jobname] = job if job.tasks.length > 0
 
   isMatchingRoute: (route) ->
-    # strip out any potential versioning applied to request file
-    if @jobs.version
-      # TODO: use event system instead
-      params = route: route
-      @jobs.version.run(params)
-      route = params.route
     # compare against task route values
-    for task in @jobs.build.tasks
-      return task.run() if route is task.route
+    for task in @jobs.build.tasks when route is task.route
+      results = task.run()
+      if Array.isArray(results)
+        # TODO: somehow match the route to the array..
+      else
+        return results.source
     # return nothing
     return
 
-  exec: (jobname, params) ->
+  exec: (jobname) ->
     job = @jobs[jobname]
     if job
-      job.run(params)
+      job.run()
     else
       Log.errorAndExit "ERROR: #{jobname} job has not been configured."
 

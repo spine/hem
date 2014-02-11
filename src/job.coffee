@@ -1,17 +1,26 @@
 fs     = require('fs-extra')
+gaze   = require('gaze')
 path   = require('path')
 Utils  = require('./utils')
 Events = require('./events')
 Log    = require('./log')
+Stitch = require('./stitch')
+# minify helpers
+uglifyjs  = require('uglify-js')
+uglifycss = require('uglifycss')
 
 # TODO:
+
 # implement node-glob
 # implement new watch
+
 # implement (err, result) -> call back for tasks instead of options
+# call write once all tasks complete, use values in result to save { js: [{ path, route, source }] }
+# move handle error to job runner, from callback
 
 # make sure server still works!
 # make sure version still works!
-# make sure testing still works!
+# make sure test still works!
 # implement html5 manafest task and jshint tasks
 # live reload!!
 
@@ -26,6 +35,7 @@ class Job
     css     : require('./tasks/css')
     version : require('./tasks/version')
     phantom : require('./tasks/phantom')
+    browser : require('./tasks/browser')
     clean   : require('./tasks/clean')
 
   # ------- instance functions
@@ -63,37 +73,45 @@ class Job
     else
       Log.errorAndExit "Cannot find task <blue>#{config.task}</blue> for job <yellow>#{@name}</yellow>"
 
-  run: (params = {}, jobId) ->
+  run: ->
     Log "#{@sname} application: <green>#{@app.name}</green>"
+    results     = []
+    handleError = (task, ex) =>
+      Log.error("(#{@name} > #{task.name}) - #{ex.message}")
+      Log.error(ex.path) if ex.path
+      process.exit(1) unless @app.argv.watch
+
+    # run tasks
     for task in @tasks
-      if jobId
-        task.run(params) if jobId in [task.name, task.id]
-      else
-        task.run(params)
+      # create callback with correct scope for task
+      
+      callback = do (task) ->
+        return (err, result) ->
+          if err
+            handleError(task, err)
+          else
+            results.push result if result
+      # call task
+      task.run(callback)
+
+    # write task results to file system and then
+    # pass back the results to calling application
+    @write(results)
 
   watch: ->
-    # TODO: replace watch with new watch npm module...
-    options = { persistent: true, interval: 1000, ignoreDotFiles: true }
-    dirs    = []
     # create directory list to watch
-    for task in @tasks
-      for fileOrDir in task.watch
-        continue unless fs.existsSync(fileOrDir)
-        if Utils.isDirectory(fileOrDir)
-          dirs.push fileOrDir
-        else
-          dirs.push path.dirname(fileOrDir)
-      dirs = Utils.removeDuplicateValues(dirs)
-      # callback that wraps task object in correct scope
-      # TODO: have task simply hook into event system instead of passing options!
-      callback = (task) ->
-        return (file, curr, prev) =>
-          if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-            task.run(watch: file)
-            Events.emit("watch", task, file)
-      # start watch process TODO: triggered when all config loading is done?
-      for dir in dirs
-        require('watch').watchTree dir, options, callback
+    for task in @tasks when task.watch?.length > 0
+      # create callback
+      callback = do (task) ->
+        return (filepath) ->
+          task.watchHandler?(event, filepath)
+          Events.emit "watch", task, event, filepath
+
+      # start watch
+      gaze task.watch, (err, watcher) ->
+        Log.errorAndExit err if err
+        watcher.on 'all', (event, filepath) ->
+          callback(event, filepath)
 
   # --- Helper methods for task setup
 
@@ -108,6 +126,10 @@ class Job
       task.watch = @app.applyRoot(task.watch or [])
     else if task.src?.length > 0 or task.lib?.length > 0
       task.watch or= task.src.concat task.lib
+
+    # setup watch handler
+    if task.watch
+      @watchHandler or= (filepath) -> Stitch.remove(filepath)
 
     # configure target and route values
     @initTarget(task)
@@ -135,7 +157,45 @@ class Job
         if Utils.startsWith(@target, sroute.path)
           regexp    = new RegExp("^#{sroute.path.replace(/\\/g,"\\\\")}(\\\\|\/)?")
           targetUrl = @target.replace(regexp,"")
+          # TODO: make a regex, somehow need to incoperate/register an additional
+          # regex helper if there is a deploy/version task
           @route = Utils.cleanRoute(sroute.url, targetUrl)
+
+  applyTargetAndRoutes: (results) ->
+
+  write: (results) ->
+    # just return results if in server mode, no writing
+    results if @app.argv.command is "server"
+
+    # helper function
+    writeFile = (target, source) =>
+      # make sure we have something to write
+      return unless target and source
+      # make sure directory exists
+      dirname = path.dirname(target)
+      fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
+      # compress results
+      ext = path.extname(target)[1..].toLowerCase()
+      if @app.argv.compress and @minify[ext]
+        source = @minify[ext](source)
+      # write to file system
+      fs.writeFileSync(target, source)
+
+    # loop over the results array values
+    for result in results
+      if Array.isArray result
+        for item in result
+          writeFile(item.target, item.source)
+      else
+        writeFile(result.target, result.source)
+    # pass results back
+    results
+
+  minify:
+    js: (source) ->
+      uglifyjs.minify(source, {fromString: true}).code
+    css: (source) ->
+      uglifycss.processString(source)
 
 # ------- TaskWrapper Class
 
@@ -149,7 +209,7 @@ class TaskWrapper
 
     # copy other config values
     for key, value of config
-      @[key] = value unless key in ['job', 'name', 'task', 'argv']
+      @[key] = value unless key in ['job', 'name', 'task', 'argv', 'run']
 
     # create task function to run
     @task = Job.tasks[config.task].call?(@)
@@ -157,45 +217,22 @@ class TaskWrapper
       Log.errorAndExit "The job <yellow>#{@job.name}</yellow> task <blue>#{@name}</blue> is invalid."
 
     # initialize values with init call
-    if @init is undefined 
+    if @init is undefined
       @job.init(@)
     else
       @init?()
 
     # make sure we have a defined route value when using server command
-    if @job.app.argv.command is "server" and not @route
+    if @argv().command is "server" and not @route
       Log.errorAndExit("Unable to determine server route for <yellow>#{@target}</yellow>")
 
-  run: (params = {}) ->
+  run: (callback) ->
     if typeof @task is "function"
-      @task.call(@, params)
+      @task.call(@, callback)
     else
       Log.errorAndExit "In job '#{@job.name} the task '#{@name}' needs to be a function."
 
   argv: -> @job.app.argv
-
-  handleError: (ex) ->
-    Log.error("(#{@job.name}/#{@name}) - #{ex.message}")
-    Log.error(ex.path) if ex.path
-    console.log ex.stack if ex.stack
-    process.exit(1) unless @argv.watch
-
-  write: (source, filename = @target) ->
-    source if @argv().command is "server"
-
-    # helper function
-    writeFile = (file, data) ->
-      dirname = path.dirname(file)
-      fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
-      fs.writeFileSync(filename, source)
-
-    # determine if we need to write to filesystem
-    if Array.isArray(source)
-      # TODO: eventually need logic to determine @target for source when array..
-      writeFile(module.filename, module.source) for module in source
-    else
-      writeFile(filename, source)
-    source
 
 
 # ------- Public Export

@@ -3,6 +3,7 @@ fs        = require('fs')
 compilers = require('./compilers')
 Utils     = require('./utils')
 Log       = require('./log')
+glob      = require('globule')
 # help with dependency resolution
 detective = require('detective')
 _module   = require('module')
@@ -14,20 +15,29 @@ cache =
   file: {}
   byId: {}
 
-# TODO: replace with node-glob file list
-# TODO: could cache.byId ever be a duplicate?? maybe use cache[ext].byId??
+# TODO: could cache.byId ever be a duplicate?? maybe use cache[ext].byId?? OR walk
+#       can be refactored to be a map and that can be unique per stitch instance
 
-walk = (type, path, parent = path, result = []) ->
-  return unless fs.existsSync(path)
-  for child in fs.readdirSync(path)
-    child = _path.join(path, child)
-    stat  = fs.statSync(child)
-    if stat.isDirectory()
-      walk(type, child, parent, result)
+baseFromGlob = (path) ->
+  path   = _path.resolve(path)
+  paths  = path.split('/')
+  result = []
+  for part in paths
+    if '*' in part
+      break
     else
+      result.push part
+  hmm = "#{result.join('/')}"
+
+walk = (type, path, parent) ->
+  result = []
+  files  = glob.find(path)
+  for file in files
+    stat = fs.statSync(file)
+    if stat.isFile()
       patch = createPatchFromPath
         type     : type
-        fullPath : child
+        fullPath : file
         parent   : parent
       result.push patch if patch
   result
@@ -42,6 +52,7 @@ createPatchFromPath = (options) ->
   if not cache.file[fullPath]
     id    = modulerize(fullPath, parent, _path.extname(fullPath))
     patch = new Patch(id, fullPath, type)
+    # TODO: memory leak if patch isn't valid??
   # return result (if any)
   cache.file[fullPath]
 
@@ -64,16 +75,16 @@ modulerize = (filename, parent, ext) ->
   # deal with window _path separator
   modName.replace(/\\/g, '/')
 
-findAllDependencies = (patch, patches) ->
-  deps = patch.depends()
+findAllDependencies = (patch, patches, options) ->
+  deps = patch.deps or= depsFromPatch(patch, options)
   (next = ->
     id = deps.shift()
     return unless id
-    # place depends in array if we haven't processed it before
+    # place depends in array if we haven't seen it before
     dep = cache.byId[id]
-    if patches.indexOf dep is -1
+    if dep not in patches
       patches.push dep
-      findAllDependencies(dep, patches)
+      findAllDependencies(dep, patches, options)
     next()
   )()
 
@@ -83,32 +94,36 @@ class Stitch
 
   ## --- class methods
 
-  @cache: cache
+  # keep track of all stitch instances
+  @instances: []
 
-  # setup global values that can be tweaked.
+  # TODO: have per instance settings via options? setup global values that can be tweaked.
   @ignoreMissingDependencies: true
-  @reportMissingDependencies: true
+  @reportMissingDependencies: false
 
-  # Different bunlding options for js and css
+  # Different bundling options for js and css
   @resolvers:
     js: (patches, options = {}) ->
+      # set dependency values
+      options.ignoreMissingDependencies or= Stitch.ignoreMissingDependencies
+      options.reportMissingDependencies or= Stitch.reportMissingDependencies
+
       # resolve npm modules and other dependencies
-      if options.npm
-        findAllDependencies(patch, patches) for patch in patches
+      findAllDependencies(patch, patches, options) for patch in patches
 
       # bundling options
       if options.bundle
         if options.commonjs
           identifier = if typeof options.commonjs is 'boolean' then 'require' else options.commonjs
-          Stitch.bundle(patches, identifier)
+          source: Stitch.bundle(patches, identifier)
         else
-          Stitch.join(patches, options.separator)
+          source: Stitch.join(patches, options.separator)
       else
         patches
 
     css: (patches, options = {}) ->
       if options.bundle
-        Stitch.join(patches, options.separator)
+        source: Stitch.join(patches, options.separator)
       else
         patches
 
@@ -119,13 +134,24 @@ class Stitch
     Utils.tmpl("stitch", context)
 
   @join: (patches, separator = "\n") ->
-    (patch.compile() for patch in patches).join(separator)
+    (patch.source for patch in patches).join(separator)
 
   @remove: (filename) ->
     patch = cache.file(_path.resolve(filename))
-    if patch
-      delete cache.file[patch.filename]
-      delete cache.byId[patch.id]
+    return unless patch
+
+    # delete global cache
+    delete cache.file[patch.filename]
+    delete cache.byId[patch.id]
+
+    # remove cache from stitch instances
+    for stitch in @instances
+      for patch in stitch.walk when stitch.cache
+        delete stitch.cache if patch.filename is filename
+
+
+  @register: (stitch) ->
+    @instances.push stitch
 
   ## --- instance methods
 
@@ -133,32 +159,29 @@ class Stitch
     @paths = (_path.resolve(path) for path in @paths)
     unless Stitch.resolvers[@type]
       throw new Error("Invalid type supplied to Stitch contructor")
+    Stitch.register(@)
 
   resolve: (options = {}) ->
-    patches = Utils.flatten(walk(@type, path) for path in @paths)
-    Stitch.resolvers[@type](patches, options)
+    unless @cache
+      @walk = []
+      for path in @paths
+        parent = baseFromGlob(path)
+        @walk.push.apply @walk, walk(@type, path, parent)
+      @cache = Stitch.resolvers[@type](@walk, options)
+    @cache
 
 class Patch
 
   constructor: (@id, @filename, @type = "js") ->
-    @ext     = _path.extname(@filename).slice(1)
-    @appPath = @filename.replace(process.cwd(),'')
+    ext = _path.extname(@filename).slice(1).toLowerCase()
+
     # add to cache if valid
-    if @valid() and @compile()
+    if compilers[ext]
+      # setup compile function
+      @source or= compilers[ext](@filename)
+      # place in cache
       cache.file[@filename] = @
       cache.byId[@id] = @ if @id
-
-  compile: ->
-    try
-      @source or= compilers[@ext](@filename)
-    catch
-      throw new Error @missing
-
-  depends: ->
-    @deps or= depsFromPatch(@)
-
-  valid: ->
-    !!compilers[@ext]
 
 ## --- dependency helpers
 
@@ -179,7 +202,7 @@ resolve = (id, parent, cb) ->
   parent.paths or= node_module_paths(parent.filename)
   cb(lookup_path(id, parent))
 
-depsFromPatch = (patch) ->
+depsFromPatch = (patch, options) ->
   result   = [] # string of ids
   # remove duplicate requires with the same name
   requires = detective(patch.source)
@@ -200,15 +223,16 @@ depsFromPatch = (patch) ->
           result.push id
           return next()
         # for now don't allow native modules to be loaded
-        if natives[id]
+        if natives[id] and options.npm
           throw new Error('Cannot require native module: \'' + req + '\' from ' + patch.filename)
         # handle missing dependency
-        if Stitch.ignoreMissingDependencies is false
-          throw new Error "#{patch.appPath} contains missing module #{id}"
-        if Stitch.reportMissingDependencies
-          Log "<yellow>Warning:</yellow> #{patch.appPath} contains missing module <green>#{id}</green>"
+        if options.ignoreMissingDependencies is false
+          throw new Error "#{patch.filename} contains missing module #{id}"
+        if options.reportMissingDependencies
+          Log.info "<yellow>Warning:</yellow> #{patch.filename} contains missing module <green>#{id}</green>"
         return next()
-
+      
+      return next() unless options.npm
       # see if we have already processed this path
       dep = cache.file[full_path]
       if dep
@@ -218,12 +242,12 @@ depsFromPatch = (patch) ->
       # new patch/module entry
       newPatch = new Patch(id, full_path)
       if newPatch
-        newPatch.paths = patch.paths.concat(node_module_paths(full_path))
-        newPatch.npm   = true
-        newPatch.alias = req
+        newPatch.paths  = patch.paths.concat(node_module_paths(full_path))
+        newPatch.npm    = true
+        newPatch.alias  = req
         result.push newPatch.id
         # process deps for this module
-        newPatch.depends()
+        newPatch.deps or= depsFromPatch(newPatch, options)
         # continue on
         next()
   )()

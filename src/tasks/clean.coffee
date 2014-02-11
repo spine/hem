@@ -6,7 +6,7 @@ fs  = require('fs')
 task = ->
   @jobsToClean or= ['build', 'deploy']
 
-  return (params) ->
+  return (next) ->
     # find build/deploy jobs
     tasksToClean = []
 
@@ -18,5 +18,8 @@ task = ->
     for task in tasksToClean
       if task.target and fs.existsSync(task.target)
         Log.info "- removing <yellow>#{task.target}</yellow>"
+
+    # task is finished
+    next()
 
 module.exports = task

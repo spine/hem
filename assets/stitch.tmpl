@@ -65,7 +65,7 @@
   <%
     var output  = [];
     for (var i = 0; i < modules.length; i++) {
-      output.push(JSON.stringify(modules[i].id) + ": function(exports, require, module) { " + modules[i].compile() + " }" );
+      output.push(JSON.stringify(modules[i].id) + ": function(exports, require, module) { " + modules[i].source + " }" );
     }
   %>
   <%= output.join(',') %>
