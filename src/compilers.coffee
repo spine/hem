@@ -70,10 +70,9 @@ compileCoffeescript = (_path, literate = false) ->
   try
     cs.compile(fs.readFileSync(_path, 'utf8'), filename: _path, literate: literate)
   catch ex
-    err = new Error(ex)
-    err.message = "Coffeescript Error: " + ex.message
-    err.path    = "Coffeescript Path:  " + _path
-    err.path    = err.path + ":" + (err.location.first_line + 1) if err.location
+    err = new Error("Coffeescript compile: " + ex.message)
+    err.path = _path
+    err.path = _path + ":" + (ex.location.first_line + 1) if ex.location
     throw err
 
 ##
@@ -92,8 +91,8 @@ compilers.hbs = (_path) ->
     "module.exports = Handlebars.template(#{source});"
   catch ex
     err = new Error(ex)
-    err.message = "eco Error: " + ex.message
-    err.path    = "eco Path:  " + _path
+    err.message = "eco: " + ex.message
+    err.path    = _path
     throw err
 
 require.extensions['.hbs'] = (module, filename) ->

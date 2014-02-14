@@ -58,10 +58,6 @@ class Job
     else if config
       taskHelper(config)
 
-    # start watch if argv supplied
-    if @app.argv.watch
-      @watch() unless @app.argv.command not in ['clean', 'deploy']
-
   createTask: (config) ->
     # make sure the 'run' property is set
     unless config.task
@@ -73,38 +69,94 @@ class Job
     else
       Log.errorAndExit "Cannot find task <blue>#{config.task}</blue> for job <yellow>#{@name}</yellow>"
 
-  run: ->
-    Log "#{@sname} application: <green>#{@app.name}</green>"
-    results     = []
+  run: (id, params = {}) ->
+    # log the fun that is about to begin
+    watch = @app.argv.watch and '<b>(and watch)</b> ' or ''
+    Log "#{@sname} #{watch}application: <green>#{@app.name}</green>"
+
+    # capture results
+    results = []
+
+    # error handler
     handleError = (task, ex) =>
-      Log.error("(#{@name} > #{task.name}) - #{ex.message}")
-      Log.error(ex.path) if ex.path
+      Log.error("(#{@app.name} > #{@name} > #{task.name}) #{ex.message}")
+      # additional logging from custom errors
+      Log ("       Path: #{ex.path}") if ex.path
+      # add to results
+      if err.result
+        results.push err.result
+      # exit if not in watch mode
       process.exit(1) unless @app.argv.watch
 
     # run tasks
-    for task in @tasks
+    for task in @tasks when !id or task.id is id
       # create callback with correct scope for task
-      
       callback = do (task) ->
         return (err, result) ->
           if err
             handleError(task, err)
           else
             results.push result if result
-      # call task
-      task.run(callback)
 
-    # write task results to file system and then
-    # pass back the results to calling application
+      # call task
+      try
+        task.run callback, params
+      catch ex
+        callback err
+
+    # write task results to file system 
     @write(results)
+    # pass back the results to calling application, in the case
+    # of a single task running, just return a result object, otherwise
+    # return the results array from all the different tasks
+    if id 
+      if results.length is 1 then results[0] else results
+    else
+      results
+
+  write: (results) ->
+
+    # helper function
+    writeFile = (item) =>
+      # make sure we have something to write
+      return unless item.target and item.source
+
+      # compress results
+      ext = path.extname(item.target)[1..].toLowerCase()
+      if @app.argv.compress and @minify[ext]
+        item.source = @minify[ext](item.source)
+
+      #  return results if in server mode, no writing
+      return if @app.argv.command is "server"
+
+      # make sure directory exists
+      dirname = path.dirname(item.target)
+      fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
+
+      # write to file system
+      fs.writeFileSync(target, item.source)
+
+    # loop over the results array values
+    for result in results
+      if Array.isArray result
+        for item in result when typeof item is "object"
+          writeFile(item)
+      else if typeof result is "object"
+        writeFile(result)
+
+  minify:
+    js: (source) ->
+      uglifyjs.minify(source, {fromString: true}).code
+    css: (source) ->
+      uglifycss.processString(source)
 
   watch: ->
     # create directory list to watch
     for task in @tasks when task.watch?.length > 0
       # create callback
       callback = do (task) ->
-        return (filepath) ->
-          task.watchHandler?(event, filepath)
+        return (event, filepath) ->
+          task.job.run task.id, watch: filepath
           Events.emit "watch", task, event, filepath
 
       # start watch
@@ -112,6 +164,7 @@ class Job
         Log.errorAndExit err if err
         watcher.on 'all', (event, filepath) ->
           callback(event, filepath)
+
 
   # --- Helper methods for task setup
 
@@ -126,10 +179,6 @@ class Job
       task.watch = @app.applyRoot(task.watch or [])
     else if task.src?.length > 0 or task.lib?.length > 0
       task.watch or= task.src.concat task.lib
-
-    # setup watch handler
-    if task.watch
-      @watchHandler or= (filepath) -> Stitch.remove(filepath)
 
     # configure target and route values
     @initTarget(task)
@@ -163,39 +212,6 @@ class Job
 
   applyTargetAndRoutes: (results) ->
 
-  write: (results) ->
-    # just return results if in server mode, no writing
-    results if @app.argv.command is "server"
-
-    # helper function
-    writeFile = (target, source) =>
-      # make sure we have something to write
-      return unless target and source
-      # make sure directory exists
-      dirname = path.dirname(target)
-      fs.mkdirsSync(dirname) unless fs.existsSync(dirname)
-      # compress results
-      ext = path.extname(target)[1..].toLowerCase()
-      if @app.argv.compress and @minify[ext]
-        source = @minify[ext](source)
-      # write to file system
-      fs.writeFileSync(target, source)
-
-    # loop over the results array values
-    for result in results
-      if Array.isArray result
-        for item in result
-          writeFile(item.target, item.source)
-      else
-        writeFile(result.target, result.source)
-    # pass results back
-    results
-
-  minify:
-    js: (source) ->
-      uglifyjs.minify(source, {fromString: true}).code
-    css: (source) ->
-      uglifycss.processString(source)
 
 # ------- TaskWrapper Class
 
@@ -209,7 +225,7 @@ class TaskWrapper
 
     # copy other config values
     for key, value of config
-      @[key] = value unless key in ['job', 'name', 'task', 'argv', 'run']
+      @[key] = value unless key in ['job', 'id', 'name', 'task', 'argv', 'run', 'app']
 
     # create task function to run
     @task = Job.tasks[config.task].call?(@)
@@ -226,13 +242,16 @@ class TaskWrapper
     if @argv().command is "server" and not @route
       Log.errorAndExit("Unable to determine server route for <yellow>#{@target}</yellow>")
 
-  run: (callback) ->
+  run: (callback, params) ->
     if typeof @task is "function"
-      @task.call(@, callback)
+      @task.call(@, callback, params)
     else
       Log.errorAndExit "In job '#{@job.name} the task '#{@name}' needs to be a function."
 
+  # helper access methods
+
   argv: -> @job.app.argv
+  app:  -> @job.app
 
 
 # ------- Public Export

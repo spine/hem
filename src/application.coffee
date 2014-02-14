@@ -1,6 +1,7 @@
 fs       = require('fs-extra')
 path     = require('path')
 uglifyjs = require('uglify-js')
+glob     = require('globule')
 utils    = require('./utils')
 Events   = require('./events')
 Log      = require('./log')
@@ -59,13 +60,20 @@ class Application
   isMatchingRoute: (route) ->
     # compare against task route values
     for task in @jobs.build.tasks when route is task.route
-      results = task.run()
-      if Array.isArray(results)
-        # TODO: somehow match the route to the array..
+      result = @jobs.build.run(task.id)
+      # if multiple builds, determine which matches
+      if Array.isArray result
+        for item in result
+          return item if route is item.result
+      # otherwise just return result
       else
-        return results.source
+        result
     # return nothing
     return
+
+  watch: (jobname) ->
+    job = @jobs[jobname]
+    job.watch() if job
 
   exec: (jobname) ->
     job = @jobs[jobname]
@@ -103,6 +111,33 @@ class Application
   applyRoute: (values...) ->
     values.unshift(@route) if @route
     utils.cleanRoute.apply(utils, values)
+
+# ------- Application Class
+
+class Src
+  constructor: (options) ->
+    # first check to see if options is string or object
+    if typeof options is "string"
+      options = src: options
+
+    # set values
+    @src      = options.src
+    @srcBase  = options.srcBase
+    @destBase = options.destBase
+    @commonjs = options.commonjs
+
+  # have method to return files
+  walk: ->
+    @files or= glob.find(@src)
+
+  # see if certain file is contained in glob
+  contains: (file) ->
+
+
+  # mapping: 
+  mapping: (destBase) ->
+
+
 
 # ------- Public Functions
 

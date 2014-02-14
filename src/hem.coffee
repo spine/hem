@@ -123,8 +123,8 @@ class Hem
     app.clean() for app in @apps
 
   build: ->
-    @buildApps()
-
+    app.build() for app in @apps
+  
   deploy: ->
     app.deploy() for app in @apps
 
@@ -150,6 +150,9 @@ class Hem
     @apps = @getTargetApps()
     # customize hem
     @slug.custom?(@)
+    # start watch if argv supplied
+    if argv.watch and argv.command not in ['clean', 'deploy']
+      app.watch(command) for app in @apps
     # hope this works :o)
     @[command]()
 
@@ -181,8 +184,6 @@ class Hem
     targetAll = targets.length is 0
     (app for app in @allApps when app.name in targets or targetAll)
 
-  buildApps: () ->
-    app.build() for app in @apps
 
 # ------- Expose internal modules for customization
 

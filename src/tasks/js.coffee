@@ -58,16 +58,16 @@ task = ->
   @before = utils.arrayToString(@before or "") if @before
   @after  = utils.arrayToString(@after  or "") if @after
 
-  # main task to compile css
-  return (next) ->
+  # main task to compile js
+  return (next, params) ->
+    # handle calls from watch
+    Stitch.remove(params.watch) if params.watch
+
     # extra logging for debug mode
     extra = (@argv().compress and " <b>--using compression</b>") or ""
     Log.info "- Building target: <yellow>#{@target}</yellow>#{extra}"
 
     # compile source
-    try
-      next(null, compile(@))
-    catch ex
-      next(ex)
+    next(null, compile(@))
 
 module.exports = task

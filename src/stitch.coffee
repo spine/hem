@@ -104,12 +104,13 @@ class Stitch
   # Different bundling options for js and css
   @resolvers:
     js: (patches, options = {}) ->
-      # set dependency values
+      # set dependency options
       options.ignoreMissingDependencies or= Stitch.ignoreMissingDependencies
       options.reportMissingDependencies or= Stitch.reportMissingDependencies
 
-      # resolve npm modules and other dependencies
-      findAllDependencies(patch, patches, options) for patch in patches
+      if options.reportMissingDependencies or !options.ignoreMissingDependencies or options.npm
+        # resolve npm modules and other dependencies
+        findAllDependencies(patch, patches, options) for patch in patches
 
       # bundling options
       if options.bundle
@@ -137,7 +138,7 @@ class Stitch
     (patch.source for patch in patches).join(separator)
 
   @remove: (filename) ->
-    patch = cache.file(_path.resolve(filename))
+    patch = cache.file[_path.resolve(filename)]
     return unless patch
 
     # delete global cache
@@ -147,6 +148,7 @@ class Stitch
     # remove cache from stitch instances
     for stitch in @instances
       for patch in stitch.walk when stitch.cache
+        # TODO: use the globule.isMatching instead!!
         delete stitch.cache if patch.filename is filename
 
 

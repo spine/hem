@@ -2,41 +2,40 @@
     "root": "",
     "route": "/",
 
+    "defaults": {
+      "bundle": "true",
+      "commonjs": "true",
+      "npm": false
+    },
+
     "static": {
         "/": "public",
         "/test": "test/public"
     },
-
 
     "jobs": {
         "build": [
 
             {
                 "task": "css",
+                "bundle": true,
+                "src": "css",
+                "target": "public"
+            },
+
+            {
+                "task": "js",
+                "bundle": true,
                 "src": [
-                  "css/*"
+                  { "src": "**", "srcBase": "app", "commonjs": true, "npm": true },
+                  { "src": "**", "srcBase": "lib", "commonjs": false }
                 ],
                 "target": "public"
             },
 
             {
                 "task": "js",
-                "libs": [
-                  "lib/**"
-                ],
-                "src": [
-                  "app/**"
-                ],
-                "target": "public"
-            },
-
-            {
-                "task": "js",
-                "bundle": "specs",
-                "libs": [],
-                "src": [
-                  "test/specs/**"
-                ],
+                "src": { "src": "**", "srcBase": "test/specs", "commonjs": "specs" },
                 "target": "test/public/specs.js"
             }
         ],

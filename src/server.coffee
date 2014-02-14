@@ -18,7 +18,7 @@ server.start = (hem) ->
   options = hem.options.hem
   if options.host is "*"
     http.createServer(app).listen(options.port)
-  else 
+  else
     http.createServer(app).listen(options.port, options.host)
   return app
 
@@ -83,16 +83,15 @@ server.middleware = (hem) ->
   return (req, res, next) ->
     # get url path
     url = require("url").parse(req.url)?.pathname.toLowerCase() or ""
-    
+
     # loop over applications and call compile when there is a match
     if url.match(/(\.js|\.css)$/)
       for app in hem.apps
-        if pkg = app.isMatchingRoute(url)
-          str = pkg.execute()
+        if result = app.isMatchingRoute(url)
           res.charset = 'utf-8'
-          res.setHeader('Content-Type', mime.lookup(pkg.target))
-          res.setHeader('Content-Length', Buffer.byteLength(str))
-          res.end((req.method is 'HEAD' and null) or str)
+          res.setHeader('Content-Type', mime.lookup(result.target))
+          res.setHeader('Content-Length', Buffer.byteLength(result.source))
+          res.end((req.method is 'HEAD' and null) or result.source)
           return
 
     # pass request to static connect app to handle static/proxy requests
@@ -140,7 +139,6 @@ patchServerResponseForRedirects = (fromHost, returnHost) ->
 
 createReloadProxy = () ->
   # init the browser-sync module
-
   # need to return the middleware that returns the jsavascript
   # and modifies the body...
 
