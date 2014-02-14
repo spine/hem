@@ -53,5 +53,9 @@
   },
   "optionalDependencies": {
     "phantom": "0.5.4"
+  },
+  "devDependencies": {
+    "should": "~3.1.2",
+    "mocha": "~1.17.1"
   }
 }
