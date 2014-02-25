@@ -48,15 +48,6 @@ compileLibs = (task, lib) ->
 # ---------- define task
 
 task = ->
-  # for now forcing use of commonjs bundler
-  @targetExt = "js"
-  @bundle    or= true
-  @commonjs  or= "require"
-  @npm       or= false
-
-  # javascript to add before/after the stitch file
-  @before = utils.arrayToString(@before or "") if @before
-  @after  = utils.arrayToString(@after  or "") if @after
 
   # main task to compile js
   return (next, params) ->
@@ -64,7 +55,7 @@ task = ->
     Stitch.remove(params.watch) if params.watch
 
     # extra logging for debug mode
-    extra = (@argv().compress and " <b>--using compression</b>") or ""
+    extra = (@app.argv.compress and " <b>--using compression</b>") or ""
     Log.info "- Building target: <yellow>#{@target}</yellow>#{extra}"
 
     # compile source

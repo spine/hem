@@ -17,9 +17,10 @@ compilers.argv = {}
 projectPath = path.resolve process.cwd()
 
 # TODO: test to make sure the project path contains a node_modules folder??
-# TODO: provide compiler options in slug file!
 # TODO: come up with consistant error object to throw on compile errors
 #       handleError(ex, compilerName, _path) -> do stuff...
+# TODO: not sure if we need extension set anymore since we just use compile!!
+# TODO: separete js/css compilers??
 
 # helper fuction to perform load/caching of modules from 
 # the project folder, will quit if unable to load...
@@ -33,6 +34,13 @@ requireLocalModule = (localModule, _path) ->
     log.error("Try to use 'npm install #{localModule}' in your project directory.")
     log.error(error, false) if log.VERBOSE
     process.exit()
+
+class CompileError extends Error
+  constructor: (message, _path, ex) -> 
+    super
+    @name = "CompileError"
+    @path = _path
+    @ex   = ex
 
 ##
 ## Basic javascript/css files
@@ -69,11 +77,8 @@ compilers.litcoffee = (_path) -> compileCoffeescript(_path, true)
 compileCoffeescript = (_path, literate = false) ->
   try
     cs.compile(fs.readFileSync(_path, 'utf8'), filename: _path, literate: literate)
-  catch ex
-    err = new Error("Coffeescript compile: " + ex.message)
-    err.path = _path
-    err.path = _path + ":" + (ex.location.first_line + 1) if ex.location
-    throw err
+  catch err
+    throw new CompileError("Coffeescript: " + ex.message, _path, err)
 
 ##
 ## Compile Handlebars
@@ -89,11 +94,8 @@ compilers.hbs = (_path) ->
          knownHelpersOnly: false
     source = template.toString()
     "module.exports = Handlebars.template(#{source});"
-  catch ex
-    err = new Error(ex)
-    err.message = "eco: " + ex.message
-    err.path    = _path
-    throw err
+  catch err
+    throw new CompileError("handlebars: " + ex.message, _path, err)
 
 require.extensions['.hbs'] = (module, filename) ->
   module._compile compilers.hbs(filename), filename
@@ -106,39 +108,33 @@ compilers.eco = (_path) ->
   eco = requireLocalModule('eco', _path)
   try
     content = eco.precompile fs.readFileSync _path, 'utf8'
-  catch ex
-    err = new Error(ex)
-    err.message = "eco Error: " + ex.message
-    err.path    = "eco Path:  " + _path
-    throw err
-  """
-  var content = #{content};
-  module.exports = content;
-  """
+    """
+    var content = #{content};
+    module.exports = content;
+    """
+  catch err
+    throw new CompileError("eco Error: " + ex.message, _path, err)
 
 compilers.jeco = (_path) ->
   eco = requireLocalModule('eco', _path)
   try
     content = eco.precompile fs.readFileSync _path, 'utf8'
+    """
+    module.exports = function(values, data){
+      var $  = jQuery, result = $();
+      values = $.makeArray(values);
+      data = data || {};
+      for(var i=0; i < values.length; i++) {
+        var value = $.extend({}, values[i], data, {index: i});
+        var elem  = $((#{content})(value));
+        elem.data('item', value);
+        $.merge(result, elem);
+      }
+      return result;
+    };
+    """
   catch err
-    err = new Error(err)
-    err.message = "jeco Error: " + err.message
-    err.path    = "jeco Path:  " + _path
-    throw err
-  """
-  module.exports = function(values, data){
-    var $  = jQuery, result = $();
-    values = $.makeArray(values);
-    data = data || {};
-    for(var i=0; i < values.length; i++) {
-      var value = $.extend({}, values[i], data, {index: i});
-      var elem  = $((#{content})(value));
-      elem.data('item', value);
-      $.merge(result, elem);
-    }
-    return result;
-  };
-  """
+    throw new CompileError("jeco: " + err.message, _path, err)
 
 # require.extensions['.eco'] in eco package contains require.extensions setup
 require.extensions['.jeco'] = require.extensions['.eco']
@@ -159,8 +155,8 @@ compilers.jade = (_path) ->
       client: true
     source = template.toString()
     "module.exports = #{source};"
-  catch ex
-    throw new Error("#{ex} in #{_path}")
+  catch err
+    throw new CompileError("jade: #{err.message}", _path, err)
 
 require.extensions['.jade'] = (module, filename) ->
   module._compile compilers.jade(filename), filename
@@ -181,8 +177,8 @@ compilers.stylus = compilers.styl = (_path) ->
         result = css
       )
     result
-  catch ex
-    throw new Error("#{ex} in #{_path}")
+  catch err
+    throw new CompileError("stylus: #{err.message}", _path, err)
 
 
 require.extensions['.styl'] = (module, filename) ->

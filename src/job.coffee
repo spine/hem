@@ -5,19 +5,14 @@ Utils  = require('./utils')
 Events = require('./events')
 Log    = require('./log')
 Stitch = require('./stitch')
+
 # minify helpers
 uglifyjs  = require('uglify-js')
 uglifycss = require('uglifycss')
 
 # TODO:
 
-# implement node-glob
-# implement new watch
-
-# implement (err, result) -> call back for tasks instead of options
-# call write once all tasks complete, use values in result to save { js: [{ path, route, source }] }
-# move handle error to job runner, from callback
-
+# make sure clean still works
 # make sure server still works!
 # make sure version still works!
 # make sure test still works!
@@ -27,16 +22,6 @@ uglifycss = require('uglifycss')
 # ------- Job Class
 
 class Job
-
-  # ------- Available Built in Tasks
-
-  @tasks =
-    js      : require('./tasks/js')
-    css     : require('./tasks/css')
-    version : require('./tasks/version')
-    phantom : require('./tasks/phantom')
-    browser : require('./tasks/browser')
-    clean   : require('./tasks/clean')
 
   # ------- instance functions
 
@@ -79,12 +64,16 @@ class Job
 
     # error handler
     handleError = (task, ex) =>
-      Log.error("(#{@app.name} > #{@name} > #{task.name}) #{ex.message}")
       # additional logging from custom errors
-      Log ("       Path: #{ex.path}") if ex.path
-      # add to results
-      if err.result
-        results.push err.result
+      Log.error "During execution of <yellow>#{task.name}</yellow> task in (#{@app.name} > #{@name})"
+      if ex.name is "CompileError"
+        Log "       Mess: #{ex.message}"
+        Log "       Path: #{ex.path}"
+      else
+        Log "  #{ex.stack}"
+      # add to results if present
+      if task.result
+        results.push task.result
       # exit if not in watch mode
       process.exit(1) unless @app.argv.watch
 
@@ -102,18 +91,20 @@ class Job
       try
         task.run callback, params
       catch ex
-        callback err
+        callback ex
 
-    # write task results to file system 
+    # write task results to file system
     @write(results)
+
     # pass back the results to calling application, in the case
     # of a single task running, just return a result object, otherwise
     # return the results array from all the different tasks
-    if id 
+    if id
       if results.length is 1 then results[0] else results
     else
       results
 
+  # format is { target:, source:, route: }
   write: (results) ->
 
     # helper function
@@ -126,7 +117,7 @@ class Job
       if @app.argv.compress and @minify[ext]
         item.source = @minify[ext](item.source)
 
-      #  return results if in server mode, no writing
+      # return results if in server mode, no writing
       return if @app.argv.command is "server"
 
       # make sure directory exists
@@ -152,7 +143,10 @@ class Job
 
   watch: ->
     # create directory list to watch
-    for task in @tasks when task.watch?.length > 0
+    for task in @tasks
+      watched = task.watch or task.src
+      continue unless watched
+
       # create callback
       callback = do (task) ->
         return (event, filepath) ->
@@ -165,41 +159,31 @@ class Job
         watcher.on 'all', (event, filepath) ->
           callback(event, filepath)
 
-
   # --- Helper methods for task setup
 
   init: (task) ->
-    # update config values
-    task.src    = @app.applyRoot(task.src or [])
-    task.lib    = @app.applyRoot(task.lib or [])
-    task.target = @app.applyRoot(task.target or [], false)
+    # create target value
+    if task.target
+      task.target = @app.applyRoot(task.target)
+      task.target = Utils.tmplStr(task.target, task)
 
-    # setup watch list
+    # update src values
+    if task.src
+      task.src = @app.createPaths(task.src)
+
+    # setup watch list, should be same as task.src in most cases
     if task.watch
-      task.watch = @app.applyRoot(task.watch or [])
-    else if task.src?.length > 0 or task.lib?.length > 0
-      task.watch or= task.src.concat task.lib
+      task.watch = @app.createPaths(task.watch)
 
     # configure target and route values
-    @initTarget(task)
     @initRoutes(task)
-
-  initTarget: (task) ->
-    return unless task.target
-    # determine target filename if task bundles everything into one file
-    if Utils.isDirectory(task.target)
-      task.target = Utils.cleanPath(task.target, @app.name)
-    # make sure correct extension is present
-    unless task.targetExt and Utils.endsWith(task.target, ".#{task.targetExt}")
-      task.target = "#{task.target}.#{task.targetExt}"
 
   initRoutes: (task) ->
     # if route already set then see if we need to apply app root
     if @route
-      if Utils.startsWith(@target,"/")
-        @route = @route
-      else
+      unless Utils.startsWith(@route,"/")
         @route = @app.applyRoute(@route)
+
     # use the static app urls to determine the task @route
     else
       for sroute in @app.static when not @route
@@ -210,9 +194,6 @@ class Job
           # regex helper if there is a deploy/version task
           @route = Utils.cleanRoute(sroute.url, targetUrl)
 
-  applyTargetAndRoutes: (results) ->
-
-
 # ------- TaskWrapper Class
 
 class TaskWrapper
@@ -222,10 +203,12 @@ class TaskWrapper
   constructor: (job, config) ->
     @job  = job
     @name = config.task
+    @app  = job.app
+
 
     # copy other config values
     for key, value of config
-      @[key] = value unless key in ['job', 'id', 'name', 'task', 'argv', 'run', 'app']
+      @[key] = value unless key in ['job', 'id', 'name', 'task', 'run', 'app']
 
     # create task function to run
     @task = Job.tasks[config.task].call?(@)
@@ -233,13 +216,10 @@ class TaskWrapper
       Log.errorAndExit "The job <yellow>#{@job.name}</yellow> task <blue>#{@name}</blue> is invalid."
 
     # initialize values with init call
-    if @init is undefined
-      @job.init(@)
-    else
-      @init?()
+    @job.init(@)
 
     # make sure we have a defined route value when using server command
-    if @argv().command is "server" and not @route
+    if @app.argv.command is "server" and not @route
       Log.errorAndExit("Unable to determine server route for <yellow>#{@target}</yellow>")
 
   run: (callback, params) ->
@@ -248,14 +228,10 @@ class TaskWrapper
     else
       Log.errorAndExit "In job '#{@job.name} the task '#{@name}' needs to be a function."
 
-  # helper access methods
+# ------- Add tasks to Job class
 
-  argv: -> @job.app.argv
-  app:  -> @job.app
-
+Job.tasks = Utils.requireDirectory "#{__dirname}/tasks"
 
 # ------- Public Export
 
 module.exports = Job
-
-

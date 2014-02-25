@@ -2,7 +2,7 @@ fs       = require('fs-extra')
 path     = require('path')
 uglifyjs = require('uglify-js')
 glob     = require('globule')
-utils    = require('./utils')
+Utils    = require('./utils')
 Events   = require('./events')
 Log      = require('./log')
 Job      = require('./job')
@@ -18,27 +18,24 @@ class Application
     if (config.base)
       try
         # make sure we don't modify the original assets (which is cached by require)
-        baseConfig = utils.loadAsset('config/' + config.base)
-        defaults   = utils.extend({}, baseConfig)
+        baseConfig = Utils.loadAsset('config/' + config.base)
+        defaults   = Utils.extend({}, baseConfig)
       catch err
         Log.errorAndExit "Invalid 'base' value provided: " + config.base
       # create updated config mapping by merging with default values
-      config = utils.extend defaults, config
+      config = Utils.extend defaults, config
 
-    # folder and url settings
-    # change to @path
-    @route  = config.route
-    @root   = config.root
-    @static = []
-    @jobs   = {}
-
-    # dependecy on other apps?
-    @depends = utils.toArray(config.depends or "")
+    # basic app settings
+    @route    = config.route
+    @root     = config.root
+    @static   = []
+    @jobs     = {}
+    @defaults = config.defaults or {}
 
     # set root variable, and possibly route
     unless @root
       # if application name is also a directory then assume that is root
-      if utils.isDirectory(@name)
+      if Utils.isDirectory(@name)
         @root    = @name
         @route or= "/#{@name}"
       # otherwise just work from top level directory
@@ -50,12 +47,14 @@ class Application
     for route, value of config.static
       @static.push
         url  : @applyRoute(route)
-        path : @applyRoot(value)[0]
+        path : @applyRoot(value)
 
     # configure jobs
     for jobname, value of config.jobs
       job = new Job(@, jobname, value)
       @jobs[jobname] = job if job.tasks.length > 0
+
+  # ---- Find matching routes
 
   isMatchingRoute: (route) ->
     # compare against task route values
@@ -70,6 +69,8 @@ class Application
         result
     # return nothing
     return
+
+  # ---- Executing jobs
 
   watch: (jobname) ->
     job = @jobs[jobname]
@@ -94,49 +95,68 @@ class Application
   test: ->
     @exec 'test'
 
-  applyRoot: (value, returnArray = true) ->
-    # TODO: eventually use the Hem.home directory value if the home
-    #       value is different from the process.cwd() value?!
-    values = utils.toArray(value)
+  # ---- Helper functions
+
+  applyRoot: (values) ->
+    # remember what was passed in as a parameter
+    returnArray = Array.isArray(values)
+    # turn into array for next steps
+    values = Utils.toArray(values)
     values = values.map (value) =>
-      if utils.startsWith(value, "." + path.sep)
+      if Utils.startsWith(value, "." + path.sep)
         value
       else
-        utils.cleanPath(@root, value)
-    if returnArray
-      values
-    else
-      values[0]
+        Utils.cleanPath(@root, value)
+    # return results the same as what was passed in
+    if returnArray then values else values[0]
 
   applyRoute: (values...) ->
     values.unshift(@route) if @route
-    utils.cleanRoute.apply(utils, values)
+    Utils.cleanRoute.apply(Utils, values)
 
-# ------- Application Class
+  createPaths: (paths) ->
+    new Path(@, path) for path in Utils.toArray(paths)
 
-class Src
-  constructor: (options) ->
+# ------- Path Class
+
+class Path
+  constructor: (app, options) ->
     # first check to see if options is string or object
     if typeof options is "string"
-      options = src: options
+      if options.match /[*]/
+        options =
+          srcBase: ""
+          src: options
+      else
+        # default to globbing everything under a folder name
+        options =
+          srcBase: options
+          src: "**"
+
+    # set default values
+    options.commonjs ?= app.defaults.commonjs if app.defaults.commonjs?
+    options.npm      ?= app.defaults.npm if app.defaults.npm?
 
     # set values
     @src      = options.src
-    @srcBase  = options.srcBase
-    @destBase = options.destBase
-    @commonjs = options.commonjs
+    @srcBase  = app.applyRoot(options.srcBase or "")
+    @target   = options.target if options.target
+    @commonjs = options.commonjs if options.commonjs
+    @npm      = options.npm if options.npm
 
-  # have method to return files
   walk: ->
-    @files or= glob.find(@src)
+    glob.find
+      src        : @src
+      srcBase    : @srcBase
+      prefixBase : true # make sure we always include the srcBase in returned files
 
   # see if certain file is contained in glob
   contains: (file) ->
+    glob.isMatch()
 
-
-  # mapping: 
+  # mapping:
   mapping: (destBase) ->
-
+    glob.mapping({src: ["a.js", "b.js"], srcBase: "foo", destBase: "bar"})
 
 
 # ------- Public Functions

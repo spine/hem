@@ -93,42 +93,12 @@ utils.requireDirectory = (directory) ->
 
 # ------ Simple templating function
 
-# Simple JavaScript Templating
-# John Resig - http://ejohn.org/ - MIT Licensed
-tmplCache = {};
+utils.tmplStr  = (str, data) ->
+  require('mustache').render(str, data)
 
-utils.tmpl = (str, data) ->
-  # Figure out if we're getting a template, or if we need to
-  # load the template - and be sure to cache the result.
-  if not /[\t\r\n% ]/.test(str)
-    if tmplCache[str]
-      fn = tmplCache[str]
-    else
-      # load file
-      template = utils.loadAsset("#{str}.tmpl")
-      fn = utils.tmpl(template)
-  else
-    # Convert the template into pure JavaScript
-    str = str
-    .split("'").join("\\'")
-    .split("\n").join("\\n")
-    .replace(/<%([\s\S]*?)%>/mg, (m, t) -> '<%' + t.split("\\'").join("'").split("\\n").join("\n") + '%>')
-    .replace(/<%=(.+?)%>/g, "',$1,'")
-    .split("<%").join("');")
-    .split("%>").join("p.push('")
-    # Generate a reusable function that will serve as a template
-    fn = new Function("obj",
-    """
-    var p=[]
-    var print = function(){ p.push.apply(p,arguments); };
-    with(obj){
-      p.push('#{str}');
-    }
-    return p.join('');
-    """
-    )
-  # Provide some basic currying to the user
-  return data and fn( data ) or fn;
+utils.tmplFile = (file, data) ->
+  template = utils.loadAsset("#{str}.tmpl")
+  utils.tmplStr(template, data)
 
 # ------ Formatting urls and folder paths
 

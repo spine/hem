@@ -27,6 +27,10 @@ updateVersion = (data, value, build) ->
   else
     data
 
+# TODO: somehow need to register to parent job a regex for route matching??
+trimVersion = (url) ->
+  url.replace(/^([^.]+).*(\.css|\.js)$/i, "$1$2")
+
 # handle versioning based on package.json version (default)
 
 types =
@@ -38,14 +42,9 @@ task = ->
   @type or= 'package'
   unless types[@type]
     Log.errorAndExit "Invalid version type #{@type} for job #{@job.name}"
-  @version or= types[@type]
-
-  # TODO: somehow need to register to parent job a regex for route matching??
-  @trim = (url) ->
-    url.replace(/^([^.]+).*(\.css|\.js)$/i, "$1$2")
 
   return (next) ->
-    results = updateFiles(@src, @job.app.tasks.build, @version())
+    results = updateFiles(@src, @job.app.tasks.build, types[@type]())
     next(null, results)
 
 # TODO: other types that could be made

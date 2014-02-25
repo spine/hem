@@ -49,7 +49,8 @@
     "browser-sync": "0.5.7",
     "gaze": "0.5.0",
     "detective": "2.4.0",
-    "globule": "0.2.0"
+    "globule": "0.2.0",
+    "mustache": "~0.8.1"
   },
   "optionalDependencies": {
     "phantom": "0.5.4"

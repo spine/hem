@@ -5,7 +5,7 @@ fs  = require('fs')
 
 task = ->
   @jobsToClean or= ['build', 'deploy']
-
+ 
   return (next) ->
     # find build/deploy jobs
     tasksToClean = []
@@ -13,11 +13,13 @@ task = ->
     # get list of tasks
     for jobname, job of @job.app.jobs when jobname in @jobsToClean
       tasksToClean = tasksToClean.concat job.tasks
-    
+
     # loop over the tasks in the job and remove the target
     for task in tasksToClean
       if task.target and fs.existsSync(task.target)
         Log.info "- removing <yellow>#{task.target}</yellow>"
+        # TODO: need to check if file or directory
+        # TODO: allow to specificy your own directories via src
 
     # task is finished
     next()
