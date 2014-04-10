@@ -45,6 +45,28 @@ types.package = class NpmPackageVersion
   trim: (url) ->
     url.replace(/^([^.]+).*(\.css|\.js)$/i, "$1$2")
 
+types.build = class BuildVersion
+
+  constructor: (app, options = {}) ->
+    @app   = app
+    @files = utils.toArray(options.files).map (file) =>
+      @app.applyRootDir(file)[0]
+    @envVariable = options.envVariable or "BUILD_NUMBER"
+
+  getVersion: ->
+    if process.env[@envVariable]
+      process.env[@envVariable]
+    else
+      log "ERROR: #{@envVariable} not set correctly as an environment variable."
+      process.exit(1)
+
+  update: () ->
+    updateVersionInAppFiles(@files, @app.packages, @getVersion())
+
+  trim: (url) ->
+    url.replace(/^([^.]+).*(\.css|\.js)$/i, "$1$2")
+
+
 # TODO: other types that could be made
 # 1) based on git commits/tags
 # 2) backed on jenkinds builds or env values
