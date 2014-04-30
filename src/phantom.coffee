@@ -64,7 +64,7 @@ waitFor = (->
   getTime = -> (new Date).getTime()
 
   return (test, doIt, duration) ->
-    duration or= 6000
+    duration or= 60000
     start = getTime()
     finish = start + duration
     int = undefined
@@ -98,8 +98,6 @@ jasmine_parseTestResults = (report) ->
   # parameters need to be passed in as a simple string so we
   # need to turn report back into a real javascript function
   eval("report = " + report)
-
-  # TODO: at some point, do we need to inject jQuery?
 
   # handle looping over suites
   printSuites = (root, level) ->
