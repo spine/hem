@@ -49,8 +49,7 @@ runBrowser = (apps, options, done) ->
     async.series(tasks)
   else
     q = async.queue( ((task, callback) -> task(callback)), 1)
-    for task, taskObject of tasks
-      events.on("watch", (app, pkg, file) -> q.push(tasks[app.name]))
+    events.on("watch", (app, pkg, file) -> q.push(tasks[app.name]))
 
 runPhantom = (apps, options, done) ->
   # set some other defaults
@@ -60,6 +59,7 @@ runPhantom = (apps, options, done) ->
   # loop over apps to create test runner functions
   for app in apps
     testName = app.name
+    # TODO: perform injection with phantomjs instead!
     testFile = app.getTestPackage().getTestIndexFile()
     testPort = 12300 + Object.keys(tasks).length
 
@@ -81,38 +81,56 @@ runPhantom = (apps, options, done) ->
         exitCode += result.error and 1 or 0
       process.exit(exitCode)
     )
-
   # else add to queue and setup watch
   else
     q = async.queue( ((task, callback) -> task(callback)), 1)
-    for task, taskObject of tasks
-      # setup watch and use q.push(taskObject) to assign to q
-      events.on("watch", (app, pkg, file) ->
-        q.push(tasks[app.name])
-      )
+    events.on("watch", (app, pkg, file) -> 
+      q.push(tasks[app.name]) 
+    )
 
 runKarma = (apps, options = {}) ->
-  
+  # TODO: require karma from project folder instead!
+  karma = require('karma').server
+  tasks = {}
+
   for app in apps
 
     # create config file to pass into server if user doesn't supply a file to use
     testConfig =
-      singleRun  : options.singleRun
+      singleRun  : true
       basePath   : options.basePath
       reporters  : [options.reporters or 'progress']
       logLevel   : options.logLevel or 'error'
       frameworks : [options.frameworks or 'jasmine']
       browsers   : options.browser and options.browser.split(/[ ,]+/) or ['PhantomJS']
       files      : createKarmaFileList(app)
-      autoWatch  : true
+      autoWatch  : false
 
-    # callback
-    callback = (exitCode) ->
-      console.log "done!!"
+    # create task
+    tasks[app.name] = do(app, testConfig) ->
+      (done) ->
+        log("Testing application targets: <green>#{app.name}</green>")
+        # karma callback
+        callback = (exitCode) ->
+          # async.series calleback
+          done(null, { failed: exitCode } )
+        # start testacular server
+        karma.start(testConfig, callback)
+
+  # if single run then just add to async series
+  if options.singleRun
+    async.series(tasks, (err, results) ->
+      exitCode = 0
+      for name, result of results
+        exitCode += result.failed and result.failed or 0
+        exitCode += result.error and 1 or 0
       process.exit(exitCode)
+    )
+  # else add to queue and setup watch
+  else
+    q = async.queue( ((task, callback) -> task(callback)), 1)
+    events.on("watch", (app, pkg, file) -> q.push(tasks[app.name]) )
 
-    # start testacular server
-    require('karma').server.start(testConfig, callback)
 
 createKarmaFileList = (app) ->
   files = []
