@@ -48,6 +48,7 @@ runBrowser = (apps, options, done) ->
   if options.singleRun
     async.series(tasks)
   else
+    # TODO: watch should refresh the current tabl, not re-open
     q = async.queue( ((task, callback) -> task(callback)), 1)
     events.on("watch", (app, pkg, file) -> q.push(tasks[app.name]))
 
