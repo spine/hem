@@ -410,7 +410,7 @@ class TestPackage extends JsPackage
     files.push.apply(files, @getFrameworkFiles())
     files.push.apply(files, @getAllTestTargets())
     template = utils.tmpl("testing/index", { commonjs: @commonjs, files: files, before: @before } )
-    fs.outputFileSync(indexFile, template)
+    fs.outputFileSync(indexFile, template) unless fs.existsSync(indexFile)
 
     # copy the framework files if they aren't present
     frameworkPath = path.resolve(__dirname, "../assets/testing/#{@framework}")
