@@ -342,7 +342,7 @@ class TestPackage extends JsPackage
       if (onlyMatchingModules && key.indexOf(onlyMatchingModules) == -1) {
         continue;
       }
-      #{@commonjs}(key); 
+      #{@commonjs}(key);
     }
     """
 
@@ -355,11 +355,17 @@ class TestPackage extends JsPackage
     homeRoute = path.dirname(@route)
 
     # create function to determine route/path
-    relativeFn = (home, target) ->
+    relativeFn = (home, target, url = true) ->
+      value = ""
       if relative
-        path.relative(home, target)
+        value = path.relative(home, target)
       else
-        target
+        value = target
+      if url
+        # deal with windows :o(
+        value.replace(/\\/g, "/")
+      else
+        value
 
     # first get dependencies
     for dep in @depends
@@ -367,7 +373,7 @@ class TestPackage extends JsPackage
         for pkg in depapp.packages
           continue unless pkg.constructor.name is "JsPackage"
           url = relativeFn(homeRoute, pkg.route)
-          pth = relativeFn(@testHome, pkg.target) 
+          pth = relativeFn(@testHome, pkg.target)
           targets.push({ url: url, path: pth })
 
     # get app targets
