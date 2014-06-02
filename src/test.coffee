@@ -107,6 +107,12 @@ runKarma = (apps, options = {}) ->
       files      : createKarmaFileList(app)
       autoWatch  : false
 
+    # handle junit special case for report file location
+    if 'junit' in testConfig.reporters
+      testConfig.junitReporter =
+        outputFile: app.name + '-test-results.xml'
+        suite: ''
+
     # create task
     tasks[app.name] = do(app, testConfig) ->
       (done) ->
