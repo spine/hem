@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "0.4.31",
+  "version": "0.4.32",
   "description": "stitches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": [
     "spine",
@@ -36,21 +36,22 @@
   },
   "preferGlobal": true,
   "dependencies": {
-    "fast-detective": "~0.0.2",
-    "uglifycss": "0.0.5",
+    "async": "~0.2.9",
     "coffee-script": "~1.6.3",
     "connect": "~2.9.0",
-    "http-proxy": "~0.10.3",
-    "uglify-js": "~2.4.0",
-    "sty": "~0.6.1",
-    "optimist": "~0.6.0",
-    "watch": "~0.8.0",
+    "fast-detective": "~0.0.2",
     "fs-extra": "~0.7.0",
-    "async": "~0.2.9",
-    "open": "0.0.5",
-    "karma-phantomjs-launcher": "^0.1.4",
+    "http-proxy": "~0.10.3",
+    "karma-chrome-launcher": "^0.1.3",
     "karma-jasmine": "^0.1.5",
-    "karma-chrome-launcher": "^0.1.3"
+    "karma-junit-reporter": "^0.2.2",
+    "karma-phantomjs-launcher": "^0.1.4",
+    "open": "0.0.5",
+    "optimist": "~0.6.0",
+    "sty": "~0.6.1",
+    "uglify-js": "~2.4.0",
+    "uglifycss": "0.0.5",
+    "watch": "~0.8.0"
   },
   "optionalDependencies": {
     "phantom": "0.6.x",
