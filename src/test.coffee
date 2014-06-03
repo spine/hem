@@ -111,7 +111,7 @@ runKarma = (apps, options = {}) ->
     if 'junit' in testConfig.reporters
       testConfig.junitReporter =
         outputFile: app.name + '-test-results.xml'
-        suite: ''
+        suite: app.name
 
     # create task
     tasks[app.name] = do(app, testConfig) ->
