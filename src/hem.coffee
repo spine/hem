@@ -147,7 +147,6 @@ class Hem
       @watch()
       testOptions.singleRun = false
     else
-      @buildApps()
       testOptions.singleRun = true
 
     # run tests
