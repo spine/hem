@@ -20,6 +20,10 @@ modulerize = (id, filename = id) ->
 modulePaths = Module._nodeModulePaths(process.cwd())
 invalidDirs = ['/', '.']
 
+if global.process and global.process.platform is 'win32'
+  invalidDirs = (invalidDirs.concat(drive + ':\\' for drive in 'abcdefghijklmnopqrstuvwxyz')
+                            .concat(drive + ':\\' for drive in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'))
+
 repl =
   id: 'repl'
   filename: join(process.cwd(), 'repl')
