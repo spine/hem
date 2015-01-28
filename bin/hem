@@ -3,6 +3,9 @@
 var path = require('path');
 var fs   = require('fs');
 
+// require coffeescript
+require('coffee-script').register();
+
 // Try to find a local install
 var hem = path.resolve(process.cwd(), 'node_modules', 'hem', 'lib', 'hem');
 
