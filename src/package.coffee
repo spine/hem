@@ -91,7 +91,7 @@ class Application
       route = @versioning.trim(route)
     # compare against package route values
     for pkg in @packages
-      return pkg if route is pkg.route
+      return pkg if route is pkg.route.toLowerCase()
     # return nothing
     return
 
