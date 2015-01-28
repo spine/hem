@@ -85,8 +85,8 @@ runPhantom = (apps, options, done) ->
   # else add to queue and setup watch
   else
     q = async.queue( ((task, callback) -> task(callback)), 1)
-    events.on("watch", (app, pkg, file) -> 
-      q.push(tasks[app.name]) 
+    events.on("watch", (app, pkg, file) ->
+      q.push(tasks[app.name])
     )
 
 runKarma = (apps, options = {}) ->
@@ -94,18 +94,36 @@ runKarma = (apps, options = {}) ->
   karma = require('karma').server
   tasks = {}
 
+  # handle defaults
+  options.reporters  or= 'progress'
+  options.frameworks or= 'jasmine'
+  options.browsers   or= 'PhantomJS'
+
+  # make sure some values are arrays
+  options.reporters  = Array.isArray(options.reporters) or options.reporters.split(/[ ,]+/)
+  options.frameworks = Array.isArray(options.frameworks) or options.frameworks.split(/[ ,]+/)
+  options.browsers   = Array.isArray(options.browsers) or options.browsers.split(/[ ,]+/)
+
   for app in apps
 
     # create config file to pass into server if user doesn't supply a file to use
     testConfig =
-      singleRun  : true
-      basePath   : options.basePath
-      reporters  : [options.reporters or 'progress']
-      logLevel   : options.logLevel or 'error'
-      frameworks : [options.frameworks or 'jasmine']
-      browsers   : options.browser and options.browser.split(/[ ,]+/) or ['PhantomJS']
-      files      : createKarmaFileList(app)
-      autoWatch  : false
+      singleRun     : true
+      autoWatch     : false
+      basePath      : options.basePath
+      logLevel      : options.logLevel or 'error'
+      reporters     : options.reporters
+      frameworks    : options.frameworks
+      browsers      : options.browsers
+      preprocessors : options.preprocessors or null
+
+    # set files to test
+    testConfig.files = createKarmaFileList(app)
+
+    # coverage reporter option
+    testConfig.coverageReporter = options.coverageReporter or null
+
+    console.log testConfig
 
     # handle junit special case for report file location
     if 'junit' in testConfig.reporters
