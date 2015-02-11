@@ -192,7 +192,7 @@ class Hem
       delete require.cache[slugPath]
       @slug = require(slugPath)
     catch error
-      log.errorAndExit("Couldn't load slug file #{slugPath}.")
+      log.errorAndExit("Couldn't load slug file #{slugPath}: " + error.message)
 
     # return config portion of slug file
     @slug.config or @slug

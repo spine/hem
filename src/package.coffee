@@ -219,7 +219,7 @@ class Package
     source
 
   watch: ->
-    watchOptions = { persistent: true, interval: 1000, ignoreDotFiles: true }
+    watchOptions = { persistent: true, interval: 1000, ignoreDotFiles: true, maxListeners: 128 }
     # get dirs to watch
     dirs = []
     for fileOrDir in @getWatchedDirs()
