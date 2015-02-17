@@ -115,11 +115,11 @@ class Application
     Utils.cleanRoute.apply(Utils, values)
 
   createPaths: (paths) ->
-    new Path(@, path) for path in Utils.toArray(paths)
+    new FileSet(@, path) for path in Utils.toArray(paths)
 
-# ------- Path Class
+# ------- FileSet Class
 
-class Path
+class FileSet
   constructor: (app, options) ->
     # first check to see if options is string or object
     if typeof options is "string"
