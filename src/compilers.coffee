@@ -20,7 +20,7 @@ projectPath = path.resolve process.cwd()
 # TODO: come up with consistant error object to throw on compile errors
 #       handleError(ex, compilerName, _path) -> do stuff...
 # TODO: not sure if we need extension set anymore since we just use compile!!
-# TODO: separete js/css compilers??
+# TODO: separete js/css compilers?? or every compiler can be in its own file that is required at runtime
 
 # helper fuction to perform load/caching of modules from 
 # the project folder, will quit if unable to load...

@@ -1,43 +1,43 @@
 module.exports =
 
-    "settings": 
-        "root": ""
-        "base": ""
-        "static": 
-            "/": "public"
-            "/test": "test/public"
+    root: ""
+    base: ""
 
-    "files":
-        "applicationcss":
-            "type": "css"
-            "target": "public/{{app.name}}.css"
-            "paths": { "src": "**", "srcBase": "css" }
+    static:
+        "/": "public"
+        "/test": "test/public"
 
-        "applicationjs": 
-            "type": "js"
-            "target": "public/{{app.name}}.js"
-            "paths": [
-              { "src": "**", "srcBase": "lib" },
-              { "src": "**", "srcBase": "app", "npm": true, "commonjs": true }
+    files:
+        css:
+            type: "css"
+            target: "public/{{app.name}}.css"
+            paths: { "src": "**", "srcBase": "css" }
+
+        js:
+            type: "js"
+            target: "public/{{app.name}}.js"
+            paths: [
+              { src: "**", srcBase: "lib" },
+              { src: "**", srcBase: "app", npm: true, commonjs: true }
             ]
         
-        "specs":
-            "type": "js"
-            "target": "test/public/specs.js",
-            "files": { "src": "**", "srcBase": "test/specs" },
+        specs:
+            type: "js"
+            target: "test/public/specs.js",
+            files: { src: "**", srcBase: "test/specs", commonjs: "specs" },
 
-    "build": [
+    build: [
         "compile", "npm", "commonjs", "join", "minify"
     ]
 
-    "test": [
+    test: [
         "karma"
     ]
 
-    "clean": [
+    clean: [
         "clean"
     ]
 
-    "deploy": []
+    deploy: []
 
 
