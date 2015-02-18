@@ -22,21 +22,21 @@ class Application
       config = Utils.extend defaults, config
 
     # basic app settings and objects
-    @jobs     = {}
-    @files    = {}
-    @settings = config.settings or {}
-    @server   = config.server or {}
+    @jobs  = {}
+    @files = {}
+    @root  = config.root
+    @base  = config.base
 
     # set root variable, and possibly base route
-    unless @settings.root
+    unless @root
       # if application name is also a directory in cwd then assume that is root
       if Utils.isDirectory(@name)
-        @settings.root = @name
-        @server.base or= "/#{@name}"
+        @root   = @name
+        @base or= "/#{@name}"
       # otherwise just work from top level directory
       else
-        @settings.root = "/"
-        @server.base or= "/"
+        @root   = "/"
+        @base or= "/"
 
     # configure static routes with base root and route values
     for route, value of config.server?.static
@@ -105,7 +105,7 @@ class Application
       if Utils.startsWith(value, "." + separator)
         value
       else
-        Utils.cleanPath(@settings.root, value)
+        Utils.cleanPath(@root, value)
     # return results the same as what was passed in
     if returnArray then values else values[0]
 

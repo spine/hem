@@ -39,7 +39,6 @@
     "async": "^0.2.10",
     "browser-sync": "^2.0.1",
     "coffee-script": "^1.9.0",
-    "colors": "^1.0.3",
     "connect": "^3.3.4",
     "detective": "^4.0.0",
     "fs-extra": "^0.8.1",
@@ -49,6 +48,7 @@
     "mustache": "^1.0.0",
     "open": "0.0.5",
     "optimist": "^0.6.1",
+    "sty": "^0.6.1",
     "uglify-js": "^2.4.16",
     "uglifycss": "0.0.11"
   },
