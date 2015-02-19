@@ -1,7 +1,7 @@
 module.exports =
 
     root: ""
-    base: ""
+    context: ""
 
     static:
         "/": "public"

@@ -38,7 +38,7 @@ server.middleware = (hem) ->
 
     # if verbose then print our mappings and apply root context if present
     log.info "> Apply route mappings for application: <green>#{app.name}</green>"
-    for pkg in app.packages
+    for pkg in app.files
       if options.context
         pkg.route = utils.cleanRoute(options.context, pkg.route)
       log.info " - Mapping route  <yellow>#{pkg.route}</yellow> to <yellow>#{pkg.target}</yellow>"
@@ -77,7 +77,7 @@ server.middleware = (hem) ->
     backend.use(route, createRoutingProxy(value))
 
   # setup livereload if switch is true
-  backend.use(createReloadProxy())
+  # backend.use(createReloadProxy())
 
   # return the custom middleware for connect to use
   return (req, res, next) ->
@@ -87,7 +87,7 @@ server.middleware = (hem) ->
     # loop over applications and call compile when there is a match
     if url.match(/(\.js|\.css)$/)
       for app in hem.apps
-        if result = app.isMatchingRoute(url)
+        if result = app.isMatchingUrl(url)
           res.charset = 'utf-8'
           res.setHeader('Content-Type', mime.lookup(result.target))
           res.setHeader('Content-Length', Buffer.byteLength(result.source))

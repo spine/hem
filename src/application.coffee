@@ -13,35 +13,35 @@ class Application
     @name = name
 
     # apply defaults if any
-    if (config.use)
+    if (config.base)
       try
-        defaults = require('config/' + config.use)
+        defaults = require('config/' + config.base)
       catch err
         Log.errorAndExit "Invalid 'base' value provided: " + config.base
       # create updated config mapping by merging with default values
       config = Utils.extend defaults, config
 
     # basic app settings and objects
-    @jobs  = {}
-    @files = {}
-    @root  = config.root
-    @base  = config.base
+    @jobs    = {}
+    @files   = {}
+    @root    = config.root
+    @context = config.context
 
     # set root variable, and possibly base route
     unless @root
       # if application name is also a directory in cwd then assume that is root
       if Utils.isDirectory(@name)
-        @root   = @name
-        @base or= "/#{@name}"
+        @root      = @name
+        @context or= "/#{@name}"
       # otherwise just work from top level directory
       else
-        @root   = "/"
-        @base or= "/"
+        @root      = "/"
+        @context or= "/"
 
     # configure static routes with base root and route values
     for route, value of config.server?.static
       @server.static.push
-        url  : @applyBase(route)
+        url  : @applyContext(route)
         path : @applyRoot(value)
 
     # configure jobs
@@ -109,8 +109,8 @@ class Application
     # return results the same as what was passed in
     if returnArray then values else values[0]
 
-  applyBase: (values...) ->
-    values.unshift(@base) if @base
+  applyContext: (values...) ->
+    values.unshift(@context) if @context
     Utils.cleanRoute.apply(Utils, values)
 
 # ------- Public Functions
