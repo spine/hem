@@ -46,10 +46,17 @@ require.extensions['.css'] = (module, filename) ->
 ## HTML and Tmpl files
 ##
 
+compilers.tmpl = (_path) ->
+  content = fs.readFileSync(_path, 'utf8')
+  "module.exports = #{JSON.stringify(content)};\n"
+
 compilers.html = (_path) ->
   content = fs.readFileSync(_path, 'utf8')
   # remove whitespace
-  content = require('html-minifier').minify(content)
+  try
+    content = require('html-minifier').minify(content)
+  catch err
+    console.log _path, err
   # export
   "module.exports = #{JSON.stringify(content)};\n"
 
@@ -57,7 +64,7 @@ require.extensions['.html'] = (module, filename) ->
   module._compile compilers.html(filename), filename
 
 require.extensions['.tmpl'] = (module, filename) ->
-  module._compile compilers.html(filename), filename
+  module._compile compilers.tmpl(filename), filename
 
 ##
 ## Compile Coffeescript
