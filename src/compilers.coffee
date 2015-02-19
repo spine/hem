@@ -49,11 +49,7 @@ require.extensions['.css'] = (module, filename) ->
 compilers.html = (_path) ->
   content = fs.readFileSync(_path, 'utf8')
   # remove whitespace
-  content = content
-    .replace(/\n/g, "")
-    .replace(/[\t ]+\</g, "<")
-    .replace(/\>[\t ]+\</g, "><")
-    .replace(/\>[\t ]+$/g, ">")
+  content = require('html-minifier').minify(content)
   # export
   "module.exports = #{JSON.stringify(content)};\n"
 
