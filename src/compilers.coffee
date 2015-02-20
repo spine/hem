@@ -57,6 +57,7 @@ compilers.html = (_path) ->
   content = fs.readFileSync(_path, 'utf8')
   # remove whitespace
   content = content
+    .replace(/\n/g, "")
     .replace(/[\t ]+\</g, "<")
     .replace(/\>[\t ]+\</g, "><")
     .replace(/\>[\t ]+$/g, ">")
