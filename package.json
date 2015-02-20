@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "0.4.11",
+  "version": "0.4.12",
   "description": "stitches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": [
     "spine",
@@ -37,7 +37,7 @@
   "preferGlobal": true,
   "dependencies": {
     "async": "~0.2.9",
-    "coffee-script": "1.8.X",
+    "coffee-script": "1.9.X",
     "connect": "~2.9.0",
     "fast-detective": "~0.0.2",
     "fs-extra": "~0.7.0",
