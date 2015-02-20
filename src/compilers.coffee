@@ -56,7 +56,7 @@ require.extensions['.tmpl'] = (module, filename) ->
 compilers.html = (_path) ->
   content = fs.readFileSync(_path, 'utf8')
   # remove whitespace
-  content = require('html-minifier').minify(content)
+  content = content
     .replace(/[\t ]+\</g, "<")
     .replace(/\>[\t ]+\</g, "><")
     .replace(/\>[\t ]+$/g, ">")
