@@ -21,6 +21,7 @@ projectPath = path.resolve process.cwd()
 #       handleError(ex, compilerName, _path) -> do stuff...
 # TODO: not sure if we need extension set anymore since we just use compile!!
 # TODO: separete js/css compilers?? or every compiler can be in its own file that is required at runtime
+# TODO: add minify step for html compilers
 
 # helper fuction to perform load/caching of modules from 
 # the project folder, will quit if unable to load...
@@ -61,11 +62,15 @@ compilers.html = (_path) ->
   content = fs.readFileSync(_path, 'utf8')
   "module.exports = #{JSON.stringify(content)};\n"
 
+compilers.tmpl = (_path) ->
+  content = fs.readFileSync(_path, 'utf8')
+  "module.exports = #{JSON.stringify(content)};\n"
+
 require.extensions['.html'] = (module, filename) ->
   module._compile compilers.html(filename), filename
 
 require.extensions['.tmpl'] = (module, filename) ->
-  module._compile compilers.html(filename), filename
+  module._compile compilers.tmpl(filename), filename
 
 ##
 ## Compile Coffeescript

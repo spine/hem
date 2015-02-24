@@ -56,4 +56,9 @@ class Path
       srcBase    : @srcBase
       prefixBase : true # make sure we always include the srcBase in returned files
 
+class File
+  
+  constructor: (path)
+
+  # TODO: keep track of 
 module.exports = FileSet
