@@ -138,6 +138,7 @@ class Hem
     app.watch() for app in @apps
 
   test: ->
+    @build()
     # set test options
     testOptions = @options.hem.tests or {}
     testOptions.basePath or= @home

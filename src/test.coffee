@@ -123,8 +123,6 @@ runKarma = (apps, options = {}) ->
     # coverage reporter option
     testConfig.coverageReporter = options.coverageReporter or null
 
-    console.log testConfig
-
     # handle junit special case for report file location
     if 'junit' in testConfig.reporters
       testConfig.junitReporter =

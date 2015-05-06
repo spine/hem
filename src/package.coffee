@@ -404,20 +404,21 @@ class TestPackage extends JsPackage
   # TODO: only do this for browser tests???
 
   createTestFiles: ->
-    # create index file
+    # create index file and libs if they currently don't exist
     indexFile = @getTestIndexFile()
-    files = []
-    files.push.apply(files, @getFrameworkFiles())
-    files.push.apply(files, @getAllTestTargets())
-    template = utils.tmpl("testing/index", { commonjs: @commonjs, files: files, before: @before } )
-    fs.outputFileSync(indexFile, template) unless fs.existsSync(indexFile)
+    unless fs.existsSync(indexFile)
+      files = []
+      files.push.apply(files, @getFrameworkFiles())
+      files.push.apply(files, @getAllTestTargets())
+      template = utils.tmpl("testing/index", { commonjs: @commonjs, files: files, before: @before } )
+      fs.outputFileSync(indexFile, template)
 
-    # copy the framework files if they aren't present
-    frameworkPath = path.resolve(__dirname, "../assets/testing/#{@framework}")
-    for file in fs.readdirSync(frameworkPath)
-      if path.extname(file) in [".js",".css"]
-        filepath = path.resolve(@testHome, "#{@framework}/#{file}")
-        utils.copyFile(path.resolve(frameworkPath, file), filepath)
+      # copy the framework files if they aren't present
+      frameworkPath = path.resolve(__dirname, "../assets/testing/#{@framework}")
+      for file in fs.readdirSync(frameworkPath)
+        if path.extname(file) in [".js",".css"]
+          filepath = path.resolve(@testHome, "#{@framework}/#{file}")
+          utils.copyFile(path.resolve(frameworkPath, file), filepath)
 
 class CssPackage extends Package
 
