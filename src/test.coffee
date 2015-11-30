@@ -11,8 +11,6 @@ async   = require('async')
 run = (apps, options) ->
   # determine runner
   switch options.runner
-    when "phantom"
-      runTests = if phantom.run then runPhantom else runBrowser
     when "karma"
       runTests = runKarma
     when "browser"
@@ -51,43 +49,6 @@ runBrowser = (apps, options, done) ->
     # TODO: watch should refresh the current tabl, not re-open
     q = async.queue( ((task, callback) -> task(callback)), 1)
     events.on("watch", (app, pkg, file) -> q.push(tasks[app.name]))
-
-runPhantom = (apps, options, done) ->
-  # set some other defaults
-  options.output or= "passOrFail"
-  tasks = {}
-
-  # loop over apps to create test runner functions
-  for app in apps
-    testName = app.name
-    # TODO: perform injection with phantomjs instead!
-    testFile = app.getTestPackage().getTestIndexFile()
-    testPort = 12300 + Object.keys(tasks).length
-
-    # add phantom call to tasks array
-    tasks[testName] = do(testName, testFile, testPort) ->
-      (done) ->
-        log("Testing application targets: <green>#{testName}</green>")
-        phantom.run(testFile, options, (results) ->
-          log.error results.error if results.error
-          done(null, results)
-        , testPort)
-
-  # if single run then just add to async series
-  if options.singleRun
-    async.series(tasks, (err, results) ->
-      exitCode = 0
-      for name, result of results
-        exitCode += result.failed and result.failed or 0
-        exitCode += result.error and 1 or 0
-      process.exit(exitCode)
-    )
-  # else add to queue and setup watch
-  else
-    q = async.queue( ((task, callback) -> task(callback)), 1)
-    events.on("watch", (app, pkg, file) ->
-      q.push(tasks[app.name])
-    )
 
 runKarma = (apps, options = {}) ->
   # TODO: require karma from project folder instead!
@@ -165,5 +126,3 @@ createKarmaFileList = (app) ->
 
 module.exports.run = run
 module.exports.phantom = phantom
-
-

@@ -1,4 +1,11 @@
-Spine = require('spine')
-$     = require('jquery-browserify')
+require('lib/setup')
 
-exports.test = -> alert('test')
+Spine = require('spine')
+
+class App extends Spine.Controller
+  constructor: ->
+    super
+    # Getting started - should be removed
+    @html require("views/sample")({version:Spine.version})
+
+module.exports = App

@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "0.4.13",
+  "version": "1.0.0",
   "description": "stitches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": [
     "spine",
@@ -27,9 +27,6 @@
     "type": "git",
     "url": "https://github.com/spine/hem.git"
   },
-  "engine": [
-    "node >=0.8.0"
-  ],
   "main": "./lib/hem.js",
   "bin": {
     "hem": "./bin/hem"
@@ -55,7 +52,6 @@
     "watch": "~0.8.0"
   },
   "optionalDependencies": {
-    "phantom": "0.6.x",
     "karma": "0.12.x"
   }
 }
