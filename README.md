@@ -16,7 +16,6 @@ or
 
 or ...fun trick.
 
-    hem install -g hem
     git clone https://github.com/spine/hem.git
     cd hem
     npm link
@@ -78,7 +77,43 @@ Also in the pipeline is the ability to bundle up CSS from Node modules.
 
 Hem has some good defaults (convention over configuration), but sometimes you'll need to change them, especially when adding libraries and dependencies.
 
-For configuration, Hem uses a `slug.coffee` file, located in the root of your application. Hem expects a certain directory structure. A main JavaScript/CoffeeScript file under app/index, a main CSS/Stylus file under css/index and a public directory to serve static assets from. If you're using `Spine.app`, these will all be generated for you. A typical spine app will have the following folder structure
+For configuration, Hem uses a `slug.coffee` file, located in the root of your application. Using coffee syntax allows you to dynamically construct the final configuration object. An example configuration is show below...
+
+```
+config =
+
+    # hem server and test settings
+	hem:
+        baseAppRoute: "/"
+        tests:
+            runner: "browser"
+
+    # application settings
+	application:
+		defaults: "spine"
+        css:
+            src: 'css'
+		js:
+            src: 'app'
+			libs: [
+				'lib/jquery.js',
+				'lib/jade_runtime.js'
+			]
+			modules: [
+				"spine",
+				"spine/lib/ajax",
+				"spine/lib/route",
+				"spine/lib/manager",
+				"spine/lib/local"
+			]
+		test:
+			after: "require('lib/setup')"
+
+# export the configuration map for hem
+module.exports.config = config
+```
+
+By setting the `defaults` value to `spine` Hem expects a certain directory structure. A main JavaScript/CoffeeScript file under app/index, a main CSS/Stylus file under css/index and a public directory to serve static assets from. If you're using `Spine.app`, these will all be generated for you. A typical spine app will have the following folder structure
 
 ```
 ├── app
@@ -109,27 +144,75 @@ For configuration, Hem uses a `slug.coffee` file, located in the root of your ap
     └── specs
 ```
 
-Hem also allows you to specify static JavaScript libraries to include, under the "libs" option:
+The configuration file has several sections that control how the application is built and tested. For the `hem` section the following can be provided:
 
-    {
-      "libs": [
-        "./lib/other.js"
-      ]
-    }
+* `hem.baseAppRoute` the url context from which hem will serve its files.
+* `hem.tests.runner` the way tests are executed, the default value is `browser`. If you have karma installed you can use `karma` as the value to fallback on the karma test runner.
+* `hem.proxy` allows you to specify proxy paths that will route requests to another server behind the scenes.
 
-These will be included before the rest of your JavaScript, and without being wrapped in the CommonJS module transport format. In addition, Hem lets you specify an array of npm/Node dependencies, to be included in your application. For example, in a default generated Spine.app slug.json file, you'll find the following dependencies:
+        "/proxy":
+            "host": "www.yoursite.com"
+            "path": "/proxy"
+            "port": 8080
 
-    {
-      "dependencies": [
-        "es5-shimify",
-        "json2ify",
-        "jqueryify",
-        "jquery.tmpl",
-        "spine"
-      ]
-    }
+For the `application` settings the following can be used:
 
-These dependencies will be statically analyzed, to recursively resolve additional dependencies, and then wrapped in the CommonJS module format, being served up with the rest of your application's JavaScript. In other words, you don't have to have jquery.js, spine.js and json2.js floating around inside your application, they can be Node modules, installed through npm.
+* `application.defaults` currently the only valid value is `spine`
+* `application.root` the root folder of your project files, defaults to the root directory of the project folder (same folder that the slug.coffe file is found)
+* `application.route` another way to append a `context` for the app when hem is serving files. The default value is `\\`. This value is appended to the `baseAppRoute` value to create the final url path to the application.
+* `application.static` allows you to list the path to multiple folders for serving static content. The default `spine` values are listed below.
+
+        "static":
+            "/": "public",
+            "/test": "test/public"
+
+* `application.js.libs` the `libs` folder is where hem looks to simply append files to the final application js file. If you list just a directory then all the js/coffee files in that directory are added. If you want the files added in a specific order then you can list the files individually.
+
+        "libs": [
+            "./lib/other.js"
+        ]
+
+
+* `application.js.src` the `src` folder is where hem looks to find `js` files process and add to the final application css file. If you list just a directory then all the js/coffee files in that directory are added. Every file found in the `src` folder will be bundled with `CommonJS` and will need to be `required` for it to be used.
+
+        "src": [
+            "./app"
+        ]
+
+* `application.js.modules` In addition, Hem lets you specify an array of npm/Node dependencies, to be included in your application. These dependencies will be statically analyzed, to recursively resolve additional dependencies, and then wrapped in the CommonJS module format, being served up with the rest of your application's JavaScript. For example, in a default generated Spine.app slug.json file, you'll find the following dependencies:
+
+        "modules": [
+            "spine",
+            "spine/lib/ajax",
+            "spine/lib/route",
+            "spine/lib/manager",
+            "spine/lib/local"
+        ]
+
+* `application.js.target` the name of the single js file that is produced after all the src files are processed. If no value is provided the `spine` default is `public/application.js`
+
+        "target": "public/application.js"
+
+* `application.css.src` the `src` folder is where hem looks to find `css` files process and add to the final application css file. If you list just a directory then all the css/jade files in that directory are added. If you want the files added in a specific order then you can list the files individually.
+
+        "src": [
+            "./css/other.css"
+        ]
+
+* `application.css.target` the name of the single css file that is produced after all the src files are processed. If no value is provided the `spine` default is `public/application.css`
+
+        "target": "public/application.css"
+
+* `application.test` allows you to define which files are used for testing. This has similar settings as the `js` section of the application with the `src` and `target` fields. In addition there is the `commonjs` field that allows you to name the wrapper which is used to contain the modules. In this case you would use `specs('someControllerTest')` to require the test file. Also the `after` field allows you to append any javascript that needs to be executed to make sure your tests will run correctly.
+
+        "test":
+            "commonjs": "specs",
+            "src": [
+                "test/specs"
+            ],
+            "target": "test/public/specs.js"
+            "after": "require('lib/setup')"
+
 
 ## Usage
 
@@ -148,61 +231,14 @@ Would result in your application being served at http://localhost:9295/
 
 If there's an index.html file under public, it'll be served up. Likewise, any calls to /application.js and /application.css will return the relevant JavaScript and CSS.
 
-For the sake of avoiding cross domain issues in development environments when your spine app is utilizing an ajax api there is a optional proxy server built into hem.
-As of Hem 0.3 including a 'routes' block in your slug.json configures that:
-
-    "server": {
-        "port"  : 9294
-    },
-    "routes": [
-        { "/myApiApp/mySpineApp"        : "./public" },
-        { "/myApiApp/mySpineApp/test"   : "./test/public" },
-        { "/myApiApp"                   : { "host": "127.0.0.1", "port": 8080, "hostPath": "/myApiApp", "patchRedirect": true } }
-    ],
-    "packages": {
-        "sampleApp": {
-          "libs"    : ["lib/runtime.js"],
-          "modules" : [
-              "es5-shimify",
-              "json2ify",
-              "jqueryify",
-              "spine",
-              "spine/lib/local",
-              "spine/lib/ajax",
-              "spine/lib/route",
-              "spine/lib/manager"
-          ],
-          "paths"  : ["./app"],
-          "target" : "./public/application.js",
-          "jsAfter": "jade.rethrow = function rethrow(err, filename, lineno){ throw err; } "
-        },
-    "css": {
-      "paths"  : "./css",
-      "target" : "./public/application.css"
-    },
-    "test": {
-      "identifier" : "specs",
-      "jsAfter"    : "require('lib/setup'); for (var key in specs.modules) specs(key);",
-      "paths"      : ["./test/specs"],
-      "target"     : "./test/public/specs.js"
-    }
-  }
-
-now http://127.0.0.1:9294/myApiApp/mySpineApp/ will return the spine app.
-
-and http://127.0.0.1:9294/myApiApp/ will return your API App
-
-so relative links like @url = "../api/album/" from inside your spine app models can resolve against your api app without issue
-
 When you're ready to deploy, you should build your application, serializing it to disk.
 
     hem build
 
 This will write application.js and application.css and specs.js to the file system. You can then commit it with version control and have your server can statically serve your application, without having to use Node, or have any npm dependencies installed.
 
-**TODO**: hem build should have an option to version the js/css it produces and replace the references in index.html as well
 
-###Views
+### Views
 
 Currently Hem supports three template options out of the box
 * Basic HTML - stringifed html... that you can render...
@@ -211,7 +247,7 @@ Currently Hem supports three template options out of the box
   * to use jade templates you must include jades [runtime.js](https://github.com/visionmedia/jade/blob/master/runtime.js) as a lib in your spine projects slug.json
       "libs": ["lib/runtime.js"],
 
-###Testing
+### Testing
 
 [Karma(formally Testacular)](http://karma-runner.github.io/0.8/index.html) is a neat little tool that we leverage with hem.
 
@@ -226,10 +262,4 @@ Default is to run tests in a new Chrome window. Firefox, Phantom or some others 
 
     hem server
 
-will watch and compile jasmine tests, but you will have to go to localhost:9294/test (or whereever you configured hem to run...) and manually trigger page tests to run.
-
-#TODO
-
-* Better document Karma usage instructions.
-* Make template and CSS pre-processor choices configurable  
-* This would be cool -> integrate with live-reload for changes. We should be able to inject [live-reload](https://github.com/livereload/livereload-js) while in server mode and then run the livereload-server inside hem or could strata handle the incoming requests? Looks like simple json requests. Would we need an option for the browser to regain its focus? Another option is instead of injecting the script into the page is to use the live reload plugin.
+will watch and compile jasmine tests, but you will have to go to localhost:9294/test (or where ever you configured hem to run...) and manually trigger page tests to run.
