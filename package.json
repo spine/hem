@@ -33,8 +33,8 @@
   },
   "preferGlobal": true,
   "dependencies": {
-    "async": "~0.2.9",
-    "coffee-script": "1.9.X",
+    "async": "~1.5.0",
+    "coffee-script": "1.10.X",
     "connect": "~2.9.0",
     "fast-detective": "~0.0.2",
     "fs-extra": "~0.7.0",
@@ -47,9 +47,9 @@
     "open": "0.0.5",
     "optimist": "~0.6.0",
     "sty": "~0.6.1",
-    "uglify-js": "~2.4.0",
-    "uglifycss": "0.0.5",
-    "watch": "~0.8.0"
+    "uglify-js": "~2.6.1",
+    "uglifycss": "0.0.19",
+    "watch": "~0.16.0"
   },
   "optionalDependencies": {
     "karma": "0.12.x"
