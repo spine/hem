@@ -1,6 +1,7 @@
-<% @identifier or= 'require' %>
+
+
 (function(/*! Stitch !*/) {
-  if (!this.<%= @identifier %>) {
+  if (!this.specs) {
     var modules = {}, cache = {}, require = function(name, root) {
       var path = expand(root, name), indexPath = expand(path, './index'), module, fn;
       module   = cache[path] || cache[indexPath]
@@ -19,11 +20,11 @@
           throw err;
         }
       } else {
-        throw 'module \'' + name + '\' not found';
+        throw 'module ' + name + ' not found';
       }
     }, expand = function(root, name) {
       var results = [], parts, part;
-      if (/^\.\.?(\/|$)/.test(name)) {
+      if (/^..?(\/|$)/.test(name)) {
         parts = [root, name].join('/').split('/');
       } else {
         parts = name.split('/');
@@ -40,17 +41,28 @@
     }, dirname = function(path) {
       return path.split('/').slice(0, -1).join('/');
     };
-    this.<%= @identifier %> = function(name) {
+    this.specs = function(name) {
       return require(name, '');
     }
-    this.<%= @identifier %>.define = function(bundle) {
+    this.specs.define = function(bundle) {
       for (var key in bundle)
         modules[key] = bundle[key];
     };
-    this.<%= @identifier %>.modules = modules;
-    this.<%= @identifier %>.cache   = cache;
+    this.specs.modules = modules;
+    this.specs.cache   = cache;
   }
-  return this.<%= @identifier %>.define;
+  return this.specs.define;
 }).call(this)({
-  <%- (JSON.stringify(module.id) + ": function(exports, require, module) {#{module.compile()}}" for module in @modules).join(', ') %>
+  
+  
 });
+
+
+require('lib/setup')// HEM: load in specs from test js file
+var onlyMatchingModules = "";
+for (var key in specs.modules) {
+  if (onlyMatchingModules && key.indexOf(onlyMatchingModules) == -1) {
+    continue;
+  }
+  specs(key);
+}
