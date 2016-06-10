@@ -131,7 +131,6 @@ createRoutingProxy = (options, returnHost) ->
   return (req, res, next) ->
     req.url = "#{options.path}#{req.url}"
     req.headers.host = options.host
-    console.log req.url, req.headers.host
     proxy.proxyRequest(req, res, options)
 
 patchServerResponseForRedirects = (fromHost, returnHost) ->
@@ -139,11 +138,15 @@ patchServerResponseForRedirects = (fromHost, returnHost) ->
   http.ServerResponse.prototype.writeHead = (status) ->
     headers =  @_headers
     if status in [301,302]
-      console.log 'before headers', headers.location
       oldLocation = new RegExp("s?:\/\/#{fromHost}:?[0-9]*")
       newLocation = "://#{returnHost}"
       headers.location = headers.location.replace(oldLocation,newLocation)
-      console.log 'after headers', headers.location
+    if 'set-cookie' of headers
+      newSetCookie = []
+      for cookie in headers['set-cookie']
+        # remove the secure setting, so we can get cookie setting to work
+        newSetCookie.push cookie.replace /; Secure; HttpOnly/, ''
+      headers['set-cookie'] = newSetCookie
     return writeHead.apply(@, arguments)
 
 # export the public functions
