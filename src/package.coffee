@@ -297,12 +297,16 @@ class JsPackage extends Package
     # check if folder or file
     results = []
     for file in files
-      # treat as normal javascript
+      # treat as normal javascript string
       if utils.endsWith(file,";")
         results.join(file)
       # else load as file/dir
       else
         slash = if parentDir is "" then "" else path.sep
+        # ignore files that start with "_", used for template files that process
+        # includes (ex stylus), so they don't get compiled twice.
+        continue if file.startsWith("_")
+        # set full path for following code checks
         file  = parentDir + slash + file
         if fs.existsSync(file)
           stats = fs.lstatSync(file)
