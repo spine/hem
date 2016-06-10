@@ -159,6 +159,7 @@ compilers.stylus = (_path) ->
   content = fs.readFileSync(_path, 'utf8')
   result  = ''
   stylus(content)
+    .set('include css', true)
     .include(path.dirname(_path))
     .render((err, css) ->
       throw err if err
