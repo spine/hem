@@ -74,7 +74,7 @@ server.middleware = (hem) ->
   for route, value of options.proxy
     display = "#{value.host}:#{value.port or 80}#{value.path}"
     log.info "> Proxy requests <yellow>#{route}</yellow> to <yellow>#{display}</yellow>"
-    backend.use(route, createRoutingProxy(value))
+    backend.use(route, createRoutingProxy(value, "#{options.host}:#{options.port}"))
 
   # return the custom middleware for connect to use
   return (req, res, next) ->
@@ -108,31 +108,42 @@ checkForRedirect = () ->
     else
       next()
 
-createRoutingProxy = (options) ->
-  proxy = new httpProxy.RoutingProxy()
+createRoutingProxy = (options, returnHost) ->
+  # handle https differently
+  if options.https
+    routingProxyOptions = {target: {https:true}}
+    defaultPort = 443
+  else
+    routingProxyOptions = {}
+    defaultPort = 80
+  # create proxy
+  proxy = new httpProxy.RoutingProxy(routingProxyOptions)
   # set options
   options.path or= ""
-  options.port or= 80
+  options.port or= defaultPort
   options.patchRedirect or= true
   # handle redirects
   if options.patchRedirect
     proxy.once "start", (req, res) ->
       # get the requesting hostname and port
-      returnHost = req.headers.host
       patchServerResponseForRedirects(options.host, returnHost)
   # return function used by connect to access proxy
   return (req, res, next) ->
     req.url = "#{options.path}#{req.url}"
+    req.headers.host = options.host
+    console.log req.url, req.headers.host
     proxy.proxyRequest(req, res, options)
 
 patchServerResponseForRedirects = (fromHost, returnHost) ->
   writeHead = http.ServerResponse.prototype.writeHead
   http.ServerResponse.prototype.writeHead = (status) ->
+    headers =  @_headers
     if status in [301,302]
-      headers =  @_headers
-      oldLocation = new RegExp(":\/\/#{fromHost}:?[0-9]*")
+      console.log 'before headers', headers.location
+      oldLocation = new RegExp("s?:\/\/#{fromHost}:?[0-9]*")
       newLocation = "://#{returnHost}"
       headers.location = headers.location.replace(oldLocation,newLocation)
+      console.log 'after headers', headers.location
     return writeHead.apply(@, arguments)
 
 # export the public functions
