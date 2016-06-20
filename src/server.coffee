@@ -136,7 +136,7 @@ createRoutingProxy = (options, returnHost) ->
 patchServerResponseForRedirects = (fromHost, returnHost) ->
   writeHead = http.ServerResponse.prototype.writeHead
   http.ServerResponse.prototype.writeHead = (status) ->
-    headers =  @_headers
+    headers =  @_headers or {}
     if status in [301,302]
       oldLocation = new RegExp("s?:\/\/#{fromHost}:?[0-9]*")
       newLocation = "://#{returnHost}"
