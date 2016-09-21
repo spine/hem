@@ -129,6 +129,25 @@ compilers.jeco = (_path) ->
 require.extensions['.jeco'] = require.extensions['.eco']
 
 ##
+## Pug Compiler
+##
+
+compilers.pug = (_path) ->
+  pug     = requireLocalModule('pug', _path)
+  content = fs.readFileSync(_path, 'utf8')
+  try
+    template = pug.compileClient content,
+      filename: _path
+      compileDebug: @argv.command is "server"
+    source = template.toString()
+    "module.exports = #{source};"
+  catch ex
+    throw new Error("#{ex} in #{_path}")
+
+require.extensions['.pug'] = (module, filename) ->
+  module._compile compilers.pug(filename), filename
+
+##
 ## Jade Compiler
 ##
 
@@ -166,7 +185,7 @@ compilers.stylus = (_path) ->
       result = css
     )
   result
-  
+
 require.extensions['.styl'] = (module, filename) ->
   source = JSON.stringify(compilers.stylus(filename))
   module._compile "module.exports = #{source}", filename
