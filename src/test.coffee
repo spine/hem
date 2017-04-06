@@ -89,6 +89,8 @@ runKarma = (apps, options = {}) ->
       testConfig.junitReporter =
         outputFile: app.name + '-test-results.xml'
         suite: app.name
+        outputDir: '.'
+        useBrowserName: false
 
     # create task
     tasks[app.name] = do(app, testConfig) ->
