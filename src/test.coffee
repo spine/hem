@@ -52,7 +52,7 @@ runBrowser = (apps, options, done) ->
 
 runKarma = (apps, options = {}) ->
   # TODO: require karma from project folder instead!
-  karma = require('karma').server
+  karma = require('karma').Server
   tasks = {}
 
   # handle defaults
@@ -98,8 +98,9 @@ runKarma = (apps, options = {}) ->
         callback = (exitCode) ->
           # async.series calleback
           done(null, { failed: exitCode } )
-        # start testacular server
-        karma.start(testConfig, callback)
+        # start karma server
+        server = new karma(testConfig, callback)
+        server.start()
 
   # if single run then just add to async series
   if options.singleRun
@@ -114,7 +115,6 @@ runKarma = (apps, options = {}) ->
   else
     q = async.queue( ((task, callback) -> task(callback)), 1)
     events.on("watch", (app, pkg, file) -> q.push(tasks[app.name]) )
-
 
 createKarmaFileList = (app) ->
   files = []
