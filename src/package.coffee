@@ -219,7 +219,7 @@ class Package
     source
 
   watch: ->
-    watchOptions = { persistent: true, interval: 1000, ignoreDotFiles: true, maxListeners: 128 }
+    watchOptions = { persistent: true, interval: 1, ignoreDotFiles: true, maxListeners: 128 }
     # get dirs to watch
     dirs = []
     for fileOrDir in @getWatchedDirs()
@@ -231,12 +231,15 @@ class Package
     dirs = utils.removeDuplicateValues(dirs)
     # start watch process
     for dir in dirs
-      require('watch').watchTree dir, watchOptions, (file, curr, prev) =>
-        if curr and (curr.nlink is 0 or +curr.mtime isnt +prev?.mtime)
-          # peform recompile
-          @build(file)
-          # emit watch event
-          events.emit("watch", @app, @, file)
+      require('watch').watchTree dir, watchOptions, (f, curr, prev) =>
+        if (typeof f is "object" && prev is null and curr is null)
+          # Finished walking the tree
+          return
+        # f was changed
+        console.log 'build', f
+        @build(f)
+        # emit watch event
+        events.emit("watch", @app, @, f)
     # return dirs that are watched
     dirs
 
