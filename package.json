@@ -1,6 +1,6 @@
 {
   "name": "hem",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "stitches CommonJS, and ties up other lose ends of web-app development.",
   "keywords": [
     "spine",
@@ -48,7 +48,7 @@
   },
   "optionalDependencies": {
     "jasmine-core": "^2.8.0",
-    "karma": "^1.6.0",
+    "karma": "^1.7.1",
     "karma-jasmine": "^1.1.0",
     "karma-junit-reporter": "^1.2.0",
     "karma-phantomjs-launcher": "^1.0.4"
