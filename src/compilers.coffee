@@ -71,12 +71,16 @@ require.extensions['.html'] = (module, filename) ->
 ## Compile Coffeescript
 ##
 
-cs = require 'coffee-script'
-compilers.coffee    = (_path) -> compileCoffeescript(_path)
-compilers.litcoffee = (_path) -> compileCoffeescript(_path, true)
-compileCoffeescript = (_path, literate = false) ->
+cs = require 'coffeescript'
+compilers.coffee    = (_path) -> compileCoffeescript(_path, false, @argv.transpile)
+compilers.litcoffee = (_path) -> compileCoffeescript(_path, true, @argv.transpile)
+
+compileCoffeescript = (_path, literate = false, transpile = false) =>
   try
-    cs.compile(fs.readFileSync(_path, 'utf8'), filename: _path, literate: literate)
+    coffeeOptions = { filename: _path, literate: literate }
+    if transpile
+      coffeeOptions.transpile = { presets: ['@babel/env'] }
+    cs.compile(fs.readFileSync(_path, 'utf8'),  coffeeOptions)
   catch err
     err.message = "Coffeescript Error: " + err.message
     err.path    = "Coffeescript Path:  " + _path
