@@ -29,8 +29,8 @@ repl =
 # the call was made, and the path that was required.
 # Returns an array of: [moduleName, scriptPath]
 module.exports = (request, parent = repl) ->
-  [_, paths]  = Module._resolveLookupPaths(request, parent)
-  filename    = Module._findPath(request, paths)
+  paths    = Module._resolveLookupPaths(request, parent)
+  filename = Module._findPath(request, paths)
   throw new Error("Cannot find module: #{request}. Have you run `npm install .` ?") unless filename
   
   # Find package root relative to localModules folder
@@ -42,7 +42,7 @@ module.exports = (request, parent = repl) ->
   if dir in invalidDirs
     # possibly a linked module?
     index = filename.lastIndexOf("#{sep}#{request}")
-    if index > 0 
+    if index > 0
       dir = filename.substring(0,index)
       modulePaths.push(dir)
     else

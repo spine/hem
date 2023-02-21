@@ -116,27 +116,28 @@ createRoutingProxy = (options, returnHost) ->
   else
     routingProxyOptions = {}
     defaultPort = 80
-  # create proxy
-  proxy = new httpProxy.RoutingProxy(routingProxyOptions)
   # set options
+  options.host or= "localhost"
   options.path or= ""
   options.port or= defaultPort
   options.patchRedirect or= true
+  # create proxy
+  proxy = new httpProxy.createProxyServer(target: "#{if options.https then 'https' else 'http'}://#{options.host}:#{options.port}#{options.path}")
+  proxy.on('error', (e) ->
+    console.log('error with proxy >>', e)
+  );
   # handle redirects
   if options.patchRedirect
-    proxy.once "start", (req, res) ->
-      # get the requesting hostname and port
+    proxy.on 'proxyRes', (req, res) ->
       patchServerResponseForRedirects(options.host, returnHost)
   # return function used by connect to access proxy
   return (req, res, next) ->
-    req.url = "#{options.path}#{req.url}"
-    req.headers.host = options.host
-    proxy.proxyRequest(req, res, options)
+    proxy.web(req, res)
 
 patchServerResponseForRedirects = (fromHost, returnHost) ->
   writeHead = http.ServerResponse.prototype.writeHead
   http.ServerResponse.prototype.writeHead = (status) ->
-    headers =  @_headers or {}
+    headers = @getHeaders()
     if status in [301,302]
       oldLocation = new RegExp("s?:\/\/#{fromHost}:?[0-9]*")
       newLocation = "://#{returnHost}"

@@ -34,11 +34,11 @@
   "preferGlobal": true,
   "dependencies": {
     "async": "^2.5.0",
-    "coffee-script": "^1.12.7",
+    "coffeescript": "^2.7.0",
     "connect": "~2.9.0",
     "fast-detective": "~0.0.2",
     "fs-extra": "^2.1.2",
-    "http-proxy": "~0.10.3",
+    "http-proxy": "^1.18.1",
     "open": "0.0.5",
     "optimist": "~0.6.0",
     "sty": "~0.6.1",
@@ -47,10 +47,6 @@
     "watch": "^1.0.2"
   },
   "optionalDependencies": {
-    "jasmine-core": "^2.8.0",
-    "karma": "^1.7.1",
-    "karma-jasmine": "^1.1.0",
-    "karma-junit-reporter": "^1.2.0",
-    "karma-phantomjs-launcher": "^1.0.4"
+    "jasmine-core": "^2.8.0"
   }
 }

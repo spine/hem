@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
-var path = require('path');
-var fs   = require('fs');
+var path = require("path");
+var fs = require("fs");
 
 // require coffeescript
-require('coffee-script').register();
+require("coffeescript").register();
 
 // Try to find a local install
-var hem = path.resolve(process.cwd(), 'node_modules', 'hem', 'lib', 'hem');
+var hem = path.resolve(process.cwd(), "node_modules", "hem", "lib", "hem");
 
 // Check if the local install exists else we use the install we are in
 if (!fs.existsSync(hem)) {
-  hem = path.join('..', 'lib', 'hem');
+  hem = path.join("..", "lib", "hem");
 }
 
 // execute hem

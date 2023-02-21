@@ -71,7 +71,7 @@ require.extensions['.html'] = (module, filename) ->
 ## Compile Coffeescript
 ##
 
-cs = require 'coffee-script'
+cs = require 'coffeescript'
 compilers.coffee    = (_path) -> compileCoffeescript(_path)
 compilers.litcoffee = (_path) -> compileCoffeescript(_path, true)
 compileCoffeescript = (_path, literate = false) ->
